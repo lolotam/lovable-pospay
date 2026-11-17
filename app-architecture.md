@@ -28,9 +28,10 @@ src/
     use-cases/            one file per use case; orchestrates domain + ports.
     ports/                interfaces (repository, clock, id, notifier). Types only.
     persistence/          *.server.ts — SQL through withUser(); implements ports.
-    server/               *.functions.ts — createServerFn entry points (auth + validation).
+    functions/            *.functions.ts — createServerFn entry points (auth + validation).
+                          Never name it `server/`: the bundler blocks any `server/` folder from the browser.
     ui/                   React components and hooks for this module.
-    contracts.ts          Zod schemas shared by server/ and ui/.
+    contracts.ts          Zod schemas shared by functions/ and ui/.
     index.ts              the module's public API. Other modules import only this.
   shared/kernel/          Money (bigint mills), Percentage, KWD rounding, ids, clock. Zero deps.
   lib/server/             db.server.ts, auth.server.ts, session.server.ts, whatsapp.server.ts
@@ -48,16 +49,16 @@ Banned folder names anywhere: `utils/` (except the existing `src/lib/utils.ts`),
 
 ## 2. The dependency rule
 
-Dependencies point inward only: `routes/ui → server → use-cases → domain`.
+Dependencies point inward only: `routes/ui → functions → use-cases → domain`.
 
 | A file in… | may import | may never import |
 |---|---|---|
 | `domain/` | `shared/kernel` | React, pg, Zod runtime, Better Auth, another module, `ports/` |
 | `use-cases/` | own `domain/`, own `ports/`, `shared/kernel`, `contracts.ts` types | pg, SQL, `process.env`, HTTP/request objects |
 | `ports/` | own `domain/` types, `shared/kernel` | anything else |
-| `persistence/` | own `ports/`, own `domain/` types, `lib/server/db.server` | `server/`, `ui/`, another module |
-| `server/` | own `use-cases/`, own `persistence/` (wiring), `contracts.ts`, `lib/server/*` (dynamic import) | `domain/` directly for business logic |
-| `ui/` | own `contracts.ts`, own `server/` functions, `components/ui`, `i18n` | `persistence/`, `lib/server/*`, `*.server.ts` |
+| `persistence/` | own `ports/`, own `domain/`, `lib/server/db.server` | `functions/`, `ui/`, another module |
+| `functions/` | own `use-cases/`, own `persistence/` (wiring), `contracts.ts`, `lib/server/*` (dynamic import) | `domain/` directly for business logic |
+| `ui/` | own `contracts.ts`, own `functions/`, `components/ui`, `i18n` | `persistence/`, `lib/server/*`, `*.server.ts` |
 | `routes/` | modules' `index.ts` and `ui/` | `persistence/`, SQL |
 | any module | another module's `index.ts` only | deep paths like `../attendance/persistence/x` |
 

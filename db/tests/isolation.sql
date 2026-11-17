@@ -8,13 +8,29 @@ insert into public.branches (company_id, name) values
 insert into public.memberships (company_id, user_id, role) values
   ('00000000-0000-0000-0000-00000000000a','user-a','owner'),
   ('00000000-0000-0000-0000-00000000000b','user-b','owner');
+insert into public.staff_members (company_id, id, branch_id, user_id, display_name)
+  select company_id, gen_random_uuid(), id, case name when 'A-1' then 'user-a' else 'user-b' end, name
+  from public.branches;
+insert into public.attendance_records (company_id, id, staff_id, branch_id, work_date, check_in_at)
+  select s.company_id, gen_random_uuid(), s.id, s.branch_id, current_date, now() from public.staff_members s;
 
+select set_config('test.b_branch', (select id::text from public.branches where name='B-1'), true);
 set local role pospay_app;
 select set_config('app.user_id','user-a',true);
 do $$ begin
   if (select count(*) from public.companies where name='B') <> 0 then raise exception 'LEAK companies'; end if;
   if (select count(*) from public.branches where name='B-1') <> 0 then raise exception 'LEAK branches'; end if;
   if (select count(*) from public.memberships where user_id='user-b') <> 0 then raise exception 'LEAK memberships'; end if;
+  if (select count(*) from public.staff_members where display_name='B-1') <> 0 then raise exception 'LEAK staff'; end if;
+  if (select count(*) from public.attendance_records) <> 1 then raise exception 'LEAK attendance'; end if;
+  if public.branch_qr_secret(current_setting('test.b_branch')::uuid) is not null
+    then raise exception 'LEAK qr secret'; end if;
+  begin
+    insert into public.attendance_records (company_id, id, staff_id, branch_id, work_date, check_in_at)
+      values ('00000000-0000-0000-0000-00000000000b', gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), current_date, now());
+    raise exception 'LEAK: A inserted attendance into B';
+  exception when insufficient_privilege or foreign_key_violation or check_violation then null;
+  end;
   if (select count(*) from public.companies) <> 1 then raise exception 'A should see exactly its company'; end if;
   update public.branches set name='hacked' where name='B-1';
   if found then raise exception 'LEAK: A updated B branch'; end if;
