@@ -56,7 +56,7 @@ function Index() {
         <section className="rounded-lg border border-border bg-card p-6">
           <h2 className="text-lg font-bold">حالة التشغيل</h2>
           <ul className="mt-3 text-sm">
-            <Row label="قاعدة البيانات مضبوطة" ok={data.database} />
+            <Row label="رابط قاعدة البيانات" ok={data.database} />
             <Row label="الاتصال بقاعدة البيانات" ok={data.databaseReachable} />
             <Row label="نظام الدخول" ok={data.auth} />
             <Row label="مزوّد واتساب" ok={data.whatsapp} />
