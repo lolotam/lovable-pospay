@@ -28,3 +28,14 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## PosPay architecture (PRD Phase 1 §10)
+
+- Backend is self-hosted Supabase Postgres reached with `pg` from server code (`DATABASE_URL`); Lovable Cloud is not used — the client chose self-hosting.
+- Auth is Better Auth (`src/lib/server/auth.server.ts`, handler at `/api/auth/$`); never use Supabase Auth — one identity system.
+- App SQL lives in `db/migrations/` (numbered, idempotent, applied with psql); `supabase/migrations/` stays unused because no Lovable-managed DB exists.
+- Every app query goes through `withUser()` (role `pospay_app` + `app.user_id`) so RLS enforces company isolation in the database, not in code.
+- Each new tenant table needs `company_id`, RLS policies via `is_member`/`has_company_role`, grants to `pospay_app`, and a case in `db/tests/isolation.sql`.
+- Roles live in `memberships`, never on the user row, to prevent privilege escalation.
+- Production builds use the Dockerfile with `NITRO_PRESET=node-server` for Dokploy; the Lovable preview keeps its own preset.
+- Server-only modules end in `.server.ts` and are imported dynamically inside server function handlers to stay out of the client bundle.
