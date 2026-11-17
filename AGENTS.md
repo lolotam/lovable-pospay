@@ -68,3 +68,4 @@ The old `CLAUDE.md` / `CLAUDE.architecture.md` (NestJS, monorepo) do not apply t
 - Roles live in `memberships`, never on the user row, to prevent privilege escalation.
 - Production builds use the Dockerfile with `NITRO_PRESET=node-server` for Dokploy; the Lovable preview keeps its own preset.
 - Server-only modules end in `.server.ts` and are imported dynamically inside server function handlers to stay out of the client bundle.
+- Database integration tests require an explicit `POSPAY_TEST_DATABASE_URL` targeting a disposable localhost database named `pospay_test`; never run destructive test fixtures against shared data.
