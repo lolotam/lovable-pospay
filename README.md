@@ -1,14 +1,16 @@
-# Welcome to your Lovable project
+# Self-Hosted App Blueprint
+
+go أفتح المشروع على الاتجاه المعتمد في القسم 10 من وثيقة PRD المرحلة الأولى المرفقة (الإصدار v3)، وهو: تطبيق React واحد، وSupabase مستضافة ذاتياً، وBetter Auth، وRLS في قاعدة البيانات، وserver functions، والنشر من GitHub إلى Dokploy.
 
 This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/8383791a-56f2-45cc-994a-2694653e6172).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +22,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
