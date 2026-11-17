@@ -6,7 +6,7 @@ export const ATTENDANCE_RULES = {
   lateCloseAfterShiftEndMs: 4 * 60 * 60 * 1000,
   /** فترة السماح للتأخير (10 دقائق). */
   graceMs: 10 * 60 * 1000,
-  /** نافذة اعتبار المسح عند بداية وردية — TODO(spec): مقترح 30 دقيقة، ينتظر س2. */
+  /** نافذة بداية الوردية المعتمدة: 30 دقيقة قبل البداية وبعدها (س2). */
   shiftStartWindowMs: 30 * 60 * 1000,
 } as const;
 

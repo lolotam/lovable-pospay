@@ -42,7 +42,7 @@ describe("D-53 open record rules", () => {
   });
 });
 
-describe("ق-6 overlapping shift (proposal)", () => {
+describe("ق-6 approved overlapping shift choices", () => {
   const open = { id: "r1", checkInAt: at("2026-11-18T06:00"), shift: morning };
   const evening = shift("s2", "2026-11-18T20:00", "2026-11-19T02:00");
   const base = { now: at("2026-11-18T20:00"), open, nextShift: evening };
@@ -52,6 +52,14 @@ describe("ق-6 overlapping shift (proposal)", () => {
   });
   it("check-out closes the old record late", () => {
     expect(decideScan({ ...base, intent: "check_out" })).toEqual({ kind: "check_out", recordId: "r1", status: "closed_late" });
+  });
+  it.each(["19:30", "20:30"])("30-minute window includes %s", (time) => {
+    expect(decideScan({ ...base, now: at(`2026-11-18T${time}`), intent: null }))
+      .toEqual({ kind: "needs_intent", recordId: "r1" });
+  });
+  it.each(["19:29", "20:31"])("outside the 30-minute window at %s closes the old record", (time) => {
+    expect(decideScan({ ...base, now: at(`2026-11-18T${time}`), intent: null }))
+      .toEqual({ kind: "check_out", recordId: "r1", status: "closed_late" });
   });
 });
 

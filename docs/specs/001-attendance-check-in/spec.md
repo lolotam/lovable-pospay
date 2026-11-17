@@ -11,8 +11,10 @@ location is recorded as an exception, never rejected (D-12).
 - D-53: a scan closes an open record up to 16 h old. Older → forgotten check-out exception and a
   new check-in. Scan more than 4 h after shift end (within 16 h) closes as `closed_late`.
 - D-10: dates and lateness use the branch time zone.
-- ق-6 (proposal, pending client): open record ≤16 h and the scan is at a scheduled shift start →
+- ق-6 (approved by Waleed, 2026-11-18 Kuwait): open record ≤16 h and the scan is at a scheduled shift start →
   staff choose «بدء الوردية الجديدة» or «انصراف». New shift: previous record → forgotten exception.
+- Scheduled shift start window: 30 minutes before and after the start, inclusive (approved by Waleed).
+- QR token lifetime: 60 seconds (approved by Waleed).
 
 ## Edge cases
 - No location → `exception` with reason `no_location`. Outside 150 m → `outside_geofence`.
@@ -42,4 +44,4 @@ Reception/manager/owner can show the branch QR.
 Domain unit tests for each rule above (`src/modules/attendance/domain/*.test.ts`).
 
 ## Open questions
-See `owner-questions.ar.md`.
+س1–س3 are resolved; see `owner-questions.ar.md` for Waleed's approvals.
