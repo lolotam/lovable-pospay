@@ -34,7 +34,8 @@ use the editor.
 1. `AGENTS.md` — this file: communication and workflow
 2. [`app-architecture.md`](./app-architecture.md) — where code goes and what it may import
 3. [`docs/PRD-phase1.ar.md`](./docs/PRD-phase1.ar.md) — Phase 1 scope and approved decisions
-4. [`docs/DEPLOY.md`](./docs/DEPLOY.md) — deploy to Dokploy
+4. [`docs/agent-delivery-pipeline.md`](./docs/agent-delivery-pipeline.md) — spec → PR → merge steps
+5. [`docs/DEPLOY.md`](./docs/DEPLOY.md) — deploy to Dokploy
 
 The old `CLAUDE.md` / `CLAUDE.architecture.md` (NestJS, monorepo) do not apply to this app.
 
