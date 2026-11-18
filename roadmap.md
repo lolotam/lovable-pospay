@@ -86,7 +86,9 @@
 - [x] Migrations 0011–0013 applied in production after PR #5.
 - [x] Migrations 0014–0015 applied in production from PR #7 commit d33fdd8 (2026-11-18, backup `/root/pospay-backups/pre-0014-0015-20261118T162803Z.dump`).
 - [x] 015 Team invites page `/team` and acceptance page `/invite` (Lovable d180eae, merged into lovable with main's reviewed backend; the invite link is emailed only)
-- [x] Migration 0016 applied in production after PR #7 merge (2026-11-18, backup `/root/pospay-backups/pre-0016-20261118T174058Z.dump`); 0017 waits for approval
+- [x] Migration 0016 applied in production after PR #7 merge (2026-11-18, backup `/root/pospay-backups/pre-0016-20261118T174058Z.dump`)
+- [x] Migration 0017 applied in production (2026-11-18, backup `/root/pospay-backups/pre-0017-20261118T180847Z.dump`)
+- [x] 016 App structure (workspaces, role areas, permissions) landed on `lovable` and `main` at 9db7389 (PR #10); migration 0018 applied manually in production by Waleed (2026-11-18), not verified from this session; follow-ups in #11
 - [ ] Authenticated UI acceptance unverified (preview auth not configured).
 - [x] 012 تصدير تقارير الحضور/المصححة/الجلسات CSV وPDF
 - [ ] ق-1 قرار تعديل السعر وحد الخصم (D-44) — مستني وليد
