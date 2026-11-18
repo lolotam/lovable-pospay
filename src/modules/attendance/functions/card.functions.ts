@@ -73,7 +73,8 @@ export const revokeCardFn = createServerFn({ method: "POST" })
 type CardScanResponse =
   | { status: "recorded"; scan: Awaited<ReturnType<typeof recordCard>> }
   | { status: "rejected" }
-  | { status: "cancelled" };
+  | { status: "cancelled" }
+  | { status: "unverified" };
 
 async function executeCardScan(
   execute: () => Promise<Awaited<ReturnType<typeof recordCard>>>,
@@ -131,14 +132,14 @@ async function withCardRequest(
   try {
     const userId = await requireUserId();
     const age = Date.now() - data.requestedAt;
-    if (userId !== data.expectedUserId || age < -5 * 60_000 || age >= 7 * 24 * 60 * 60_000)
-      return { status: "rejected" };
+    if (userId !== data.expectedUserId || age < -5 * 60_000) return { status: "unverified" };
+    if (age >= 7 * 24 * 60 * 60_000) return { status: "rejected" };
     return await withUser(userId, async (db) => {
       const { rows } = await db.query<{ member: boolean }>(
         "select public.is_member($1) as member",
         [data.companyId],
       );
-      if (!rows[0]?.member) return { status: "rejected" };
+      if (!rows[0]?.member) return { status: "unverified" };
       const receipts = pgCardScanReceipts<CardScanResponse>(
         db,
         data.companyId,
@@ -148,10 +149,9 @@ async function withCardRequest(
       return run({ db, userId, receipts });
     });
   } catch (error) {
-    if (
-      error instanceof Error &&
-      ["UNAUTHENTICATED", "CARD_REQUEST_CONFLICT"].includes(error.message)
-    )
+    if (error instanceof Error && error.message === "UNAUTHENTICATED")
+      return { status: "unverified" };
+    if (error instanceof Error && error.message === "CARD_REQUEST_CONFLICT")
       return { status: "rejected" };
     throw error;
   }

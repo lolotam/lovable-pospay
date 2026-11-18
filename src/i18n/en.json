@@ -252,6 +252,7 @@
   "cards.statusUnavailable": "The result is still unavailable. Retry the original scan request.",
   "cards.scanCancelled": "The previous scan did not record an attendance change. You can scan again.",
   "cards.scanStorageUnavailable": "Scan recovery could not be initialized in this tab.",
+  "cards.scanSessionUnverified": "Sign in with the original account and retry recovery before scanning again.",
   "cards.statusDiscontinued": "The original scan could not be verified. Have a manager check the record before repeating it. You can scan a different card.",
   "services.createUnconfirmed": "Creation could not be confirmed. Retry the original submission to recover the service.",
   "services.retryCreate": "Retry creation",

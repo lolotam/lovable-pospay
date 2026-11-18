@@ -110,7 +110,6 @@ function useScanner(companyId: string, userId: string) {
   const [busy, setBusy] = useState(false);
   const [prompt, setPrompt] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-
   async function submit(attempt: CardRequest, request: CardScanRequest | null, retry: boolean) {
     if (inFlight.current) return;
     inFlight.current = true;
@@ -119,6 +118,7 @@ function useScanner(companyId: string, userId: string) {
     try {
       current.current = request;
       const response = request ? await scan({ data: request }) : await settle({ data: attempt });
+      if (response.status === "unverified") return setMessage(t("cards.scanSessionUnverified"));
       acknowledge(attempt.requestId);
       current.current = null;
       setPrompt(null);

@@ -104,3 +104,48 @@ it("preserves a receipt for recovery when the scan response arrives after unmoun
   expect(await screen.findByText(new RegExp(t("attend.checkedIn")))).toBeInTheDocument();
   expect(sessionStorage.getItem(key)).toBeNull();
 });
+
+it("keeps the original request blocked through an expired session", async () => {
+  let finishOriginal!: (value: unknown) => void;
+  scan.mockReset().mockReturnValueOnce(
+    new Promise((resolve) => {
+      finishOriginal = resolve;
+    }),
+  );
+  settle
+    .mockReset()
+    .mockResolvedValueOnce({ status: "unverified" })
+    .mockResolvedValueOnce({
+      status: "recorded",
+      scan: { name: "Employee", result: { outcome: "checked_in" } },
+    });
+  const first = render(<CardScanPage />);
+  fireEvent.change(screen.getByRole("textbox", { name: t("cards.scanInput") }), {
+    target: { value: "d".repeat(48) },
+  });
+  fireEvent.click(screen.getByRole("button", { name: t("cards.scan") }));
+  const key = sessionStorage.key(0);
+  if (!key) throw new Error("Expected a stored recovery request");
+  const stored = sessionStorage.getItem(key);
+  first.unmount();
+
+  render(<CardScanPage />);
+  const recover = screen.getByRole("button", { name: t("cards.checkScanStatus") });
+  fireEvent.click(recover);
+  expect(await screen.findByText(t("cards.scanSessionUnverified"))).toBeInTheDocument();
+  expect(screen.getByRole("textbox", { name: t("cards.scanInput") })).toBeDisabled();
+  expect(sessionStorage.getItem(key)).toBe(stored);
+  await act(async () =>
+    finishOriginal({
+      status: "recorded",
+      scan: { name: "Employee", result: { outcome: "checked_in" } },
+    }),
+  );
+  expect(sessionStorage.getItem(key)).toBe(stored);
+
+  fireEvent.click(recover);
+  expect(await screen.findByText(new RegExp(t("attend.checkedIn")))).toBeInTheDocument();
+  expect(settle.mock.calls[0]).toEqual(settle.mock.calls[1]);
+  expect(sessionStorage.getItem(key)).toBeNull();
+  expect(scan).toHaveBeenCalledTimes(1);
+});
