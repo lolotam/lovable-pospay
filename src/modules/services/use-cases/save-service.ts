@@ -6,7 +6,18 @@ import { servicePrice } from "./service-price";
 export async function loadCatalog(repo: CatalogReader): Promise<ServiceCatalogDto> {
   const access = await repo.access();
   if (!access?.member) throw new Error("FORBIDDEN");
-  return { ...(await repo.read()), canManage: access.manager };
+  const catalog = await repo.read();
+  return {
+    canManage: access.manager,
+    services: catalog.services.map(({ id, name, priceMills, version, staffIds }) => ({
+      id,
+      name,
+      priceMills,
+      version,
+      staffIds,
+    })),
+    staff: catalog.staff.map(({ id, name }) => ({ id, name })),
+  };
 }
 
 export async function saveService(repo: CatalogWriter, input: z.infer<typeof saveServiceInput>) {
