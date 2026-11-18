@@ -106,10 +106,16 @@ async function chatCall(
   });
   if (!res.ok)
     throw new HttpError(`AI_${res.status}: ${(await res.text()).slice(0, 300)}`, res.status);
-  const j = await res.json();
-  return String(j.choices?.[0]?.message?.content ?? "")
-    .replace(/<think>[\s\S]*?<\/think>/g, "")
-    .trim();
+  const payload: {
+    choices?: { finish_reason?: unknown; message?: { content?: unknown } }[];
+  } | null = await res.json();
+  const choice = Array.isArray(payload?.choices) ? payload.choices[0] : undefined;
+  if (choice?.finish_reason !== "stop") throw new Error("AI_COMPLETION_INCOMPLETE");
+  const content = choice.message?.content;
+  const answer =
+    typeof content === "string" ? content.replace(/<think>[\s\S]*?<\/think>/g, "").trim() : "";
+  if (!answer) throw new Error("AI_COMPLETION_EMPTY");
+  return answer;
 }
 
 /** Runs one prompt through a connected platform connector; retries once after a 401 with a fresh token. */
