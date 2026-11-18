@@ -27,16 +27,16 @@ modify `src/modules/attendance/persistence/attendance-repository.server.ts` and
 `src/modules/attendance/ports/attendance-repository.ts`.
 **Interfaces:** existing close/markForgotten Promise<void> reject with ATTENDANCE_CONFLICT
 when the open-state predicate matched no row. Existing scanAttendance and withUser unchanged.
-- [ ] Write real DB checkout race and stale-forgotten tests before implementation.
+- [x] Write real DB checkout race and stale-forgotten tests before implementation.
   Two scan transactions rendezvous after reading the open record; assert exactly one
   checked_out, one ATTENDANCE_CONFLICT and one checkout audit.
-- [ ] Run `POSPAY_TEST_DATABASE_URL=postgresql://pospay_test@127.0.0.1:55433/pospay_test bunx vitest run src/modules/attendance/use-cases/scan-concurrency.integration.test.ts`.
+- [x] Run `POSPAY_TEST_DATABASE_URL=postgresql://pospay_test@127.0.0.1:55433/pospay_test bunx vitest run src/modules/attendance/use-cases/scan-concurrency.integration.test.ts`.
   Expected: FAIL because both callers report success / stale update resolves silently.
-- [ ] Capture rowCount for close and markForgotten; throw ATTENDANCE_CONFLICT unless 1.
+- [x] Capture rowCount for close and markForgotten; throw ATTENDANCE_CONFLICT unless 1.
   Document rejection in the existing port; do not introduce a parallel repository.
-- [ ] Add new-shift race and audit rollback cases; run task command again.
+- [x] Add new-shift race and audit rollback cases; run task command again.
   Expected: all cases PASS. Run full suite, changed-file lint, SQL isolation acceptance,
   diff check and inspect harness build; record full lint output without weakening rules.
-- [ ] Commit implementation and tests; complete task ledger; request fresh whole-range review.
+- [x] Commit implementation and tests; complete task ledger; request fresh whole-range review.
   Fix important findings test-first. Record checks and remaining acceptance blockers in
   verification.md and roadmap.md after verification; commit documentation.

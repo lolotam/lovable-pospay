@@ -1,7 +1,8 @@
 # Roadmap
 
 ## Continuation (2026-11-18)
-- [ ] 008 / remaining 001 transition safety — spec and inline plan written; verify concurrent checkout/new-shift cannot report duplicate success or audit. No new business decisions, shared DB/env/server/deploy writes.
+- [x] 008 / remaining 001 transition safety implementation — spec → plan → tests RED (3 failures) → rowCount guards GREEN (4/4); 81/81 full-suite tests pass with --no-file-parallelism, including SQL isolation. Fresh whole-range review: 0 Standards/Spec findings; commit 8bc5bf8. No shared DB/env/server/deploy writes.
+- [ ] 008 verification gates — default parallel suites collide on shared local migration DDL (`tuple concurrently updated`); full lint SIGTERM after 120 seconds (exit 124), not a pass. Harness build OK; changed-file lint/diff check pass. Authenticated 001/002/007 acceptance and PR/CI gates remain open; see docs/specs/008-attendance-transition-safety/verification.md.
 - [x] 007 / remaining 001 D-32 — spec → plan → manager correction screen implemented; original checkout retained, required reason, row lock, transactional audit, permission recheck and verified readback. 77 tests pass on disposable localhost pospay_test; changed-file lint passes; latest harness build OK. No shared DB/server/env/deploy writes.
 - [ ] 007 authenticated UI acceptance — preview Better Auth not configured. Unavailable state + sign-in navigation verified at 390/820/1280 light/dark without horizontal overflow; actual manager list/save/readback not browser-verified. Full lint ended SIGTERM after 240 seconds; not a pass. PR/CI gates unrun.
 - [x] 002 phone management selector implementation — company/staff names replace manual IDs; 4 repository permission tests pass on disposable PostgreSQL; authenticated browser acceptance remains open.
