@@ -87,5 +87,6 @@
   "conn.default": "الافتراضي",
   "conn.makeDefault": "اجعله الافتراضي",
   "conn.model": "الموديل",
-  "conn.updated": "آخر تحديث"
+  "conn.updated": "آخر تحديث",
+  "auth.notConfigured": "الدخول غير متاح على هذه النسخة بعد. السيرفر لسه مش متوصّل بقاعدة البيانات."
 }

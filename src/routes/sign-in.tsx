@@ -26,7 +26,9 @@ function SignIn() {
     e.preventDefault();
     setMessage(null);
     const { error } = await authClient.signIn.email({ email, password });
-    setMessage(error ? t("auth.failed") : t("auth.success"));
+    setMessage(
+      error ? t(error.status === 503 ? "auth.notConfigured" : "auth.failed") : t("auth.success"),
+    );
   }
 
   return (

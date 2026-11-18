@@ -87,5 +87,6 @@
   "conn.default": "Default",
   "conn.makeDefault": "Make default",
   "conn.model": "Model",
-  "conn.updated": "Updated"
+  "conn.updated": "Updated",
+  "auth.notConfigured": "Sign-in is not available on this server yet. The database is not connected."
 }
