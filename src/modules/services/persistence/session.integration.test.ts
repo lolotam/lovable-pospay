@@ -7,6 +7,7 @@ import { pgSessionRepository, readSessionForm } from "./session.server";
 import { loadSessionReport } from "../use-cases/read-session-report";
 import { readSessionReport } from "./session-report.server";
 import { recordSession } from "../use-cases/record-session";
+import { saveDiscountGrant } from "./discount.server";
 const url = process.env["POSPAY_TEST_DATABASE_URL"];
 const company = "40000000-0000-0000-0000-000000000001",
   branch = "40000000-0000-0000-0000-000000000002",
@@ -40,6 +41,7 @@ describe.skipIf(!url)("service sessions real RLS", () => {
         "0011_barcode",
         "0012_service_catalog",
         "0013_service_sessions",
+        "0014_discount_grants",
       ])
         await admin.query(await readFile(`db/migrations/${f}.sql`, "utf8"));
     await admin.query(`insert into companies(id,name) values($1,'Sessions salon')`, [company]);
@@ -155,5 +157,35 @@ describe.skipIf(!url)("service sessions real RLS", () => {
   it("employee sees no recording form", async () => {
     const form = await withUser("s-staff", (db) => readSessionForm(db, company));
     expect(form.canRecord).toBe(false);
+  });
+  it("enforces the granted discount limit in RLS (ق-1)", async () => {
+    const disc = (user: string, price: string) =>
+      withUser(user, (db) =>
+        recordSession(
+          pgSessionRepository(db, user, company),
+          { ...input, requestId: crypto.randomUUID(), price, discountReason: "vip" },
+          new Date(),
+        ),
+      );
+    await expect(disc("s-reception", "11.250")).rejects.toThrow("DISCOUNT_OVER_LIMIT");
+    await expect(
+      withUser("s-reception", (db) =>
+        db.query(
+          `insert into service_sessions(company_id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,price_mills,list_price_mills,discount_reason,recorded_by)
+           select $1,$2,$3,$4,id,now(),'Hair',1,12500,'x','s-reception' from clients where company_id=$1 limit 1`,
+          [company, service, staff, branch],
+        ),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      withUser("s-reception", (db) =>
+        saveDiscountGrant(db, "s-reception", company, { kind: "role", role: "reception" }, 50),
+      ),
+    ).rejects.toThrow();
+    await withUser("s-owner", (db) =>
+      saveDiscountGrant(db, "s-owner", company, { kind: "role", role: "reception" }, 10),
+    );
+    await expect(disc("s-reception", "11.250")).resolves.toHaveProperty("id");
+    await expect(disc("s-reception", "11.249")).rejects.toThrow("DISCOUNT_OVER_LIMIT");
   });
 });

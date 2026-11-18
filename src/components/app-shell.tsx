@@ -24,6 +24,7 @@ const sections: { title: MessageKey | null; items: NavItem[] }[] = [
       ...(serviceSessionRecordingAvailable
         ? [{ to: "/sessions", label: "nav.sessions", icon: "◆" } as const]
         : []),
+      { to: "/discounts", label: "nav.discounts", icon: "%" },
       { to: "/reports", label: "nav.reports", icon: "≡" },
       { to: "/attendance-corrections", label: "nav.corrections", icon: "✓" },
       { to: "/attendance-questions", label: "nav.insights", icon: "?" },

@@ -12,6 +12,10 @@ export function pgSessionRepository(
       const r = await db.query(`select public.session_writer($1,$2) as ok`, [companyId, branchId]);
       return Boolean(r.rows[0]?.ok);
     },
+    async discountCap() {
+      const { rows } = await db.query<{ cap: number }>("select public.discount_cap($1) as cap", [companyId]);
+      return rows[0]?.cap ?? 0;
+    },
     async resolveTime(local, timeZone) {
       const r = await db.query<{ occurred_at: Date; round_trip: string }>(
         `select $1::timestamp at time zone $2 as occurred_at,
@@ -83,8 +87,8 @@ async function insertSession(
   session: NewSession,
 ) {
   await db.query(
-    `insert into public.service_sessions(company_id,id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,price_mills,recorded_by)
-     values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    `insert into public.service_sessions(company_id,id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,price_mills,recorded_by,list_price_mills,discount_reason)
+     values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
     [
       companyId,
       session.id,
@@ -96,6 +100,8 @@ async function insertSession(
       session.serviceName,
       session.priceMills.toString(),
       userId,
+      session.listPriceMills.toString(),
+      session.discountReason,
     ],
   );
 }
@@ -107,6 +113,7 @@ export async function readSessionForm(
 ): Promise<SessionFormRecord> {
   const { rows } = await db.query<{
     canRecord: boolean;
+    discountCap: number;
     services: (Omit<SessionFormRecord["services"][number], "priceMills"> & {
       priceMills: string;
     })[];
@@ -127,12 +134,13 @@ export async function readSessionForm(
        group by c.id, c.name, c.price_mills
      )
      select public.session_writer_any($1) as "canRecord",
+       public.discount_cap($1) as "discountCap",
        coalesce((select json_agg(c order by c.name, c.id) from eligible_services c), '[]') as services,
        coalesce((select json_agg(s order by s.name, s.id) from eligible_staff s), '[]') as staff`,
     [companyId],
   );
   const options = rows[0];
-  if (!options?.canRecord) return { canRecord: false, services: [], staff: [] };
+  if (!options?.canRecord) return { canRecord: false, discountCap: 0, services: [], staff: [] };
   return {
     ...options,
     services: options.services.map((service) => ({

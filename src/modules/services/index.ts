@@ -15,3 +15,8 @@ export const readServiceReport = createServerOnlyFn(
     return loadSessionReport(() => readSessionReport(db, companyId, from, until, limit));
   },
 );
+export {
+  getDiscountSettingsFn,
+  saveDiscountGrantFn,
+  revokeDiscountGrantFn,
+} from "./functions/discount.functions";
