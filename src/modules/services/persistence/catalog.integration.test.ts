@@ -80,9 +80,11 @@ describe.skipIf(!url)("service catalog under PostgreSQL RLS", () => {
       price: "20",
       staffIds: [staff],
     };
-    const run = () =>
-      withUser("catalog-manager", (db) => saveService(db, "catalog-manager", input));
-    await expect(Promise.all([run(), run()])).resolves.toEqual([
+    const run = (id: string) =>
+      withUser("catalog-manager", (db) =>
+        saveService(db, "catalog-manager", { ...input, requestId: id }),
+      );
+    await expect(Promise.all([run(requestId.toUpperCase()), run(requestId)])).resolves.toEqual([
       { id: requestId },
       { id: requestId },
     ]);

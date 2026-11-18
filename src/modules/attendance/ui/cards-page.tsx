@@ -61,17 +61,24 @@ function useCards(companyId: string, userId: string) {
     } catch {
       setMessage(t(action === "issue" ? "cards.issueUnconfirmed" : "cards.error"));
     } finally {
-      const refreshed = await refetch().catch(() => undefined);
-      if (saved) {
-        const verified = refreshed?.data?.value && !refreshed.data.error;
-        setMessage(t(verified ? "ops.saved" : "cards.savedRefreshFailed"));
-      }
       setBusy(false);
+      void refetch().then(
+        ({ data: refreshed }) => {
+          if (saved) {
+            const verified = refreshed?.value && !refreshed.error;
+            setMessage(t(verified ? "ops.saved" : "cards.savedRefreshFailed"));
+          }
+        },
+        () => {
+          if (saved) setMessage(t("cards.savedRefreshFailed"));
+        },
+      );
     }
   }
   return {
     data,
     busy,
+    isFetching,
     confirm,
     setConfirm,
     issued,
@@ -96,23 +103,22 @@ export function CardActions({
   policyOnly = false,
   onSwitchLockChange,
 }: CardActionsProps) {
-  const { data, busy, confirm, setConfirm, issued, dismissIssued, message, run } = useCards(
-    companyId,
-    userId,
-  );
+  const { data, busy, isFetching, confirm, setConfirm, issued, dismissIssued, message, run } =
+    useCards(companyId, userId);
   useEffect(() => {
     onSwitchLockChange?.(busy || !!issued);
+    return () => onSwitchLockChange?.(false);
   }, [busy, issued, onSwitchLockChange]);
   const value = data.value;
   return (
     <div className="space-y-6">
       {data.error && <p role="alert">{t(data.error)}</p>}
-      {value && <CardPolicy value={value} busy={busy || !!issued} run={run} />}
+      {value && <CardPolicy value={value} busy={busy || isFetching || !!issued} run={run} />}
       {value && !policyOnly && (
         <>
           <CardList
             value={value}
-            busy={busy || !!issued}
+            busy={busy || isFetching || !!issued}
             confirm={confirm}
             setConfirm={setConfirm}
             run={run}

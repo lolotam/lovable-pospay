@@ -6,10 +6,24 @@ import type { SessionReportRecord } from "../ports/session-repository";
 export async function loadSessionReport(
   read: () => Promise<SessionReportRecord[]>,
 ): Promise<SessionReportRow[]> {
-  return (await read()).map(({ recordedAt, occurredAt, priceMills, ...record }) => ({
+  return (await read()).map(formatSessionReportRow);
+}
+
+function formatSessionReportRow(row: SessionReportRecord): SessionReportRow {
+  const { recordedAt, occurredAt, priceMills, ...record } = row;
+  let timeZone = record.timeZone;
+  let late: boolean | null = null;
+  try {
+    late = isLateSession(occurredAt, recordedAt, timeZone);
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error;
+    timeZone = "UTC";
+  }
+  return {
     ...record,
+    timeZone,
     occurredAt: occurredAt.toISOString(),
     priceMills: priceMills.toString(),
-    late: isLateSession(occurredAt, recordedAt, record.timeZone),
-  }));
+    late,
+  };
 }

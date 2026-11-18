@@ -7,18 +7,20 @@ export const getOperationalReportFn = createServerFn({ method: "GET" })
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { readAttendanceReport } = await import("../persistence/report.server");
-    const { loadSessionReport, readSessionReport } =
-      await import("@/modules/services/index.server");
-    const userId = await requireUserId();
-    if (userId !== data.expectedUserId) throw new Error("FORBIDDEN");
-    return withUser(userId, (db) =>
-      readOperationalReport(data.tab, {
-        attendance: (limit, correctedOnly) =>
-          readAttendanceReport(db, data.companyId, data.from, data.until, limit, correctedOnly),
-        sessions: (limit) =>
-          loadSessionReport(() =>
-            readSessionReport(db, data.companyId, data.from, data.until, limit),
-          ),
-      }),
-    );
+    const { readServiceReport } = await import("@/modules/services");
+    try {
+      const userId = await requireUserId();
+      if (userId !== data.expectedUserId) return "FORBIDDEN" as const;
+      return await withUser(userId, (db) =>
+        readOperationalReport(data.tab, {
+          attendance: (limit, correctedOnly) =>
+            readAttendanceReport(db, data.companyId, data.from, data.until, limit, correctedOnly),
+          sessions: (limit) => readServiceReport(db, data.companyId, data.from, data.until, limit),
+        }),
+      );
+    } catch (error) {
+      if (error instanceof Error && ["FORBIDDEN", "UNAUTHENTICATED"].includes(error.message))
+        return "FORBIDDEN" as const;
+      throw error;
+    }
   });

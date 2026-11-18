@@ -107,12 +107,13 @@ function ReportTabRows({ companyId, range, tab, userId }: ReportScope & { tab: R
             data: { companyId, expectedUserId: userId, from: range.from, until: range.until, tab },
           });
         } catch {
-          return null;
+          return "REPORT_LOAD_FAILED" as const;
         }
       },
     }),
   );
-  if (!data) return <p role="alert">{t("ops.forbidden")}</p>;
+  if (data === "FORBIDDEN") return <p role="alert">{t("ops.denied")}</p>;
+  if (data === "REPORT_LOAD_FAILED") return <p role="alert">{t("reports.loadFailed")}</p>;
   if (data === "REPORT_TOO_LARGE") return <p role="alert">{t("reports.narrowRange")}</p>;
   return (
     <>
@@ -174,6 +175,7 @@ function SessionRows({ rows }: { rows: OperationalReport["sessions"] }) {
           </h3>
           <p>
             {formatReportDate(r.occurredAt, r.timeZone)}
+            {r.late === null && <span className="ms-2">{t("reports.sessionTimezoneUnknown")}</span>}
             {r.late && <span className="ms-2 text-destructive">{t("reports.lateSession")}</span>}
           </p>
           {r.clientName && (

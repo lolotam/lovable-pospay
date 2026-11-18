@@ -140,6 +140,18 @@ describe.skipIf(!url)("service sessions real RLS", () => {
     ]);
     expect(c.rows[0].n).toBe(1);
   });
+  it("returns only services with eligible staff in the recording form", async () => {
+    await admin.query(
+      "insert into service_catalog(company_id,name,price_mills) values($1,'Unassigned',1000)",
+      [company],
+    );
+    const form = await withUser("s-reception", (db) => readSessionForm(db, company));
+    expect(form).toMatchObject({
+      canRecord: true,
+      services: [{ id: service, staffIds: [staff], priceMills: 12500n }],
+      staff: [{ id: staff, timeZone: "UTC" }],
+    });
+  });
   it("employee sees no recording form", async () => {
     const form = await withUser("s-staff", (db) => readSessionForm(db, company));
     expect(form.canRecord).toBe(false);

@@ -31,15 +31,16 @@ export async function saveService(repo: CatalogWriter, input: SaveServiceInput) 
   if (input.id && (!previous || previous.version !== input.version))
     throw new Error("SERVICE_CONFLICT");
 
+  const requestId = input.requestId?.toLowerCase();
   let id = input.id;
   if (id) {
     await repo.update(id, details);
   } else {
-    id = (await repo.create(details, input.requestId)) ?? undefined;
+    id = (await repo.create(details, requestId)) ?? undefined;
     if (!id) {
-      if (!input.requestId || !(await repo.matchesCreation(input.requestId, details)))
+      if (!requestId || !(await repo.matchesCreation(requestId, details)))
         throw new Error("SERVICE_REQUEST_CONFLICT");
-      return { id: input.requestId.toLowerCase() };
+      return { id: requestId };
     }
   }
 

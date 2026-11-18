@@ -29,7 +29,7 @@ export interface SessionReportRow {
   timeZone: string;
   priceMills: string;
   clientName: string | null;
-  late: boolean;
+  late: boolean | null;
 }
 export const recordSessionInput = serviceScope.extend({
   requestId: z.string().uuid(),
@@ -39,6 +39,7 @@ export const recordSessionInput = serviceScope.extend({
   clientPhone: z.string().trim().min(8).max(24),
   occurredAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
 });
+export type RecordSessionRequest = z.input<typeof recordSessionInput>;
 export interface SessionFormDto {
   canRecord: boolean;
   services: { id: string; name: string; priceMills: string; staffIds: string[] }[];

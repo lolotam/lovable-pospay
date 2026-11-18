@@ -27,7 +27,7 @@ export function buildTable(data: OperationalReport, tab: ReportTab): Table {
         formatReportDate(r.occurredAt, r.timeZone),
         r.clientName ?? "",
         formatMills(r.priceMills),
-        r.late ? "✓" : "",
+        r.late === null ? t("reports.sessionTimezoneUnknown") : r.late ? "\u2713" : "",
       ]),
     };
   const rows: AttendanceReportRow[] =
