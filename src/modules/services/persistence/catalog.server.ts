@@ -31,6 +31,7 @@ export async function saveService(
   const access = await db.query(`select public.catalog_manager($1) as manager`, [input.companyId]);
   if (!access.rows[0]?.manager) throw new Error("FORBIDDEN");
   const price = priceMills.toString();
+  const staffIds = [...new Set(input.staffIds)];
   const prior = input.id
     ? await db.query(
         `select name,price_mills::text,version from public.service_catalog where company_id=$1 and id=$2 for update`,
@@ -50,9 +51,22 @@ export async function saveService(
          on conflict(company_id,id) do nothing returning id`,
         [input.companyId, input.name, price, input.requestId ?? null],
       );
-  if (!input.id && input.requestId && !result.rowCount) return { id: input.requestId };
+  if (!input.id && input.requestId && !result.rowCount) {
+    const { rows } = await db.query<{ matches: boolean }>(
+      `select exists (
+        select 1 from public.audit_log
+        where company_id=$1 and actor_user_id=$2 and entity_id=$3
+          and entity='service' and action='service.saved'
+          and details->'previous'='null'::jsonb
+          and details->>'name'=$4 and details->>'priceMills'=$5
+          and (details->'staffIds') @> $6::jsonb and $6::jsonb @> (details->'staffIds')
+      ) as matches`,
+      [input.companyId, userId, input.requestId, input.name, price, JSON.stringify(staffIds)],
+    );
+    if (!rows[0]?.matches) throw new Error("SERVICE_REQUEST_CONFLICT");
+    return { id: input.requestId };
+  }
   const id = result.rows[0].id;
-  const staffIds = [...new Set(input.staffIds)];
   const selected = await db.query(
     `select id from public.staff_members where company_id=$1 and id=any($2::uuid[])`,
     [input.companyId, staffIds],

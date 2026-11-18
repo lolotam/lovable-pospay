@@ -281,6 +281,19 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
       { id: requestId },
       { id: requestId },
     ]);
+    for (const changed of [
+      { ...input, price: "21" },
+      { ...input, staffIds: [] },
+    ]) {
+      await expect(
+        withUser("cards-manager", (db) => saveService(db, "cards-manager", changed)),
+      ).rejects.toThrow("SERVICE_REQUEST_CONFLICT");
+    }
+    const catalog = await withUser("cards-manager", (db) => readCatalog(db, company));
+    expect(catalog.services.find(({ id }) => id === requestId)).toMatchObject({
+      priceMills: "20000",
+      staffIds: [staff],
+    });
     const audit = await admin.query(
       "select count(*)::int as count from public.audit_log where company_id=$1 and entity_id=$2 and action='service.saved'",
       [company, requestId],
