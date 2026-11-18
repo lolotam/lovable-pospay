@@ -43,3 +43,11 @@ describe("report export", () => {
     expect(toCsv({ title: "t", head: ["h"], body: [] }).charCodeAt(0)).toBe(0xfeff);
   });
 });
+
+describe("pdf paging", async () => {
+  const { chunkRows } = await import("./report-pdf");
+  it("splits rows into whole-row pages and keeps an empty page for no data", () => {
+    expect(chunkRows([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+    expect(chunkRows([], 2)).toEqual([[]]);
+  });
+});

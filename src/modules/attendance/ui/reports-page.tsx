@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
 import { getOperationalReportFn } from "../functions/report.functions";
-import { buildTable, downloadCsv, printPdf } from "./report-export";
+import { buildTable, downloadCsv } from "./report-export";
 export function ReportsPage() {
   return (
     <CompanyScope title="reports.title">{(id) => <ReportFilters companyId={id} />}</CompanyScope>
@@ -82,6 +82,7 @@ function ReportRows({
     }),
   );
   const [tab, setTab] = useState<"attendance" | "corrected" | "services">("attendance");
+  const [pdfBusy, setPdfBusy] = useState(false);
   if (!data) return <p role="alert">{t("ops.forbidden")}</p>;
   const rows = tab === "corrected" ? data.attendance.filter((r) => r.corrected) : data.attendance;
   return (
@@ -114,14 +115,22 @@ function ReportRows({
         </Button>
         <Button
           variant="outline"
-          onClick={() =>
-            printPdf(
-              buildTable(data, tab),
-              `${new Date(range.from).toLocaleString("ar-KW")} — ${new Date(range.until).toLocaleString("ar-KW")}`,
-            )
-          }
+          disabled={pdfBusy}
+          onClick={async () => {
+            setPdfBusy(true);
+            try {
+              const { downloadPdf } = await import("./report-pdf");
+              await downloadPdf(
+                buildTable(data, tab),
+                `${new Date(range.from).toLocaleString("ar-KW")} — ${new Date(range.until).toLocaleString("ar-KW")}`,
+                `pospay-${tab}-${range.from.slice(0, 10)}`,
+              );
+            } finally {
+              setPdfBusy(false);
+            }
+          }}
         >
-          {t("export.pdf")}
+          {t(pdfBusy ? "export.pdfBusy" : "export.pdf")}
         </Button>
       </div>
       {tab === "services" ? <SessionRows rows={data.sessions} /> : <AttendanceRows rows={rows} />}

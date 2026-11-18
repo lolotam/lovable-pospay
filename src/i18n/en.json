@@ -237,7 +237,7 @@
   "reports.client": "Client",
   "reports.lateSession": "Late",
   "export.csv": "Export CSV",
-  "export.pdf": "Export PDF",
+  "export.pdf": "Download PDF",
   "export.employee": "Employee",
   "export.branch": "Branch",
   "export.workDate": "Work date",
@@ -266,5 +266,6 @@
   "sessions.reason": "Discount reason",
   "sessions.DISCOUNT_OVER_LIMIT": "Discount exceeds your limit",
   "sessions.DISCOUNT_REASON_REQUIRED": "Enter a discount reason",
-  "sessions.PRICE_ABOVE_LIST": "Price cannot exceed the list price"
+  "sessions.PRICE_ABOVE_LIST": "Price cannot exceed the list price",
+  "export.pdfBusy": "Preparing PDF…"
 }
