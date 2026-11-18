@@ -25,6 +25,7 @@ export interface SessionReportRow {
   name: string;
   service: string;
   occurredAt: string;
+  timeZone: string;
   priceMills: string;
   clientName: string | null;
   late: boolean;

@@ -21,6 +21,7 @@ export async function readSessionReport(
     service: r.service,
     priceMills: r.priceMills,
     occurredAt: r.occurred_at.toISOString(),
+    timeZone: r.timezone,
     clientName: r.clientName ?? null,
     late: isLateSession(r.occurred_at, r.recorded_at, r.timezone),
   }));

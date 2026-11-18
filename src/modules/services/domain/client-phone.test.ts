@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { normalizePhone, maskPhone, isLateSession } from "./client-phone";
 describe("client phone (D-43)", () => {
   it("keeps digits only", () => expect(normalizePhone("+965 5555-1234")).toBe("96555551234"));
+  it("normalizes an international 00 prefix to the same client key", () =>
+    expect(normalizePhone("00965 5555-1234")).toBe(normalizePhone("+965 5555-1234")));
   it("rejects a short number", () => expect(() => normalizePhone("1234")).toThrow("INVALID_PHONE"));
   it("shows only the last 3 digits", () => expect(maskPhone("96555551234")).toBe("•••234"));
 });

@@ -11,7 +11,7 @@ export async function scanCard(
 ) {
   const hash = await cardHash(input.token);
   const card = await db.query<{ staff_id: string }>(
-    `select staff_id from public.attendance_cards where company_id=$1 and token_hash=$2`,
+    `select staff_id from public.attendance_cards where company_id=$1 and token_hash=$2 and revoked_at is null`,
     [input.companyId, hash],
   );
   const staffId = card.rows[0]?.staff_id;

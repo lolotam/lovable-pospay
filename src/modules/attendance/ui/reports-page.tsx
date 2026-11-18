@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
 import { getOperationalReportFn } from "../functions/report.functions";
-import { buildTable, downloadCsv, printPdf } from "./report-export";
+import { buildTable, downloadCsv, formatReportDate, printPdf } from "./report-export";
 export function ReportsPage() {
   return (
     <CompanyScope title="reports.title">{(id) => <ReportFilters companyId={id} />}</CompanyScope>
@@ -15,7 +15,9 @@ export function ReportsPage() {
 function ReportFilters({ companyId }: { companyId: string }) {
   const [from, setFrom] = useState("");
   const [until, setUntil] = useState("");
-  const [range, setRange] = useState<{ from: string; until: string } | null>(null);
+  const [range, setRange] = useState<{ from: string; until: string; fromDate: string } | null>(
+    null,
+  );
   const [error, setError] = useState(false);
   return (
     <div className="space-y-6">
@@ -30,7 +32,7 @@ function ReportFilters({ companyId }: { companyId: string }) {
             setError(true);
             return;
           }
-          setRange({ from: a.toISOString(), until: b.toISOString() });
+          setRange({ from: a.toISOString(), until: b.toISOString(), fromDate: from.slice(0, 10) });
         }}
       >
         <label className="min-w-0 space-y-2">
@@ -67,20 +69,23 @@ function ReportRows({
   range,
 }: {
   companyId: string;
-  range: { from: string; until: string };
+  range: { from: string; until: string; fromDate: string };
 }) {
   const { data } = useSuspenseQuery(
     queryOptions({
       queryKey: ["reports", companyId, range],
       queryFn: async () => {
         try {
-          return await getOperationalReportFn({ data: { companyId, ...range } });
+          return await getOperationalReportFn({
+            data: { companyId, from: range.from, until: range.until },
+          });
         } catch {
           return null;
         }
       },
     }),
   );
+  const [printBlocked, setPrintBlocked] = useState(false);
   const [tab, setTab] = useState<"attendance" | "corrected" | "services">("attendance");
   if (!data) return <p role="alert">{t("ops.forbidden")}</p>;
   const rows = tab === "corrected" ? data.attendance.filter((r) => r.corrected) : data.attendance;
@@ -104,26 +109,29 @@ function ReportRows({
             )}
           </Button>
         ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
-          onClick={() =>
-            downloadCsv(buildTable(data, tab), `pospay-${tab}-${range.from.slice(0, 10)}`)
-          }
+          onClick={() => downloadCsv(buildTable(data, tab), `pospay-${tab}-${range.fromDate}`)}
         >
           {t("export.csv")}
         </Button>
         <Button
           variant="outline"
           onClick={() =>
-            printPdf(
-              buildTable(data, tab),
-              `${new Date(range.from).toLocaleString("ar-KW")} — ${new Date(range.until).toLocaleString("ar-KW")}`,
+            setPrintBlocked(
+              !printPdf(
+                buildTable(data, tab),
+                `${new Date(range.from).toLocaleString("ar-KW")} — ${new Date(range.until).toLocaleString("ar-KW")}`,
+              ),
             )
           }
         >
           {t("export.pdf")}
         </Button>
       </div>
+      {printBlocked && <p role="alert">{t("export.printBlocked")}</p>}
       {tab === "services" ? <SessionRows rows={data.sessions} /> : <AttendanceRows rows={rows} />}
     </section>
   );
@@ -138,7 +146,7 @@ function SessionRows({ rows }: { rows: OperationalReport["sessions"] }) {
             {r.name} · {r.service}
           </h3>
           <p>
-            {new Date(r.occurredAt).toLocaleString("ar-KW")}
+            {formatReportDate(r.occurredAt, r.timeZone)}
             {r.late && <span className="ms-2 text-destructive">{t("reports.lateSession")}</span>}
           </p>
           {r.clientName && (
@@ -168,19 +176,17 @@ function AttendanceRows({ rows }: { rows: AttendanceReportRow[] }) {
           <dl className="space-y-2 text-sm">
             <div>
               <dt className="text-muted-foreground">{t("reports.in")}</dt>
-              <dd>{new Date(r.checkIn).toLocaleString("ar-KW")}</dd>
+              <dd>{formatReportDate(r.checkIn, r.timeZone)}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">{t("reports.out")}</dt>
-              <dd>
-                {r.checkOut ? new Date(r.checkOut).toLocaleString("ar-KW") : t("reports.open")}
-              </dd>
+              <dd>{r.checkOut ? formatReportDate(r.checkOut, r.timeZone) : t("reports.open")}</dd>
             </div>
             {r.corrected && (
               <div>
                 <dt className="text-muted-foreground">{t("reports.corrected")}</dt>
                 <dd>
-                  {new Date(r.corrected).toLocaleString("ar-KW")} · {r.reason}
+                  {formatReportDate(r.corrected, r.timeZone)} · {r.reason}
                 </dd>
               </div>
             )}

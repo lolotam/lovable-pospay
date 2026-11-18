@@ -1,6 +1,7 @@
 /** يوحّد رقم العميلة إلى أرقام فقط (8 إلى 15 رقمًا) أو يرفضه. */
 export function normalizePhone(value: string): string {
-  const digits = value.replace(/[\s\-()+]/g, "");
+  const compact = value.replace(/[\s\-()+]/g, "");
+  const digits = compact.startsWith("00") ? compact.slice(2) : compact;
   if (!/^[0-9]{8,15}$/.test(digits)) throw new Error("INVALID_PHONE");
   return digits;
 }

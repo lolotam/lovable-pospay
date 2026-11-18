@@ -13,10 +13,11 @@ function useScanner({ companyId }: { companyId: string }) {
   const scan = useServerFn(scanCardFn);
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
+  const [uncertain, setUncertain] = useState(false);
   const [prompt, setPrompt] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   async function run(intent: "new_shift" | "check_out" | null = null) {
-    if (busy) return;
+    if (busy || uncertain || !token) return;
     setBusy(true);
     setMessage("");
     try {
@@ -33,19 +34,22 @@ function useScanner({ companyId }: { companyId: string }) {
       }
     } catch {
       setPrompt(null);
-      setMessage(t("cards.scanError"));
+      setToken("");
+      setUncertain(true);
+      setMessage(t("cards.confirmScanOutcome"));
     } finally {
       setBusy(false);
     }
   }
-  return { token, setToken, busy, prompt, setPrompt, message, run };
+  return { token, setToken, busy, prompt, setPrompt, message, uncertain, setUncertain, run };
 }
 function Scanner({ companyId }: { companyId: string }) {
-  const { token, setToken, busy, prompt, setPrompt, message, run } = useScanner({ companyId });
+  const { token, setToken, busy, prompt, setPrompt, message, uncertain, setUncertain, run } =
+    useScanner({ companyId });
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (!busy && !prompt) input.current?.focus();
-  }, [busy, prompt]);
+    if (!busy && !prompt && !uncertain) input.current?.focus();
+  }, [busy, prompt, uncertain]);
   return (
     <form
       className="max-w-xl space-y-5"
@@ -60,14 +64,18 @@ function Scanner({ companyId }: { companyId: string }) {
           ref={input}
           autoComplete="off"
           value={token}
-          disabled={busy || !!prompt}
+          disabled={busy || !!prompt || uncertain}
           onChange={(e) => {
             setToken(e.target.value);
             setPrompt(null);
           }}
         />
       </label>
-      {prompt ? (
+      {uncertain ? (
+        <Button type="button" onClick={() => setUncertain(false)}>
+          {t("cards.scanOutcomeReviewed")}
+        </Button>
+      ) : prompt ? (
         <div className="flex flex-wrap gap-3">
           <Button type="button" disabled={busy} onClick={() => run("new_shift")}>
             {t("attend.newShift")}

@@ -4,7 +4,8 @@ import { t } from "@/i18n";
 export type ReportTab = "attendance" | "corrected" | "services";
 type Table = { title: string; head: string[]; body: string[][] };
 
-const dt = (v: string | null) => (v ? new Date(v).toLocaleString("ar-KW") : "");
+export const formatReportDate = (value: string | null, timeZone: string) =>
+  value ? new Date(value).toLocaleString("ar-KW", { timeZone }) : "";
 export const formatMills = (m: string) =>
   `${BigInt(m) / 1000n}.${(BigInt(m) % 1000n).toString().padStart(3, "0")}`;
 
@@ -24,7 +25,7 @@ export function buildTable(data: OperationalReport, tab: ReportTab): Table {
       body: data.sessions.map((r) => [
         r.name,
         r.service,
-        dt(r.occurredAt),
+        formatReportDate(r.occurredAt, r.timeZone),
         r.clientName ?? "",
         formatMills(r.priceMills),
         r.late ? "✓" : "",
@@ -48,9 +49,9 @@ export function buildTable(data: OperationalReport, tab: ReportTab): Table {
       r.name,
       r.branch,
       r.workDate,
-      dt(r.checkIn),
-      dt(r.checkOut),
-      dt(r.corrected),
+      formatReportDate(r.checkIn, r.timeZone),
+      formatReportDate(r.checkOut, r.timeZone),
+      formatReportDate(r.corrected, r.timeZone),
       r.reason ?? "",
       String(r.late),
     ]),
@@ -82,7 +83,7 @@ const esc = (v: string) => v.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 /** يفتح نسخة قابلة للطباعة كـ PDF من نافذة الطباعة */
 export function printPdf(table: Table, rangeLabel: string) {
   const w = window.open("", "_blank");
-  if (!w) return;
+  if (!w) return false;
   const rows = table.body
     .map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`)
     .join("");
@@ -95,4 +96,5 @@ th{background:#eee;-webkit-print-color-adjust:exact;print-color-adjust:exact}tr{
   w.document.close();
   w.focus();
   w.print();
+  return true;
 }

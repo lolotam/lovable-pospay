@@ -246,5 +246,10 @@
   "export.service": "Service",
   "export.time": "Performed at",
   "export.phone": "Phone",
-  "export.price": "Price (KWD)"
+  "export.price": "Price (KWD)",
+  "cards.confirmScanOutcome": "The scan outcome could not be confirmed. Check the attendance record before scanning again.",
+  "cards.scanOutcomeReviewed": "Attendance record checked",
+  "cards.dismissIssued": "Dismiss issued card",
+  "services.savedRefreshFailed": "Service saved. Refresh the catalog to see the update.",
+  "export.printBlocked": "Your browser blocked the print window."
 }

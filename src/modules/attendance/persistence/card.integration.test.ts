@@ -192,6 +192,14 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
         )
       ).result.outcome,
     ).toBe("checked_in");
+    await expect(
+      withUser("cards-reception", (db) =>
+        db.query(
+          "update public.attendance_records set late_minutes=99 where company_id=$1 and status='open'",
+          [company],
+        ),
+      ),
+    ).rejects.toThrow("INVALID_CARD_ATTENDANCE_TRANSITION");
     expect(
       (
         await withUser("cards-reception", (db) =>
@@ -199,6 +207,18 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
         )
       ).result.outcome,
     ).toBe("checked_out");
+    await expect(
+      withUser(
+        "cards-reception",
+        async (db) =>
+          (
+            await db.query(
+              "update public.attendance_records set late_minutes=99 where company_id=$1 and status='ok'",
+              [company],
+            )
+          ).rowCount,
+      ),
+    ).resolves.toBe(0);
   });
   it("reception waits for a manager revocation and rejects the card after commit", async () => {
     await withUser("cards-manager", async (db) => {

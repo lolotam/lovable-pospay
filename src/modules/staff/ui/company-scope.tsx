@@ -4,9 +4,10 @@ import { operatorCompaniesQuery } from "./operator-companies-query";
 import { t, type MessageKey } from "@/i18n";
 export interface CompanyScopeProps {
   title: MessageKey;
+  switchLocked?: boolean;
   children: (companyId: string) => ReactNode;
 }
-export function CompanyScope({ title, children }: CompanyScopeProps) {
+export function CompanyScope({ title, children, switchLocked = false }: CompanyScopeProps) {
   const { data } = useSuspenseQuery(operatorCompaniesQuery);
   const [selected, setSelected] = useState("");
   const companyId = selected || data.companies[0]?.id || "";
@@ -24,6 +25,7 @@ export function CompanyScope({ title, children }: CompanyScopeProps) {
             <select
               className="h-11 w-full max-w-md rounded-md border border-input bg-background px-3"
               value={companyId}
+              disabled={switchLocked}
               onChange={(e) => setSelected(e.target.value)}
             >
               {data.companies

@@ -11,6 +11,7 @@ export interface AttendanceReportRow {
   id: string;
   name: string;
   branch: string;
+  timeZone: string;
   workDate: string;
   checkIn: string;
   checkOut: string | null;

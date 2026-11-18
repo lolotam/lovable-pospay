@@ -25,7 +25,12 @@ const cardQuery = (companyId: string) =>
     },
   });
 export function CardsPage() {
-  return <CompanyScope title="cards.title">{(id) => <CardActions companyId={id} />}</CompanyScope>;
+  const [switchLocked, setSwitchLocked] = useState(false);
+  return (
+    <CompanyScope title="cards.title" switchLocked={switchLocked}>
+      {(id) => <CardActions companyId={id} onSwitchLockChange={setSwitchLocked} />}
+    </CompanyScope>
+  );
 }
 function useCards({ companyId, policyOnly = false }: { companyId: string; policyOnly?: boolean }) {
   const { data, isFetching } = useSuspenseQuery(cardQuery(companyId));
@@ -38,7 +43,7 @@ function useCards({ companyId, policyOnly = false }: { companyId: string; policy
     issue = useServerFn(issueCardFn),
     revoke = useServerFn(revokeCardFn);
   async function run(action: "approve" | "issue" | "revoke", id = "") {
-    if (busy || isFetching) return;
+    if (busy || isFetching || issued) return;
     setBusy(true);
     setMessage("");
     setIssued(null);
@@ -55,7 +60,16 @@ function useCards({ companyId, policyOnly = false }: { companyId: string; policy
       setBusy(false);
     }
   }
-  return { data, busy, confirm, setConfirm, issued, message, run };
+  return {
+    data,
+    busy,
+    confirm,
+    setConfirm,
+    issued,
+    dismissIssued: () => setIssued(null),
+    message,
+    run,
+  };
 }
 type CardsState = ReturnType<typeof useCards>;
 type CardViewProps = Pick<CardsState, "busy" | "run" | "confirm" | "setConfirm"> & {
@@ -64,22 +78,43 @@ type CardViewProps = Pick<CardsState, "busy" | "run" | "confirm" | "setConfirm">
 export interface CardActionsProps {
   companyId: string;
   policyOnly?: boolean;
+  onSwitchLockChange?: (locked: boolean) => void;
 }
-export function CardActions({ companyId, policyOnly = false }: CardActionsProps) {
-  const { data, busy, confirm, setConfirm, issued, message, run } = useCards({
+export function CardActions({
+  companyId,
+  policyOnly = false,
+  onSwitchLockChange,
+}: CardActionsProps) {
+  const { data, busy, confirm, setConfirm, issued, dismissIssued, message, run } = useCards({
     companyId,
     policyOnly,
   });
-  if (data.error || !data.value) return <p role="alert">{t(data.error ?? "ops.forbidden")}</p>;
+  useEffect(() => {
+    onSwitchLockChange?.(busy || !!issued);
+  }, [busy, issued, onSwitchLockChange]);
   const value = data.value;
   return (
     <div className="space-y-6">
-      <CardPolicy value={value} busy={busy} run={run} />
-      {!policyOnly && (
+      {data.error && <p role="alert">{t(data.error)}</p>}
+      {value && <CardPolicy value={value} busy={busy || !!issued} run={run} />}
+      {value && !policyOnly && (
         <>
-          <CardList value={value} busy={busy} confirm={confirm} setConfirm={setConfirm} run={run} />
+          <CardList
+            value={value}
+            busy={busy || !!issued}
+            confirm={confirm}
+            setConfirm={setConfirm}
+            run={run}
+          />
           {!value.staff.length && <p>{t("ops.empty")}</p>}
-          {issued && <PrintableCard card={issued} />}
+        </>
+      )}
+      {!policyOnly && issued && (
+        <>
+          <PrintableCard card={issued} />
+          <Button type="button" variant="outline" onClick={dismissIssued}>
+            {t("cards.dismissIssued")}
+          </Button>
         </>
       )}
       <p role="status">{message}</p>

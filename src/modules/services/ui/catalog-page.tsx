@@ -62,12 +62,17 @@ function useCatalog({ companyId }: { companyId: string }) {
             : { requestId: (createRequest.current ??= crypto.randomUUID()) }),
         },
       });
-      await cache.invalidateQueries({ queryKey: ["catalog", companyId] });
-      const fresh = await cache.fetchQuery(catalogQuery(companyId));
-      if (!fresh?.services.some((s) => s.id === result.id && s.name === name.trim()))
-        throw new Error("READBACK_FAILED");
       setForm(false);
       setMessage(t("ops.saved"));
+      try {
+        await cache.invalidateQueries({ queryKey: ["catalog", companyId] });
+        const fresh = await cache.fetchQuery(catalogQuery(companyId));
+        if (!fresh?.services.some((s) => s.id === result.id && s.name === name.trim())) {
+          setMessage(t("services.savedRefreshFailed"));
+        }
+      } catch {
+        setMessage(t("services.savedRefreshFailed"));
+      }
     } catch {
       setMessage(t("services.error"));
     } finally {

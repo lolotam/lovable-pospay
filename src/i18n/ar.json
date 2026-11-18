@@ -246,5 +246,10 @@
   "export.service": "الخدمة",
   "export.time": "وقت التنفيذ",
   "export.phone": "الهاتف",
-  "export.price": "السعر (د.ك)"
+  "export.price": "السعر (د.ك)",
+  "cards.confirmScanOutcome": "تعذّر تأكيد نتيجة المسح. راجع سجل الحضور قبل المسح مرة أخرى.",
+  "cards.scanOutcomeReviewed": "راجعت سجل الحضور",
+  "cards.dismissIssued": "إغلاق الكارت الصادر",
+  "services.savedRefreshFailed": "اتحفظت الخدمة. حدّث الكتالوج عشان تشوف التعديل.",
+  "export.printBlocked": "المتصفح منع فتح نافذة الطباعة."
 }

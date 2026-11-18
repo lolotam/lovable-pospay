@@ -72,11 +72,6 @@ drop policy if exists attendance_card_insert on public.attendance_records;
 create policy attendance_card_insert on public.attendance_records for insert to pospay_app with check(public.card_operator(company_id,branch_id) and exists(select 1 from staff_members s where s.company_id=attendance_records.company_id and s.id=staff_id and s.branch_id=attendance_records.branch_id));
 drop policy if exists attendance_card_read on public.attendance_records;
 create policy attendance_card_read on public.attendance_records for select to pospay_app using(public.card_operator(company_id,branch_id));
-drop policy if exists attendance_card_update on public.attendance_records;
-create policy attendance_card_update on public.attendance_records for update to pospay_app using(public.card_operator(company_id,branch_id)) with check(public.card_operator(company_id,branch_id));
-drop policy if exists shifts_card_read on public.shifts;
-create policy shifts_card_read on public.shifts for select to pospay_app using(exists(select 1 from staff_members s where s.company_id=shifts.company_id and s.id=staff_id and public.card_operator(s.company_id,s.branch_id)));
-
 create or replace function public.card_staff_allowed(_company uuid,_staff uuid) returns boolean
 language sql stable security definer set search_path=public as $$
  select exists(select 1 from staff_members s where s.company_id=_company and s.id=_staff
@@ -85,6 +80,17 @@ language sql stable security definer set search_path=public as $$
 $$;
 revoke all on function public.card_staff_allowed(uuid,uuid) from public;
 grant execute on function public.card_staff_allowed(uuid,uuid) to pospay_app;
+
+drop policy if exists attendance_card_update on public.attendance_records;
+create policy attendance_card_update on public.attendance_records for update to pospay_app
+ using(status='open' and public.card_operator(company_id,branch_id)
+  and public.card_staff_allowed(company_id,staff_id)
+  and exists(select 1 from public.attendance_cards c where c.company_id=attendance_records.company_id
+   and c.staff_id=attendance_records.staff_id and c.revoked_at is null))
+ with check(status in ('ok','closed_late','forgotten') and public.card_operator(company_id,branch_id));
+drop policy if exists shifts_card_read on public.shifts;
+create policy shifts_card_read on public.shifts for select to pospay_app using(exists(select 1 from staff_members s where s.company_id=shifts.company_id and s.id=staff_id and public.card_operator(s.company_id,s.branch_id)));
+
 
 -- Reception may serialize card scans without general staff update access.
 create or replace function public.lock_staff_for_card_scan(_company uuid, _staff uuid) returns uuid
@@ -96,3 +102,27 @@ language sql volatile security definer set search_path=pg_catalog as $$
 $$;
 revoke all on function public.lock_staff_for_card_scan(uuid,uuid) from public;
 grant execute on function public.lock_staff_for_card_scan(uuid,uuid) to pospay_app;
+
+-- Limit the additional card operator access without changing the original staff/admin policies.
+create or replace function public.guard_card_attendance_update() returns trigger
+language plpgsql set search_path=pg_catalog as $$
+begin
+ if current_user <> 'pospay_app' or public.is_company_admin(old.company_id)
+    or old.staff_id = public.my_staff_id(old.company_id) then
+  return new;
+ end if;
+ if old.status='open'
+    and (to_jsonb(new) - array['status','check_out_at','check_out_exception'])
+        = (to_jsonb(old) - array['status','check_out_at','check_out_exception'])
+    and ((new.status='forgotten' and new.check_out_at is not distinct from old.check_out_at
+          and new.check_out_exception is not distinct from old.check_out_exception)
+      or (new.status in ('ok','closed_late') and new.check_out_at >= old.check_in_at))
+ then return new;
+ end if;
+ raise exception 'INVALID_CARD_ATTENDANCE_TRANSITION';
+end
+$$;
+revoke all on function public.guard_card_attendance_update() from public;
+drop trigger if exists guard_card_attendance_update on public.attendance_records;
+create trigger guard_card_attendance_update before update on public.attendance_records
+ for each row execute function public.guard_card_attendance_update();

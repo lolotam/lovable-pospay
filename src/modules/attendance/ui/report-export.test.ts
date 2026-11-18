@@ -7,6 +7,7 @@ const data = {
       id: "1",
       name: "A",
       branch: "B",
+      timeZone: "Asia/Kuwait",
       workDate: "2026-11-01",
       checkIn: "2026-11-01T06:00:00Z",
       checkOut: null,
@@ -19,6 +20,7 @@ const data = {
       id: "2",
       name: "C",
       branch: "B",
+      timeZone: "Asia/Kuwait",
       workDate: "2026-11-01",
       checkIn: "2026-11-01T06:00:00Z",
       checkOut: null,
@@ -34,6 +36,14 @@ const data = {
 describe("report export", () => {
   it("corrected tab exports only corrected rows", () => {
     expect(buildTable(data, "corrected").body.map((r) => r[0])).toEqual(["C"]);
+  });
+  it("uses each branch time zone for the exported date", () => {
+    const [row] = buildTable(data, "attendance").body;
+    expect(row?.[3]).toBe(
+      new Date("2026-11-01T06:00:00Z").toLocaleString("ar-KW", {
+        timeZone: "Asia/Kuwait",
+      }),
+    );
   });
   it("neutralises spreadsheet formulas", () => {
     expect(csvCell("=HYPERLINK(1)")).toBe("'=HYPERLINK(1)");
