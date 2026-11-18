@@ -1,5 +1,12 @@
 # Roadmap
 
+## Approved authentication update (2026-11-18)
+- [ ] Correct production pooler configuration and configure Resend in Dokploy — approved; blocked by redacted Dokploy env and SSH APPROVAL_UNAVAILABLE; no environment overwritten; production sign-in still HTTP 500
+- [x] Six-digit email OTP recovery with a choice to continue sign-in or change password; hashed, single-use, expiry/attempt/concurrency/session tests pass; existing TOTP gate preserved
+- [ ] Google sign-in for existing accounts only — UI/configuration added; OAuth credentials and callback/TOTP acceptance tests required
+- [x] Recovery API and public phone/tablet UI checked; 54 tests passed, 3 integration tests skipped (no disposable DB configured); real email/Google acceptance remains open
+- [ ] Clarify barcode rules before slice 003; Waleed accepted proceeding, not evidence of implementation or real-device checks
+
 ## Current request (2026-11-18)
 - [x] Redeploy synchronized zod fix (51fdab3) — deployment done
 - [ ] Production email sign-in — fails with ENOIDENTIFIER (pooler tenant identifier missing); environment correction needs approval

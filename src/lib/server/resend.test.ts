@@ -1,6 +1,10 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createResendPasswordSender, getResendPasswordSender } from "./resend.server";
+import {
+  createResendPasswordSender,
+  getResendPasswordSender,
+  getResendOtpSender,
+} from "./resend.server";
 
 const config = {
   apiKey: "test-gateway-key",
@@ -26,6 +30,33 @@ afterEach(() => {
 });
 
 describe("Resend password reset delivery", () => {
+  it("sends the six-digit OTP through Resend to the requested registered email", async () => {
+    vi.stubEnv("LOVABLE_API_KEY", "test-gateway-key");
+    vi.stubEnv("RESEND_API_KEY", "test-connection-key");
+    vi.stubEnv("BETTER_AUTH_URL", "https://app.pospay.systems");
+    const request = vi.fn().mockResolvedValue(new Response('{"id":"sent"}', { status: 200 }));
+    vi.stubGlobal("fetch", request);
+    await getResendOtpSender()({
+      email: "test@example.com",
+      otp: "123456",
+      type: "forget-password",
+    });
+    const call = request.mock.calls[0];
+    if (!call) throw new Error("Expected OTP delivery");
+    expect(call[0]).toBe("https://connector-gateway.lovable.dev/resend/emails");
+    const body = JSON.parse(call[1].body);
+    expect(body.to).toEqual(["test@example.com"]);
+    expect(body.text).toContain("123456");
+  });
+  it("does not claim OTP delivery if the email provider rejects it", async () => {
+    vi.stubEnv("LOVABLE_API_KEY", "test-gateway-key");
+    vi.stubEnv("RESEND_API_KEY", "test-connection-key");
+    vi.stubEnv("BETTER_AUTH_URL", "https://app.pospay.systems");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("denied", { status: 403 })));
+    await expect(
+      getResendOtpSender()({ email: "test@example.com", otp: "123456", type: "forget-password" }),
+    ).rejects.toThrow("EMAIL_OTP_DELIVERY_FAILED_403");
+  });
   it("sends only to the account email through the connected gateway", async () => {
     const request = vi.fn().mockResolvedValue(new Response('{"id":"sent"}', { status: 200 }));
     vi.stubGlobal("fetch", request);

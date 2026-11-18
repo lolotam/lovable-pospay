@@ -16,3 +16,12 @@
 - Resend reports DKIM and SPF verified for `pospay.systems`; only receiving MX is pending. No Lovable email domain is configured, so there is no delegation conflict.
 - Linking in Lovable does not synchronize secrets to Dokploy. Do not copy redacted values or commit credentials; production environment changes require explicit approval.
 - Verify delivered link → password reset → old password rejected after deployment and database connectivity are working.
+
+## Email OTP and Google login
+
+- OTP uses the same Resend credentials; six digits, five-minute expiry, three guesses, hashed Better Auth verification storage. Existing reset links still work.
+- Google needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for this app's own Web OAuth client. No workspace Gmail connector can replace this end-user login client.
+- Authorized callback: `https://pospay-app-7dcc5d-82-29-164-194.sslip.io/api/auth/callback/google`; authorized JavaScript origin is the same origin without the path.
+- Public signup remains disabled. Existing email accounts must be verified before implicit Google linking; Google does not grant company membership or platform administration.
+- Production pooler reports tenant identifier `your-tenant-id`; correct the existing database username to `pospay_server.your-tenant-id` without changing password or using a privileged DB role. Preserve all existing environment and build secrets.
+- On 2026-11-18 the SSH env inspection was refused with `APPROVAL_UNAVAILABLE`; Dokploy returns environment values redacted. No production environment was overwritten.

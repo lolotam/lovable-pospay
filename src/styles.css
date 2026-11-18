@@ -77,6 +77,9 @@
 }
 
 :root {
+  --google-button-background: #ffffff;
+  --google-button-border: #747775;
+  --google-button-foreground: #1f1f1f;
   --radius: 0.625rem;
   --background: oklch(0.97 0 0);
   --foreground: oklch(0.235 0.006 60);
@@ -116,6 +119,9 @@
 }
 
 .dark {
+  --google-button-background: #131314;
+  --google-button-border: #8e918f;
+  --google-button-foreground: #e3e3e3;
   --background: oklch(0.19 0.006 60);
   --foreground: oklch(0.94 0.004 80);
   --card: oklch(0.225 0.006 60);
@@ -160,7 +166,7 @@
 
   h1, h2, h3 {
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 
   html {
@@ -176,3 +182,15 @@
     color: var(--color-foreground);
   }
 }
+
+.google-sign-in {
+  background: var(--google-button-background);
+  border: 1px solid var(--google-button-border);
+  color: var(--google-button-foreground);
+  padding-inline: 12px;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+.google-sign-in:hover { background: var(--google-button-background); color: var(--google-button-foreground); }

@@ -93,6 +93,8 @@ to another module's tables.
 - Server-only code is in `*.server.ts` and loaded with `await import()` inside the handler.
 - Secrets only from `process.env[...]` inside handlers. Never `VITE_` for secrets.
 - Staff screens use polling (PRD §10), no websockets in Phase 1.
+- Email recovery choices share one Better Auth verification record; OTP Continue consumes it atomically, reset uses the upstream endpoint, and extended two-factor hooks protect OTP and Google callbacks because upstream hooks only cover credential login.
+- Google signup stays disabled and implicit linking requires verified local email; this prevents social login claiming an unverified existing account.
 
 ## 6. Frontend
 
