@@ -15,6 +15,12 @@
 
 ## 004 Platform connectors (super admin)
 - [x] Super-admin-only connectors page `/admin/connectors` (Codex, Kimi, MiniMax, Z.ai sign-in; OpenAI, Google AI, OpenRouter, MiniMax, Resend keys)
-- [ ] Apply 0004 + `db/seeds/super-admin.sql` on the real DB — waits on Waleed
+- [x] Apply 0004 on the real DB
+- [ ] Run `db/seeds/super-admin.sql` after Better Auth tables + Waleed sign-up
 - [ ] Set `PLATFORM_SECRETS_KEY` in Dokploy — waits on Waleed
 - [ ] Wire attendance questions to the default connector instead of AI Gateway
+
+## Tools setup
+- [x] Document supabase-pospay / ssh / dokploy rules in AGENTS.md
+- [x] List all DB variables in `.env.example`
+- [x] Applied migrations 0001-0005 on supabase-pospay (security advisors: 0)
