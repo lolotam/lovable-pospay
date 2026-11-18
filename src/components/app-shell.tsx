@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { t, type MessageKey } from "@/i18n";
 
 interface NavItem {
-  to: "/" | "/reception/qr" | "/phone" | "/attendance-questions" | "/sign-in";
+  to: "/" | "/reception/qr" | "/phone" | "/attendance-questions" | "/sign-in" | "/admin/connectors";
   label: MessageKey;
   icon: string;
 }
@@ -18,6 +18,7 @@ const sections: { title: MessageKey | null; items: NavItem[] }[] = [
       { to: "/attendance-questions", label: "nav.insights", icon: "?" },
     ],
   },
+  { title: "nav.section.platform", items: [{ to: "/admin/connectors", label: "nav.connectors", icon: "⚙" }] },
   { title: "nav.section.account", items: [{ to: "/sign-in", label: "nav.signIn", icon: "→" }] },
 ];
 

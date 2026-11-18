@@ -73,3 +73,4 @@ The old `CLAUDE.md` / `CLAUDE.architecture.md` (NestJS, monorepo) do not apply t
 - Database integration tests require an explicit `POSPAY_TEST_DATABASE_URL` targeting a disposable localhost database named `pospay_test`; never run destructive test fixtures against shared data.
 - Phone attendance requires a fresh server-stored WebAuthn challenge, an owned credential and a matching HttpOnly device cookie checked in the attendance transaction; a passkey ID alone is not device proof.
 - Keep browser-safe staff exports in `index.ts` and server-only cross-module wiring in `index.server.ts` so shared contracts cannot import server dependencies.
+- Platform connectors (AI accounts, API keys) live in `platform_*` tables guarded by `is_super_admin()` and stored AES-GCM sealed with `PLATFORM_SECRETS_KEY`; salon owners never see them, and the AI Gateway is not used.

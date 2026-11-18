@@ -42,7 +42,8 @@ docs/                     PRD, deploy guide, ADRs (docs/adr/NNNN-title.md)
 ```
 
 Phase 1 modules: `staff`, `attendance`, `services` (sessions, packages, clients),
-`commissions`, `ratings`, `notifications`, `permissions`, `imports`.
+`commissions`, `ratings`, `notifications`, `permissions`, `imports`, and `platform`
+(operator-level AI/API connectors, super admin only; its tables have no `company_id`).
 
 Banned folder names anywhere: `utils/` (except the existing `src/lib/utils.ts`), `helpers/`,
 `common/`, `misc/`, `managers/`, `services/` as a technical layer.

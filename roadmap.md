@@ -12,3 +12,9 @@
 - [ ] Slice 002: authenticated real-phone acceptance and physical-device exclusivity — needs configured auth and supported-phone verification
 - [ ] Attendance questions for managers through AI Gateway — gateway disabled; no model calls allowed
 - [ ] Slice 003: barcode card fallback (D-13)
+
+## 004 Platform connectors (super admin)
+- [x] Super-admin-only connectors page `/admin/connectors` (Codex, Kimi, MiniMax, Z.ai sign-in; OpenAI, Google AI, OpenRouter, MiniMax, Resend keys)
+- [ ] Apply 0004 + `db/seeds/super-admin.sql` on the real DB — waits on Waleed
+- [ ] Set `PLATFORM_SECRETS_KEY` in Dokploy — waits on Waleed
+- [ ] Wire attendance questions to the default connector instead of AI Gateway

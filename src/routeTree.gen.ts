@@ -14,6 +14,7 @@ import { Route as AttendRouteImport } from './routes/attend'
 import { Route as AttendanceQuestionsRouteImport } from './routes/attendance-questions'
 import { Route as PhoneRouteImport } from './routes/phone'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as AdminConnectorsRouteImport } from './routes/admin/connectors'
 import { Route as ReceptionQrRouteImport } from './routes/reception/qr'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -42,6 +43,11 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminConnectorsRoute = AdminConnectorsRouteImport.update({
+  id: '/admin/connectors',
+  path: '/admin/connectors',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReceptionQrRoute = ReceptionQrRouteImport.update({
   id: '/reception/qr',
   path: '/reception/qr',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/phone': typeof PhoneRoute
   '/sign-in': typeof SignInRoute
+  '/admin/connectors': typeof AdminConnectorsRoute
   '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/phone': typeof PhoneRoute
   '/sign-in': typeof SignInRoute
+  '/admin/connectors': typeof AdminConnectorsRoute
   '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/phone': typeof PhoneRoute
   '/sign-in': typeof SignInRoute
+  '/admin/connectors': typeof AdminConnectorsRoute
   '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/attendance-questions'
     | '/phone'
     | '/sign-in'
+    | '/admin/connectors'
     | '/reception/qr'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/attendance-questions'
     | '/phone'
     | '/sign-in'
+    | '/admin/connectors'
     | '/reception/qr'
     | '/api/auth/$'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/attendance-questions'
     | '/phone'
     | '/sign-in'
+    | '/admin/connectors'
     | '/reception/qr'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   AttendanceQuestionsRoute: typeof AttendanceQuestionsRoute
   PhoneRoute: typeof PhoneRoute
   SignInRoute: typeof SignInRoute
+  AdminConnectorsRoute: typeof AdminConnectorsRoute
   ReceptionQrRoute: typeof ReceptionQrRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -158,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/connectors': {
+      id: '/admin/connectors'
+      path: '/admin/connectors'
+      fullPath: '/admin/connectors'
+      preLoaderRoute: typeof AdminConnectorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reception/qr': {
       id: '/reception/qr'
       path: '/reception/qr'
@@ -181,6 +201,7 @@ const rootRouteChildren: RootRouteChildren = {
   AttendanceQuestionsRoute: AttendanceQuestionsRoute,
   PhoneRoute: PhoneRoute,
   SignInRoute: SignInRoute,
+  AdminConnectorsRoute: AdminConnectorsRoute,
   ReceptionQrRoute: ReceptionQrRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
