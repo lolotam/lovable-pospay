@@ -13,17 +13,23 @@ export const DIAGNOSIS_SYSTEM_PROMPT = [
   "Never ask for secrets, recommend uploading data, or invent log lines. If evidence is missing, say what to collect safely.",
 ].join("\n");
 
+function redactField(_match: string, prefix: string, value: string): string {
+  const first = value[0];
+  const quote = first === '"' || first === "'" ? first : "";
+  return `${prefix}${quote}[REDACTED]${quote}`;
+}
+
 /** يخفي المفاتيح وكلمات المرور من النص قبل إرساله لأي نموذج خارجي. */
 export function redactSecrets(text: string): string {
   return text
     .replace(/-----BEGIN ([A-Z0-9 ]*PRIVATE KEY)-----[\s\S]*?(?:-----END \1-----|$)/g, "[REDACTED]")
     .replace(
-      /(\b(?:authorization|cookie|set-cookie)["']?[^\S\r\n]*[:=][^\S\r\n]*)[^\r\n]+/gi,
-      "$1[REDACTED]",
+      /(\b(?:authorization|cookie|set-cookie)["']?[^\S\r\n]*[:=][^\S\r\n]*)("(?:\\.|[^"\\\r\n])*"?|'(?:\\.|[^'\\\r\n])*'?|[^\r\n]+)/gi,
+      redactField,
     )
     .replace(
-      /(\b(?:[\w.-]+[_-])?(?:api[_-]?key|token|secret|password|passphrase)["']?[^\S\r\n]*[:=][^\S\r\n]*)(?:"(?:\\.|[^"\\\r\n])*"?|'(?:\\.|[^'\\\r\n])*'?|[^\s"',;}]+)/gi,
-      "$1[REDACTED]",
+      /(\b[\w.-]*(?:api[_-]?key|token|secret|password|passphrase)["']?[^\S\r\n]*[:=][^\S\r\n]*)("(?:\\.|[^"\\\r\n])*"?|'(?:\\.|[^'\\\r\n])*'?|[^\s"',;}]+)/gi,
+      redactField,
     )
     .replace(/(bearer[^\S\r\n]+)[a-z0-9._~+/=-]+/gi, "$1[REDACTED]")
     .replace(/\b(?:(?:sk|rk|pk)-|gh[pousr]_|github_pat_|xox[baprs]-)[a-z0-9_-]{8,}/gi, "[REDACTED]")

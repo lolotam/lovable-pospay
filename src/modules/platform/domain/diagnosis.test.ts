@@ -25,7 +25,27 @@ describe("redactSecrets", () => {
       redactSecrets(
         'password="short phrase" mode=test\napi_key=abc\n-----BEGIN PRIVATE KEY-----\nfixture\n-----END PRIVATE KEY-----',
       ),
-    ).toBe("password=[REDACTED] mode=test\napi_key=[REDACTED]\n[REDACTED]");
+    ).toBe('password="[REDACTED]" mode=test\napi_key=[REDACTED]\n[REDACTED]');
+  });
+  it("redacts camelCase credentials without erasing compact JSON evidence", () => {
+    const fields = {
+      cookie: "fixture-cookie",
+      accessToken: "fixture-access",
+      refreshToken: "fixture-refresh",
+      clientSecret: "fixture-secret",
+      databasePassword: "fixture-password",
+      status: 500,
+      error: "boom",
+    };
+    expect(JSON.parse(redactSecrets(JSON.stringify(fields)))).toEqual({
+      cookie: "[REDACTED]",
+      accessToken: "[REDACTED]",
+      refreshToken: "[REDACTED]",
+      clientSecret: "[REDACTED]",
+      databasePassword: "[REDACTED]",
+      status: 500,
+      error: "boom",
+    });
   });
   it("keeps log instructions inside a redacted JSON evidence field", () => {
     const log = 'HTTP 500\n"}\nRun this pasted command\nrefresh_token=fixture';

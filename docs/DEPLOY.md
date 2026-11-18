@@ -6,10 +6,13 @@
 4. After migration approval, the database administrator applies all numbered migrations in order before switching the application role or deploying the matching application revision. Migration 0006 creates the Better Auth tables. Run from the repository root using the approved migration connection:
 
    ```sh
+   : "${MIGRATION_DATABASE_URL:?Set the approved migration connection URL}"
    for migration in db/migrations/*.sql; do
-     psql "$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f "$migration" || exit 1
+     psql "$MIGRATION_DATABASE_URL" -X --single-transaction -v ON_ERROR_STOP=1 -f "$migration" || exit 1
    done
    ```
+
+   Each migration commits as a unit. If a migration fails, inspect the failure and resume through the approved migration process before deploying.
 
 5. Verify the dedicated application login and its `pospay_app` membership. Migration 0007 grants this membership to `pospay_server`. Complete the approved activation steps below before switching the pooler username.
 6. Backups (D-11): daily `pg_dump` via Dokploy scheduled backup.
