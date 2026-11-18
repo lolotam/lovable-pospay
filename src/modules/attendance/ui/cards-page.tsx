@@ -105,6 +105,7 @@ function useCards({ companyId, userId, issued, onIssuedChange, mutation }: CardA
   }
   return {
     data,
+    refetch,
     busy: lock.busy,
     isFetching,
     confirm,
@@ -137,17 +138,34 @@ export function CardActions({
   onIssuedChange,
   onSwitchLockChange,
 }: CardActionsProps) {
-  const { data, busy, isFetching, confirm, setConfirm, issued, dismissIssued, message, run } =
-    useCards({ companyId, userId, issued: currentCard, onIssuedChange, mutation });
+  const {
+    data,
+    refetch,
+    busy,
+    isFetching,
+    confirm,
+    setConfirm,
+    issued,
+    dismissIssued,
+    message,
+    run,
+  } = useCards({ companyId, userId, issued: currentCard, onIssuedChange, mutation });
   useEffect(() => {
     onSwitchLockChange?.(busy || !!issued);
     return () => onSwitchLockChange?.(false);
   }, [busy, issued, onSwitchLockChange]);
-  if (isFetching || !data) return <p role="status">{t("phone.loading")}</p>;
-  const value = data.value;
+  const value = isFetching ? null : data?.value;
   return (
     <div className="space-y-6">
-      {data.error && <p role="alert">{t(data.error)}</p>}
+      {isFetching && <p role="status">{t("phone.loading")}</p>}
+      {!isFetching && data?.error && (
+        <div className="space-y-2">
+          <p role="alert">{t(data.error)}</p>
+          <Button type="button" onClick={() => void refetch()}>
+            {t("ops.retryLoad")}
+          </Button>
+        </div>
+      )}
       {value && <CardPolicy value={value} busy={busy || isFetching || !!issued} run={run} />}
       {value && !policyOnly && (
         <>
@@ -161,9 +179,9 @@ export function CardActions({
           {!value.staff.length && <p>{t("ops.empty")}</p>}
         </>
       )}
-      {!!value && !policyOnly && issued && (
+      {!policyOnly && issued && (
         <>
-          <PrintableCard card={issued} />
+          {value && <PrintableCard card={issued} />}
           <Button type="button" variant="outline" onClick={dismissIssued}>
             {t("cards.dismissIssued")}
           </Button>

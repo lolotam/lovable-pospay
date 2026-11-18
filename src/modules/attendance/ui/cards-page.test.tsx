@@ -58,3 +58,43 @@ it("keeps an issued card recoverable after same-account session revalidation", a
     data: { companyId: "company", expectedUserId: "manager", staffId: "staff" },
   });
 });
+
+it.each(["retry", "dismiss"] as const)(
+  "lets the operator %s after a failed post-issuance refresh",
+  async (action) => {
+    const roster = {
+      approvedAt: "2026-11-01T00:00:00Z",
+      canApprove: true,
+      staff: [
+        { id: "staff", name: "Employee", branchName: "Branch", cardId: null, canIssue: true },
+      ],
+    };
+    getCards.mockReset().mockResolvedValueOnce(roster).mockRejectedValue(new Error("Unavailable"));
+    issue.mockReset().mockResolvedValueOnce({
+      cardId: "new-card",
+      name: "Employee",
+      token: "c".repeat(48),
+    });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <CardsPage />
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: t("cards.issue") }));
+    const retry = await screen.findByRole("button", { name: t("ops.retryLoad") });
+    const dismiss = screen.getByRole("button", { name: t("cards.dismissIssued") });
+    expect(screen.queryByRole("button", { name: t("cards.print") })).toBeNull();
+
+    getCards.mockResolvedValue(roster);
+    if (action === "dismiss") {
+      fireEvent.click(dismiss);
+      fireEvent.click(retry);
+      expect(await screen.findByRole("button", { name: t("cards.issue") })).toBeEnabled();
+      expect(screen.queryByRole("button", { name: t("cards.print") })).toBeNull();
+      return;
+    }
+    fireEvent.click(retry);
+    expect(await screen.findByRole("button", { name: t("cards.print") })).toBeVisible();
+    expect(issue).toHaveBeenCalledTimes(1);
+  },
+);
