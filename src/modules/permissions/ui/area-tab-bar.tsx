@@ -15,7 +15,7 @@ export function AreaTabBar({ groups, pathname }: AreaTabBarProps) {
   return (
     <nav
       aria-label={t("nav.primary")}
-      className="fixed start-3 end-3 [inset-block-end:calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-1 rounded-full border border-border bg-card p-1.5 shadow-lg md:hidden"
+      className="area-tab-bar fixed start-3 end-3 [inset-block-end:calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-1 rounded-full border border-border bg-card p-1.5 shadow-lg md:hidden"
     >
       {tabNavigation(groups, pathname).map(({ to, label, icon: TabIcon, active }) => (
         <Link
@@ -24,7 +24,7 @@ export function AreaTabBar({ groups, pathname }: AreaTabBarProps) {
           activeOptions={{ exact: true }}
           aria-label={t(label)}
           aria-current={active ? "page" : undefined}
-          className={`flex min-h-11 items-center justify-center gap-2 rounded-full text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring ${
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-full text-xs font-medium transition-colors ${
             active
               ? "min-w-0 bg-primary px-3 text-primary-foreground"
               : "min-w-11 shrink-0 px-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -38,7 +38,7 @@ export function AreaTabBar({ groups, pathname }: AreaTabBarProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="size-11 shrink-0 rounded-full text-muted-foreground [&_svg]:size-6"
+          className="size-11 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-6"
           aria-label={t("nav.menu")}
           aria-controls="area-drawer"
         >

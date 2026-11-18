@@ -197,7 +197,9 @@
     border-color: var(--color-border);
   }
 
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     font-family: var(--font-display);
     font-weight: 700;
     letter-spacing: 0;
@@ -233,7 +235,10 @@
   line-height: 20px;
   font-weight: 500;
 }
-.google-sign-in:hover { background: var(--google-button-background); color: var(--google-button-foreground); }
+.google-sign-in:hover {
+  background: var(--google-button-background);
+  color: var(--google-button-foreground);
+}
 
 /*
  * Zigzag hem along the bottom edge of a dashboard tile, drawn in the tile's own text color.
@@ -247,8 +252,10 @@
   block-size: 12px;
   background: currentColor;
   opacity: 0.2;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='12'%3E%3Cpath d='M0 12L10 0l10 12z'/%3E%3C/svg%3E") repeat-x;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='12'%3E%3Cpath d='M0 12L10 0l10 12z'/%3E%3C/svg%3E") repeat-x;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='12'%3E%3Cpath d='M0 12L10 0l10 12z'/%3E%3C/svg%3E")
+    repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='12'%3E%3Cpath d='M0 12L10 0l10 12z'/%3E%3C/svg%3E")
+    repeat-x;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -269,7 +276,35 @@
 }
 
 @media print {
- body * { visibility: hidden; }
- .print-card, .print-card * { visibility: visible; }
- .print-card { position: absolute; inset-inline-start: 0; inset-block-start: 0; }
+  body * {
+    visibility: hidden;
+  }
+  .print-card,
+  .print-card * {
+    visibility: visible;
+  }
+  .print-card {
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: 0;
+  }
+}
+
+/* The floating phone tab bar would ride above the soft keyboard and cover the field being typed in. */
+body:has(
+    :is(
+      input:not(
+        [type="checkbox"],
+        [type="radio"],
+        [type="button"],
+        [type="submit"],
+        [type="reset"]
+      ),
+      textarea,
+      select,
+      [contenteditable="true"]
+    ):focus
+  )
+  .area-tab-bar {
+  display: none;
 }

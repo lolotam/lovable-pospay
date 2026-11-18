@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { serviceSessionRecordingAvailable } from "@/modules/services";
 import type { Area, SessionContextDto } from "../contracts";
-import { visibleNavigation, type NavGroup, type NavLeaf } from "./navigation";
+import { isGroupActive, visibleNavigation, type NavGroup, type NavLeaf } from "./navigation";
 import { AreaTabBar } from "./area-tab-bar";
 import { WorkspaceSwitcher, workspaceLabel } from "./workspace-switcher";
 import { UserMenu } from "./user-menu";
@@ -37,7 +37,7 @@ function NavigationLeaf({ item, close }: { item: NavLeaf; close: () => void }) {
       to={item.to}
       onClick={close}
       activeOptions={{ exact: true }}
-      className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:outline-ring data-[status=active]:bg-sidebar-primary data-[status=active]:font-medium data-[status=active]:text-sidebar-primary-foreground"
+      className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground data-[status=active]:bg-sidebar-primary data-[status=active]:font-medium data-[status=active]:text-sidebar-primary-foreground"
     >
       <LeafIcon aria-hidden weight="duotone" className="size-5 shrink-0" />
       <span className="break-words">{t(item.label)}</span>
@@ -54,7 +54,7 @@ function NavigationGroup({
   close: () => void;
   pathname: string;
 }) {
-  const active = group.children?.some((child) => child.to === pathname) ?? false;
+  const active = isGroupActive(group, pathname);
   const [open, setOpen] = useState(active);
   useEffect(() => {
     if (active) setOpen(true);

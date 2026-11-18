@@ -36,7 +36,7 @@ export function Dashboard({ area, context, children }: DashboardProps) {
           <Link
             key={to}
             to={to}
-            className="flex min-h-20 items-center gap-3 rounded-lg bg-card p-4 shadow-sm ring-1 ring-border transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-ring"
+            className="flex min-h-20 items-center gap-3 rounded-lg bg-card p-4 shadow-sm ring-1 ring-border transition-shadow hover:shadow-md"
           >
             <span
               aria-hidden

@@ -1,4 +1,4 @@
-import { THEME_BOOT_SCRIPT } from "@/lib/theme/theme";
+import { THEME_BOOT_SCRIPT, THEME_COLORS } from "@/lib/theme/theme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -85,7 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: t("meta.root.description") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "apple-mobile-web-app-title", content: "PosPay" },
+      { name: "apple-mobile-web-app-title", content: t("app.name") },
       { name: "msapplication-config", content: "/browserconfig.xml" },
     ],
     links: [
@@ -119,10 +119,13 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
         {/* HeadContent keeps one meta per name, so the two media-qualified theme colors are
-            rendered here. They match --background of each theme in src/styles.css and follow the
-            system setting, so they can differ from a theme the user picked by hand. */}
-        <meta name="theme-color" content="#EEF4F2" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="#0A1719" media="(prefers-color-scheme: dark)" />
+            rendered here. A theme picked by hand overwrites both (THEME_BOOT_SCRIPT, applyTheme). */}
+        <meta
+          name="theme-color"
+          content={THEME_COLORS.light}
+          media="(prefers-color-scheme: light)"
+        />
+        <meta name="theme-color" content={THEME_COLORS.dark} media="(prefers-color-scheme: dark)" />
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className="font-sans">

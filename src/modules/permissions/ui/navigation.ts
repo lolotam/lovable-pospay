@@ -155,14 +155,18 @@ export interface NavTab {
 
 const TAB_COUNT = 4;
 
+/** القسم يتظلل لو الصفحة الحالية أحد فروعه، أو هي رابطه هو لو مالوش فروع. */
+export function isGroupActive(group: NavGroup, pathname: string): boolean {
+  return group.children
+    ? group.children.some((child) => child.to === pathname)
+    : group.to === pathname;
+}
+
 /** أول أقسام القائمة كتبويبات للهاتف؛ القسم اللي له فروع يفتح أول فرع فيه ويتظلل مع أي فرع منه. */
 export function tabNavigation(groups: NavGroup[], pathname: string): NavTab[] {
   return groups.slice(0, TAB_COUNT).flatMap((group) => {
     const to = group.to ?? group.children?.[0]?.to;
     if (!to) return [];
-    const active = group.children
-      ? group.children.some((child) => child.to === pathname)
-      : to === pathname;
-    return [{ to, label: group.label, icon: group.icon, active }];
+    return [{ to, label: group.label, icon: group.icon, active: isGroupActive(group, pathname) }];
   });
 }
