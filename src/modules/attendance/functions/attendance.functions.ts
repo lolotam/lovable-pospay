@@ -62,18 +62,15 @@ export const getBranchQrFn = createServerFn({ method: "GET" })
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { branchSigner } = await import("../persistence/qr-signer.server");
+    const { qrBranchName } = await import("../persistence/qr-branches.server");
     const { issueQrToken, QR_TTL_SECONDS } = await import("../domain/qr-token");
     const userId = await requireUserId();
     return withUser(userId, async (db) => {
-      const { rows } = await db.query(
-        `select b.name from public.branches b
-          where b.id = $1 and public.has_permission(b.company_id, 'pos.access') and (public.is_company_admin(b.company_id) or public.has_company_role(b.company_id, 'reception'))`,
-        [data.branchId],
-      );
-      const signer = rows[0] ? await branchSigner(db, data.branchId) : null;
-      if (!rows[0] || !signer) throw new Error("FORBIDDEN");
+      const branchName = await qrBranchName(db, data.branchId);
+      const signer = branchName ? await branchSigner(db, data.branchId) : null;
+      if (!branchName || !signer) throw new Error("FORBIDDEN");
       const token = await issueQrToken(data.branchId, Math.floor(Date.now() / 1000), signer);
-      return { token, branchName: rows[0].name as string, expiresInSeconds: QR_TTL_SECONDS };
+      return { token, branchName, expiresInSeconds: QR_TTL_SECONDS };
     });
   });
 
@@ -82,14 +79,7 @@ export const listQrBranchesFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<QrBranchDto[]> => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { listQrBranches } = await import("../persistence/qr-branches.server");
     const userId = await requireUserId();
-    return withUser(userId, async (db) => {
-      const { rows } = await db.query(
-        `select b.id, b.name from public.branches b
-          where b.company_id = $1 and public.has_permission(b.company_id, 'pos.access') and (public.is_company_admin(b.company_id) or public.has_company_role(b.company_id, 'reception'))
-          order by b.name`,
-        [data.companyId],
-      );
-      return rows as QrBranchDto[];
-    });
+    return withUser(userId, (db) => listQrBranches(db, data.companyId));
   });

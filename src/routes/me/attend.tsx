@@ -40,8 +40,8 @@ function AttendPage() {
 }
 
 function GuardedPage() {
-  const { session, allowed } = Route.useRouteContext();
-  return allowed && pageAllowed(session, "/me/attend") ? (
+  const { session } = Route.useRouteContext();
+  return pageAllowed(session, "/me/attend") ? (
     <AttendPage />
   ) : (
     <NoAccess workspace={session.active} />

@@ -3,7 +3,7 @@ import { sessionContextQuery } from "@/modules/permissions/ui/use-session-contex
 import { WorkspacesPage } from "@/modules/permissions/ui/workspaces-page";
 import { RouteError, RouteNotFound } from "@/modules/permissions/ui/route-feedback";
 import { landingPath } from "@/modules/permissions";
-import { allowedDestination } from "@/modules/permissions/ui/area-guard";
+import { allowedDestination, chooserPath } from "@/modules/permissions/ui/area-guard";
 import { t } from "@/i18n";
 export const Route = createFileRoute("/workspaces")({
   ssr: false,
@@ -11,7 +11,8 @@ export const Route = createFileRoute("/workspaces")({
     typeof search["redirect"] === "string" ? { redirect: search["redirect"] } : {},
   beforeLoad: async ({ context, search }) => {
     const session = await context.queryClient.fetchQuery(sessionContextQuery);
-    if (!session) throw redirect({ to: "/sign-in", search: { redirect: "/workspaces" } });
+    if (!session)
+      throw redirect({ to: "/sign-in", search: { redirect: chooserPath(search.redirect) } });
     const requested = allowedDestination(session, search.redirect);
     if (requested) throw redirect({ href: requested });
     const target = landingPath(session.workspaces, session.active);
