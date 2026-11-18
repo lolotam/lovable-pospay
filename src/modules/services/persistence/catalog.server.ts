@@ -163,11 +163,23 @@ async function replaceAssignments(
     [companyId, id],
   );
   if (!cleared.rows[0]?.complete) return false;
-  await db.query(
-    `insert into public.service_assignments(company_id,service_id,staff_id)
-       select $1,$2,staff_id from unnest($3::uuid[]) as assigned(staff_id)
-       on conflict(company_id,service_id,staff_id) do update set active=true`,
-    [companyId, id, staffIds],
-  );
+  try {
+    await db.query(
+      `insert into public.service_assignments(company_id,service_id,staff_id)
+         select $1,$2,staff_id from unnest($3::uuid[]) as assigned(staff_id)
+         on conflict(company_id,service_id,staff_id) do update set active=true`,
+      [companyId, id, staffIds],
+    );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "23503" &&
+      "constraint" in error &&
+      error.constraint === "service_assignments_company_id_staff_id_fkey"
+    )
+      throw new Error("SERVICE_INVALID_ASSIGNMENTS", { cause: error });
+    throw error;
+  }
   return true;
 }

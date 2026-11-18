@@ -138,6 +138,50 @@ describe.skipIf(!url)("service catalog under PostgreSQL RLS", () => {
     expect(service.rowCount).toBe(0);
     await expect(run([staff])).resolves.toEqual({ id });
   });
+  it("rolls back an assignment when the selected staff row is removed after validation", async () => {
+    const selected = crypto.randomUUID();
+    const requestId = crypto.randomUUID();
+    await admin.query(
+      "insert into public.staff_members(company_id,id,branch_id,display_name) values($1,$2,$3,'Temporary staff')",
+      [company, selected, branch],
+    );
+    await expect(
+      withUser("catalog-manager", async (db) => {
+        const query = db.query.bind(db) as (
+          sql: string,
+          params?: unknown[],
+        ) => Promise<pg.QueryResult>;
+        const removeAfterValidation = async (sql: string, params?: unknown[]) => {
+          const result = await query(sql, params);
+          if (sql.includes("as valid")) {
+            await admin.query("delete from public.staff_members where company_id=$1 and id=$2", [
+              company,
+              selected,
+            ]);
+          }
+          return result;
+        };
+        const spy = vi
+          .spyOn(db, "query")
+          .mockImplementation(removeAfterValidation as typeof db.query);
+        try {
+          return await saveService(db, "catalog-manager", {
+            companyId: company,
+            requestId,
+            name: "Removed staff",
+            price: "10",
+            staffIds: [selected],
+          });
+        } finally {
+          spy.mockRestore();
+        }
+      }),
+    ).rejects.toThrow("SERVICE_INVALID_ASSIGNMENTS");
+    const service = await admin.query("select 1 from public.service_catalog where id=$1", [
+      requestId,
+    ]);
+    expect(service.rowCount).toBe(0);
+  });
   it("catalog edit retains previous price and rejects stale version", async () => {
     const { id } = await withUser("catalog-manager", (db) =>
       saveService(db, "catalog-manager", {
