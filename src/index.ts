@@ -1,3 +1,4 @@
+import "./styles.css"
 export { AppShell } from "./components/app-shell"
 export { Button } from "./components/ui/button"
 export { Input } from "./components/ui/input"
