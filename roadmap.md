@@ -88,3 +88,5 @@
 - [ ] تحقق تطبيق migrations 0011–0013 على الإنتاج — الفحص لقاها مش موجودة
 - [x] 013 صلاحية الخصم (ق-1) — migration 0014 جاهز، مستني تطبيقه على الإنتاج
 - [x] 014 تنزيل PDF مباشر من التقارير
+- [ ] 015 Invite-only accounts (team invites + /invite accept page)
+- [ ] Reconnect Resend in new workspace
