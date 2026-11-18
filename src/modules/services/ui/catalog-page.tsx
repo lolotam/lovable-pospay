@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useSuspenseQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Pencil, Save } from "lucide-react";
 import { CompanyScope } from "@/modules/staff";
@@ -31,10 +36,7 @@ export function CatalogPage() {
     </CompanyScope>
   );
 }
-function useCatalog({ companyId }: { companyId: string }) {
-  const { data, isFetching } = useSuspenseQuery(catalogQuery(companyId));
-  const cache = useQueryClient();
-  const save = useServerFn(saveServiceFn);
+function useCatalogForm() {
   const [edit, setEdit] = useState<ServiceDto | null>(null);
   const [form, setForm] = useState(false);
   const [name, setName] = useState("");
@@ -52,6 +54,54 @@ function useCatalog({ companyId }: { companyId: string }) {
     setForm(true);
     setMessage("");
   }
+  return {
+    edit,
+    form,
+    setForm,
+    name,
+    setName,
+    price,
+    setPrice,
+    staffIds,
+    setStaff,
+    busy,
+    setBusy,
+    message,
+    setMessage,
+    pendingCreate,
+    setPendingCreate,
+    open,
+  };
+}
+
+async function refreshSavedService(
+  cache: QueryClient,
+  companyId: string,
+  id: string,
+  name: string,
+  recovering: boolean,
+  open: (service: ServiceDto) => void,
+) {
+  const options = catalogQuery(companyId);
+  try {
+    await cache.invalidateQueries({ queryKey: options.queryKey });
+    const refreshed = await cache.fetchQuery(options);
+    const saved = refreshed?.services.find((service) => service.id === id);
+    if (recovering && saved) open(saved);
+    if (saved && (recovering || saved.name === name)) return;
+  } catch {
+    // The mutation already succeeded. Report only the refresh failure.
+  }
+  return "services.savedRefreshFailed" as const;
+}
+
+function useCatalog({ companyId }: { companyId: string }) {
+  const { data, isFetching } = useSuspenseQuery(catalogQuery(companyId));
+  const cache = useQueryClient();
+  const save = useServerFn(saveServiceFn);
+  const state = useCatalogForm();
+  const { edit, name, price, staffIds, busy, pendingCreate } = state;
+  const { setPendingCreate, setBusy, setForm, setMessage, open } = state;
   async function submit() {
     if (busy || isFetching) return;
     const recovering = !!pendingCreate;
@@ -86,25 +136,22 @@ function useCatalog({ companyId }: { companyId: string }) {
       }
       setForm(false);
       setMessage(t("ops.saved"));
-      try {
-        await cache.invalidateQueries({ queryKey: ["catalog", companyId] });
-        const fresh = await cache.fetchQuery(catalogQuery(companyId));
-        const saved = fresh?.services.find((s) => s.id === result.id);
-        if (recovering && saved) open(saved);
-        if (!saved || (!recovering && saved.name !== data.name)) {
-          setMessage(t("services.savedRefreshFailed"));
-        }
-      } catch {
-        setMessage(t("services.savedRefreshFailed"));
-      }
+      const message = await refreshSavedService(
+        cache,
+        companyId,
+        result.id,
+        data.name,
+        recovering,
+        open,
+      );
+      if (message) setMessage(t(message));
     } catch {
       setMessage(t(data.id ? "services.error" : "services.createUnconfirmed"));
     } finally {
       setBusy(false);
     }
   }
-  const fields = { name, setName, price, setPrice, staffIds, setStaff };
-  return { data, edit, form, ...fields, busy, message, open, submit, setForm, pendingCreate };
+  return { ...state, data, submit };
 }
 function Catalog({
   companyId,

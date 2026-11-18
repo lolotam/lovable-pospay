@@ -1,5 +1,5 @@
 import type pg from "pg";
-import type { SessionFormRecord, SessionRepository } from "../ports/session-repository";
+import type { NewSession, SessionFormRecord, SessionRepository } from "../ports/session-repository";
 
 export function pgSessionRepository(
   db: pg.PoolClient,
@@ -7,25 +7,7 @@ export function pgSessionRepository(
   companyId: string,
 ): SessionRepository {
   return {
-    async assignedService(serviceId, staffId) {
-      const r = await db.query(
-        `select c.name,c.price_mills::text as price,s.branch_id,b.timezone from public.service_assignments a
- join public.service_catalog c on c.company_id=a.company_id and c.id=a.service_id
- join public.staff_members s on s.company_id=a.company_id and s.id=a.staff_id
- join public.branches b on b.company_id=s.company_id and b.id=s.branch_id
- where a.company_id=$1 and a.service_id=$2 and a.staff_id=$3 and a.active`,
-        [companyId, serviceId, staffId],
-      );
-      const row = r.rows[0];
-      return row
-        ? {
-            serviceName: row.name,
-            priceMills: BigInt(row.price),
-            branchId: row.branch_id,
-            timeZone: row.timezone,
-          }
-        : null;
-    },
+    assignedService: (serviceId, staffId) => assignedService(db, companyId, serviceId, staffId),
     async canWrite(branchId) {
       const r = await db.query(`select public.session_writer($1,$2) as ok`, [companyId, branchId]);
       return Boolean(r.rows[0]?.ok);
@@ -59,24 +41,7 @@ export function pgSessionRepository(
       ]);
       return r.rows[0].id;
     },
-    async insertSession(s) {
-      await db.query(
-        `insert into public.service_sessions(company_id,id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,price_mills,recorded_by)
- values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [
-          companyId,
-          s.id,
-          s.serviceId,
-          s.staffId,
-          s.branchId,
-          s.clientId,
-          s.occurredAt,
-          s.serviceName,
-          s.priceMills.toString(),
-          userId,
-        ],
-      );
-    },
+    insertSession: (session) => insertSession(db, companyId, userId, session),
     async audit(id, details) {
       await db.query(
         `insert into public.audit_log(company_id,actor_user_id,action,entity,entity_id,details) values($1,$2,'session.recorded','service_session',$3,$4)`,
@@ -84,6 +49,55 @@ export function pgSessionRepository(
       );
     },
   };
+}
+
+async function assignedService(
+  db: pg.PoolClient,
+  companyId: string,
+  serviceId: string,
+  staffId: string,
+) {
+  const r = await db.query(
+    `select c.name,c.price_mills::text as price,s.branch_id,b.timezone from public.service_assignments a
+     join public.service_catalog c on c.company_id=a.company_id and c.id=a.service_id
+     join public.staff_members s on s.company_id=a.company_id and s.id=a.staff_id
+     join public.branches b on b.company_id=s.company_id and b.id=s.branch_id
+     where a.company_id=$1 and a.service_id=$2 and a.staff_id=$3 and a.active`,
+    [companyId, serviceId, staffId],
+  );
+  const row = r.rows[0];
+  return row
+    ? {
+        serviceName: row.name,
+        priceMills: BigInt(row.price),
+        branchId: row.branch_id,
+        timeZone: row.timezone,
+      }
+    : null;
+}
+
+async function insertSession(
+  db: pg.PoolClient,
+  companyId: string,
+  userId: string,
+  session: NewSession,
+) {
+  await db.query(
+    `insert into public.service_sessions(company_id,id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,price_mills,recorded_by)
+     values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    [
+      companyId,
+      session.id,
+      session.serviceId,
+      session.staffId,
+      session.branchId,
+      session.clientId,
+      session.occurredAt,
+      session.serviceName,
+      session.priceMills.toString(),
+      userId,
+    ],
+  );
 }
 
 /** يقرأ خيارات تسجيل الجلسة المصرح بها للمستخدم. */

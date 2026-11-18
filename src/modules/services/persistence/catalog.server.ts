@@ -79,27 +79,37 @@ export function pgCatalogWriter(
     },
     matchesCreation: (id, details) => matchesCreation(db, companyId, userId, id, details),
     replaceAssignments: (id, staffIds) => replaceAssignments(db, companyId, id, staffIds),
-    async audit(id, previous, details) {
-      await db.query(
-        `insert into public.audit_log(company_id,actor_user_id,action,entity,entity_id,details)
-         values($1,$2,'service.saved','service',$3,$4)`,
-        [
-          companyId,
-          userId,
-          id,
-          JSON.stringify({
-            previous: previous && {
-              name: previous.name,
-              version: previous.version,
-              price_mills: previous.priceMills.toString(),
-            },
-            ...details,
-            priceMills: details.priceMills.toString(),
-          }),
-        ],
-      );
-    },
+    audit: (id, previous, details) =>
+      auditCatalogSave(db, companyId, userId, id, previous, details),
   };
+}
+
+async function auditCatalogSave(
+  db: pg.PoolClient,
+  companyId: string,
+  userId: string,
+  id: string,
+  previous: CatalogSnapshot | null,
+  details: CatalogDetails,
+) {
+  await db.query(
+    `insert into public.audit_log(company_id,actor_user_id,action,entity,entity_id,details)
+     values($1,$2,'service.saved','service',$3,$4)`,
+    [
+      companyId,
+      userId,
+      id,
+      JSON.stringify({
+        previous: previous && {
+          name: previous.name,
+          version: previous.version,
+          price_mills: previous.priceMills.toString(),
+        },
+        ...details,
+        priceMills: details.priceMills.toString(),
+      }),
+    ],
+  );
 }
 
 async function matchesCreation(
