@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { FileRoutesByTo } from "@/routeTree.gen";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { t, type MessageKey } from "@/i18n";
 
 interface NavItem {
@@ -35,9 +36,16 @@ export interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const mobileNav = useRef<HTMLElement>(null);
+  useEffect(() => {
+    mobileNav.current
+      ?.querySelector('[data-status="active"]')
+      ?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [pathname]);
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="sticky top-0 hidden h-screen w-52 shrink-0 overflow-y-auto border-e border-sidebar-border bg-sidebar md:block lg:w-60">
+    <div className="flex min-h-dvh bg-background text-foreground">
+      <aside className="sticky top-0 hidden h-dvh w-52 shrink-0 overflow-y-auto border-e border-sidebar-border bg-sidebar md:block lg:w-60">
         <div className="px-4 py-4 text-sm font-bold">{t("app.name")}</div>
         <nav className="flex flex-col gap-4 px-2 pb-4">
           {sections.map((s, i) => (
@@ -68,7 +76,9 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
       </aside>
       <div className="min-w-0 flex-1">
-        <nav className="sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-border bg-sidebar/95 px-2 py-1.5 backdrop-blur md:hidden">
+        <nav
+          ref={mobileNav}
+          className="sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-border bg-sidebar/95 px-2 py-1.5 backdrop-blur md:hidden">
           {sections
             .flatMap((s) => s.items)
             .map((item) => (
@@ -82,7 +92,7 @@ export function AppShell({ children }: AppShellProps) {
               </Link>
             ))}
         </nav>
-        <main>{children}</main>
+        <main className="pb-[env(safe-area-inset-bottom)]">{children}</main>
       </div>
     </div>
   );
