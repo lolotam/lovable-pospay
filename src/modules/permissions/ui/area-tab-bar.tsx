@@ -15,7 +15,7 @@ export function AreaTabBar({ groups, pathname }: AreaTabBarProps) {
   return (
     <nav
       aria-label={t("nav.primary")}
-      className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-1 rounded-full border border-border bg-card p-1.5 shadow-lg md:hidden"
+      className="fixed start-3 end-3 [inset-block-end:calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-1 rounded-full border border-border bg-card p-1.5 shadow-lg md:hidden"
     >
       {tabNavigation(groups, pathname).map(({ to, label, icon: TabIcon, active }) => (
         <Link

@@ -85,10 +85,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: t("meta.root.description") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      // Browser chrome matches --background of each theme in src/styles.css. It follows the
-      // system setting, so it can differ from a theme the user picked by hand.
-      { name: "theme-color", content: "#EEF4F2", media: "(prefers-color-scheme: light)" },
-      { name: "theme-color", content: "#0A1719", media: "(prefers-color-scheme: dark)" },
       { name: "apple-mobile-web-app-title", content: "PosPay" },
       { name: "msapplication-config", content: "/browserconfig.xml" },
     ],
@@ -122,6 +118,11 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/* HeadContent keeps one meta per name, so the two media-qualified theme colors are
+            rendered here. They match --background of each theme in src/styles.css and follow the
+            system setting, so they can differ from a theme the user picked by hand. */}
+        <meta name="theme-color" content="#EEF4F2" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0A1719" media="(prefers-color-scheme: dark)" />
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className="font-sans">

@@ -62,7 +62,7 @@ export function WorkspaceSwitcher({ context }: WorkspaceSwitcherProps) {
       {open && (
         <div
           id="workspace-options"
-          className="space-y-1 border-s border-sidebar-border ps-2"
+          className="max-h-[50dvh] space-y-1 overflow-y-auto border-s border-sidebar-border ps-2"
           aria-label={t("ws.switch")}
         >
           {context.workspaces.map((ws, i) => (
