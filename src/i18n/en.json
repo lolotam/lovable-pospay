@@ -95,6 +95,7 @@
   "qr.title": "Scan to check in or out",
   "qr.refreshes": "The code refreshes automatically",
   "qr.expired": "Code expired; waiting for a new code.",
+  "qr.unavailable": "Could not refresh the code. Retrying…",
   "qr.loading": "Loading attendance code…",
   "qr.missingBranch": "Set the branch in the link",
   "qr.forbidden": "You cannot show this branch's code",

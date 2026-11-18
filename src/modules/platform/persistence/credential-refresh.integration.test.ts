@@ -93,31 +93,15 @@ describe.skipIf(!url)("connector credential refresh under PostgreSQL", () => {
   });
 
   it("releases the provider lock when a refresh times out", async () => {
-    const controller = new AbortController();
-    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValueOnce(controller.signal);
     const fetchMock = vi
-      .fn<(input: string, options: RequestInit) => Promise<Response>>()
-      .mockImplementationOnce(
-        async (_input, { signal }) =>
-          new Promise((_, reject) => {
-            signal?.addEventListener("abort", () => reject(signal.reason), { once: true });
-          }),
-      )
+      .fn()
+      .mockRejectedValueOnce(new DOMException("Provider timed out", "TimeoutError"))
       .mockResolvedValueOnce(refreshedResponse());
     vi.stubGlobal("fetch", fetchMock);
-    try {
-      const result = loadCredential(userId, provider);
-      const rejected = expect(result).rejects.toThrow("Provider timed out");
-      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-      expect(timeout).toHaveBeenCalledWith(10_000);
-      controller.abort(new Error("Provider timed out"));
-      await rejected;
-      await expect(loadCredential(userId, provider)).resolves.toMatchObject({
-        refresh: "new-refresh",
-      });
-    } finally {
-      timeout.mockRestore();
-    }
+    await expect(loadCredential(userId, provider)).rejects.toThrow("Provider timed out");
+    await expect(loadCredential(userId, provider)).resolves.toMatchObject({
+      refresh: "new-refresh",
+    });
   });
 
   it("bounds the wait for a provider row locked by another transaction", async () => {

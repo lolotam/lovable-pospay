@@ -38,9 +38,11 @@ export const ReceptionQr = forwardRef<HTMLDivElement, ReceptionQrProps>(function
               ? "qr.forbidden"
               : failed === "expired"
                 ? "qr.expired"
-                : image
-                  ? "qr.refreshes"
-                  : "qr.loading",
+                : failed === "unavailable"
+                  ? "qr.unavailable"
+                  : image
+                    ? "qr.refreshes"
+                    : "qr.loading",
         )}
       </p>
     </div>

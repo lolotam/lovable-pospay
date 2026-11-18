@@ -44,15 +44,46 @@ async function codexCall(c: Credential, model: string, system: string, user: str
   if (!res.ok)
     throw new HttpError(`CODEX_${res.status}: ${(await res.text()).slice(0, 300)}`, res.status);
   let out = "";
-  for (const line of (await res.text()).split("\n")) {
-    if (!line.startsWith("data:")) continue;
+  let completed = false;
+  for (const frame of (await res.text()).split(/\r?\n\r?\n/)) {
+    const data = frame
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trimStart())
+      .join("\n");
+    if (!data || data === "[DONE]") continue;
+    let event: unknown;
     try {
-      const ev = JSON.parse(line.slice(5).trim());
-      if (ev.type === "response.output_text.delta") out += ev.delta;
+      event = JSON.parse(data);
     } catch {
-      continue;
+      throw new Error("CODEX_MALFORMED_STREAM");
+    }
+    if (
+      typeof event !== "object" ||
+      event === null ||
+      !("type" in event) ||
+      typeof event.type !== "string"
+    ) {
+      throw new Error("CODEX_MALFORMED_STREAM");
+    }
+    switch (event.type) {
+      case "response.failed":
+      case "error":
+        throw new Error("CODEX_STREAM_FAILED");
+      case "response.incomplete":
+        throw new Error("CODEX_STREAM_INCOMPLETE");
+      case "response.completed":
+        completed = true;
+        break;
+      case "response.output_text.delta":
+        if (!("delta" in event) || typeof event.delta !== "string")
+          throw new Error("CODEX_MALFORMED_STREAM");
+        out += event.delta;
+        break;
     }
   }
+  if (!completed) throw new Error("CODEX_STREAM_INCOMPLETE");
+  if (!out.trim()) throw new Error("CODEX_EMPTY_STREAM");
   return out;
 }
 async function chatCall(

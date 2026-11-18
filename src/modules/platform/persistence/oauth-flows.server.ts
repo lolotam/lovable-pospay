@@ -28,6 +28,7 @@ const MINIMAX_CLIENT_ID = "659cf4c1-615c-45f6-a5f6-4bf15eb476e5";
 const ZCODE = "https://zcode.z.ai/api/v1";
 const ZAI = "https://api.z.ai";
 const PROVIDER_TIMEOUT_MS = 10_000;
+const REFRESH_BODY_TIMEOUT_MS = 5_000;
 
 const form = (body: Record<string, string>): RequestInit => ({
   method: "POST",
@@ -325,16 +326,32 @@ const REFRESH: Record<Exclude<AccountProvider, "zai_coding">, [string, string]> 
   kimi_coding: [`${KIMI_AUTH}/api/oauth/token`, KIMI_CLIENT_ID],
   minimax_coding: [`${MINIMAX_AUTH}/oauth2/token`, MINIMAX_CLIENT_ID],
 };
+
+async function readRefreshResponse(url: string, init: RequestInit) {
+  const controller = new AbortController();
+  const { signal } = controller;
+  const timeOut = () => controller.abort(new DOMException("Provider timed out", "TimeoutError"));
+  let timer = setTimeout(timeOut, PROVIDER_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { ...init, signal });
+    // The provider may have rotated the token by the time headers arrive.
+    // Give the body a separate bounded window to deliver the replacement.
+    clearTimeout(timer);
+    timer = setTimeout(timeOut, REFRESH_BODY_TIMEOUT_MS);
+    return { res, body: await readJson(res, signal) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function refreshCredential(p: AccountProvider, c: Credential): Promise<Credential> {
   if (!c.refresh) throw new AuthRejected("EXPIRED");
-  const signal = AbortSignal.timeout(PROVIDER_TIMEOUT_MS);
-  if (p === "zai_coding") return zaiProjectToken(c.refresh, c.extras ?? {}, signal);
+  if (p === "zai_coding") return zaiProjectToken(c.refresh, c.extras ?? {});
   const [url, client_id] = REFRESH[p];
-  const res = await fetch(url, {
-    ...form({ grant_type: "refresh_token", client_id, refresh_token: c.refresh }),
-    signal,
-  });
-  const j = await readJson(res, signal);
+  const { res, body: j } = await readRefreshResponse(
+    url,
+    form({ grant_type: "refresh_token", client_id, refresh_token: c.refresh }),
+  );
   if (!res.ok) {
     const code = oauthError(j);
     if (

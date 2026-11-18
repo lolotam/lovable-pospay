@@ -37,17 +37,19 @@ describe("reception QR validity", () => {
   });
 
   it("charges slow bitmap rendering against the original lifetime", async () => {
-    rpc.mockResolvedValue(response);
-    bitmap.mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve("late-image"), 61_000)),
+    rpc
+      .mockResolvedValueOnce({ ...response, expiresInSeconds: 2 })
+      .mockImplementation(() => new Promise(() => {}));
+    bitmap.mockImplementationOnce(
+      () => new Promise((resolve) => setTimeout(() => resolve("late-image"), 1_500)),
     );
     const { result } = renderHook(() => useReceptionQr(branch, rpc));
-    await advance(61_000);
+    await advance(1_500);
     expect(result.current.image).toBeNull();
     expect(result.current.failed).toBe("expired");
   });
 
-  it.each([20_000, 61_000])(
+  it.each([5_000, 8_001])(
     "charges RPC delay of %i ms against the original lifetime",
     async (delay) => {
       rpc
@@ -57,13 +59,13 @@ describe("reception QR validity", () => {
         .mockImplementation(() => new Promise(() => {}));
       const { result } = renderHook(() => useReceptionQr(branch, rpc));
       await advance(delay);
-      if (delay < 60_000) {
+      if (delay < 8_000) {
         expect(result.current.branchName).toBe("Salon A");
         expect(result.current.image).toBe("data:image/png;base64,fresh");
-        await advance(60_000 - delay);
+        await advance(59_000 - delay);
       }
       expect(result.current.image).toBeNull();
-      expect(result.current.failed).toBe("expired");
+      expect(result.current.failed).toBe(delay < 8_000 ? "expired" : "unavailable");
     },
   );
 
@@ -134,16 +136,40 @@ describe("reception QR validity", () => {
       )
       .mockResolvedValue({ ...response, branchName: "Recovered" });
     const { result } = renderHook(() => useReceptionQr(branch, rpc));
-    await advance(74_999);
+    await advance(57_999);
     expect(rpc).toHaveBeenCalledTimes(2);
     const signal = rpc.mock.calls[1]?.[0].signal as AbortSignal;
     expect(signal.aborted).toBe(false);
     await advance(1);
     expect(signal.aborted).toBe(true);
-    await advance(25_000);
+    await advance(3_000);
     expect(rpc).toHaveBeenCalledTimes(3);
     expect(result.current.branchName).toBe("Recovered");
     await act(async () => complete(response));
+    expect(result.current.branchName).toBe("Recovered");
+  });
+
+  it("retries an initial timeout within three seconds without overlapping requests", async () => {
+    rpc.mockImplementationOnce(() => new Promise(() => {})).mockResolvedValue(response);
+    const { result } = renderHook(() => useReceptionQr(branch, rpc));
+    await advance(8_000);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(result.current.failed).toBe("unavailable");
+    await advance(3_000);
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(result.current.image).toBe("data:image/png;base64,fresh");
+  });
+
+  it("keeps an unexpired QR on a transient network error and retries promptly", async () => {
+    rpc
+      .mockResolvedValueOnce(response)
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValue({ ...response, branchName: "Recovered" });
+    const { result } = renderHook(() => useReceptionQr(branch, rpc));
+    await advance(50_000);
+    expect(result.current.image).toBe("data:image/png;base64,fresh");
+    expect(result.current.failed).toBe(false);
+    await advance(3_000);
     expect(result.current.branchName).toBe("Recovered");
   });
 
