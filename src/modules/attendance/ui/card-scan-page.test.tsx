@@ -4,11 +4,15 @@ import { expect, it, vi } from "vitest";
 import { t } from "@/i18n";
 import { CardScanPage } from "./card-scan-page";
 
-const { scan, settle } = vi.hoisted(() => ({ scan: vi.fn(), settle: vi.fn() }));
+const { scan, settle, operator } = vi.hoisted(() => ({
+  scan: vi.fn(),
+  settle: vi.fn(),
+  operator: { id: "reception" },
+}));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (handler: unknown) => handler }));
 vi.mock("@/modules/staff", () => ({
   CompanyScope: ({ children }: { children: (id: string, userId: string) => ReactNode }) =>
-    children("30000000-0000-4000-8000-000000000001", "reception"),
+    children("30000000-0000-4000-8000-000000000001", operator.id),
 }));
 vi.mock("../functions/card.functions", () => ({ scanCardFn: scan, settleCardScanFn: settle }));
 
@@ -130,6 +134,16 @@ it("keeps the original request blocked through an expired session", async () => 
   if (!key) throw new Error("Expected a stored recovery request");
   const stored = sessionStorage.getItem(key);
   first.unmount();
+
+  operator.id = "other-reception";
+  const other = render(<CardScanPage />);
+  expect(screen.getByRole("textbox", { name: t("cards.scanInput") })).toBeDisabled();
+  expect(screen.getByText(t("cards.scanOriginalScope"))).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: t("cards.checkScanStatus") })).toBeNull();
+  expect(settle).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem(key)).toBe(stored);
+  other.unmount();
+  operator.id = "reception";
 
   render(<CardScanPage />);
   const recover = screen.getByRole("button", { name: t("cards.checkScanStatus") });

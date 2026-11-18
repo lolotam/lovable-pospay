@@ -103,7 +103,7 @@ async function executeCardScan(
 export const scanCardFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => cardScanInput.parse(v))
   .handler(({ data }) =>
-    withCardRequest(data, async ({ db, userId, receipts }) => {
+    withCardRequest(data, "scan", async ({ db, userId, receipts }) => {
       const { scanCard } = await import("../persistence/card-scan.server");
       const { cardHash } = await import("../persistence/card-repository.server");
       const promptedRecordId = data.promptedRecordId?.toLowerCase();
@@ -126,17 +126,21 @@ export const scanCardFn = createServerFn({ method: "POST" })
 export const settleCardScanFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => cardRequestInput.parse(v))
   .handler(({ data }) =>
-    withCardRequest(data, ({ receipts }) => settleCardRequest(receipts, { status: "cancelled" })),
+    withCardRequest(data, "settle", ({ receipts, expired }) =>
+      settleCardRequest(receipts, { status: expired ? "rejected" : "cancelled" }),
+    ),
   );
 
 type CardRequestContext = {
   db: pg.PoolClient;
   userId: string;
   receipts: CardScanReceipts<CardScanResponse>;
+  expired: boolean;
 };
 
 async function withCardRequest(
   data: CardRequest,
+  operation: "scan" | "settle",
   run: (context: CardRequestContext) => Promise<CardScanResponse>,
 ): Promise<CardScanResponse> {
   const { requireUserId } = await import("@/lib/server/session.server");
@@ -146,7 +150,7 @@ async function withCardRequest(
     const userId = await requireUserId();
     const window = cardRequestWindow(data.requestedAt, Date.now());
     if (userId !== data.expectedUserId || window === "too_early") return { status: "unverified" };
-    if (window === "expired") return { status: "rejected" };
+    if (operation === "scan" && window === "expired") return { status: "rejected" };
     return await withUser(userId, async (db) => {
       const { rows } = await db.query<{ member: boolean }>(
         "select public.is_member($1) as member",
@@ -159,7 +163,7 @@ async function withCardRequest(
         userId,
         data.requestId,
       );
-      return run({ db, userId, receipts });
+      return run({ db, userId, receipts, expired: window === "expired" });
     });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHENTICATED")
