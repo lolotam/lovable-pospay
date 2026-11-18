@@ -92,13 +92,12 @@ function useScanner({ companyId }: { companyId: string }) {
   }
   return { token, setToken, busy, prompt, setPrompt, message, uncertain, confirmStatus, run };
 }
-function Scanner({
-  companyId,
-  onSwitchLockChange,
-}: {
+type ScannerProps = {
   companyId: string;
   onSwitchLockChange: (locked: boolean) => void;
-}) {
+};
+
+function Scanner({ companyId, onSwitchLockChange }: ScannerProps) {
   const { token, setToken, busy, prompt, setPrompt, message, uncertain, confirmStatus, run } =
     useScanner({ companyId });
   const input = useRef<HTMLInputElement>(null);
@@ -135,25 +134,14 @@ function Scanner({
           {t("cards.checkScanStatus")}
         </Button>
       ) : prompt ? (
-        <div className="flex flex-wrap gap-3">
-          <Button type="button" disabled={busy} onClick={() => run("new_shift")}>
-            {t("attend.newShift")}
-          </Button>
-          <Button type="button" variant="outline" disabled={busy} onClick={() => run("check_out")}>
-            {t("attend.checkOut")}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => {
-              setPrompt(null);
-              setToken("");
-            }}
-          >
-            {t("phone.cancel")}
-          </Button>
-        </div>
+        <ScanIntentActions
+          busy={busy}
+          onSelect={run}
+          onCancel={() => {
+            setPrompt(null);
+            setToken("");
+          }}
+        />
       ) : (
         <Button disabled={busy || !token}>
           <ScanLine />
@@ -162,5 +150,29 @@ function Scanner({
       )}
       <p role="status">{message}</p>
     </form>
+  );
+}
+
+function ScanIntentActions({
+  busy,
+  onSelect,
+  onCancel,
+}: {
+  busy: boolean;
+  onSelect: (intent: "new_shift" | "check_out") => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-3">
+      <Button type="button" disabled={busy} onClick={() => onSelect("new_shift")}>
+        {t("attend.newShift")}
+      </Button>
+      <Button type="button" variant="outline" disabled={busy} onClick={() => onSelect("check_out")}>
+        {t("attend.checkOut")}
+      </Button>
+      <Button type="button" variant="ghost" disabled={busy} onClick={onCancel}>
+        {t("phone.cancel")}
+      </Button>
+    </div>
   );
 }
