@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { t } from "@/i18n";
-import { Route } from "@/routes/phone";
+import { PhoneBinding } from "@/modules/staff/ui/phone-binding";
 
 const { getManagement, begin, finish, addPasskey, getCompanies, authenticate } = vi.hoisted(() => ({
   getManagement: vi.fn(),
@@ -43,12 +43,10 @@ afterAll(() => {
 
 function showPhonePage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const PhonePage = Route.options.component;
-  if (!PhonePage) throw new Error("Missing phone page component");
   return render(
     <QueryClientProvider client={client}>
       <Suspense fallback={<p>Loading phone page</p>}>
-        <PhonePage />
+        <PhoneBinding />
       </Suspense>
     </QueryClientProvider>,
   );

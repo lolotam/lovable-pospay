@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { getSystemStatus } from "@/lib/tenancy.functions";
+import { useQuery } from "@tanstack/react-query";
+import { Users, Clock, Scissors, Coins, Star, Bell, ArrowUpLeft } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
+import { sessionContextQuery } from "@/modules/permissions/ui/use-session-context";
+import { landingPath } from "@/modules/permissions";
+import { Button } from "@/components/ui/button";
 import { t, type MessageKey } from "@/i18n";
-
-const statusQuery = queryOptions({ queryKey: ["system-status"], queryFn: () => getSystemStatus() });
-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -22,74 +23,50 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(statusQuery),
-  component: Index,
+  component: Landing,
 });
-
-const modules: MessageKey[] = [
-  "modules.staff",
-  "modules.attendance",
-  "modules.services",
-  "modules.commissions",
-  "modules.ratings",
-  "modules.notifications",
-];
-
-function Row({ label, ok }: { label: MessageKey; ok: boolean }) {
+const modules = [
+  ["modules.staff", Users],
+  ["modules.attendance", Clock],
+  ["modules.services", Scissors],
+  ["modules.commissions", Coins],
+  ["modules.ratings", Star],
+  ["modules.notifications", Bell],
+] as const;
+function Landing() {
+  const session = authClient.useSession();
+  const { data: context } = useQuery({ ...sessionContextQuery, enabled: !!session.data });
+  const target = session.data
+    ? landingPath(context?.workspaces ?? [], context?.active ?? null)
+    : "/sign-in";
   return (
-    <li className="flex items-center justify-between border-b border-border py-3 last:border-0">
-      <span>{t(label)}</span>
-      <span className={ok ? "text-primary font-medium" : "text-destructive font-medium"}>
-        {ok ? t("status.ready") : t("status.notConfigured")}
-      </span>
-    </li>
-  );
-}
-
-function Index() {
-  const { data } = useSuspenseQuery(statusQuery);
-  return (
-    <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-16 lg:py-20">
-      <p className="text-sm font-medium text-primary">{t("app.tagline")}</p>
-      <h1 className="mt-3 text-4xl font-bold leading-tight md:text-5xl">{t("app.name")}</h1>
-      <p className="mt-4 max-w-2xl text-lg text-muted-foreground">{t("app.description")}</p>
-      <Link
-        to="/sign-in"
-        className="mt-8 inline-flex rounded-md bg-primary px-5 py-2.5 font-medium text-primary-foreground hover:bg-primary/90"
-      >
-        {t("auth.signIn")}
-      </Link>
-      <nav className="mt-6 flex flex-wrap gap-6">
-        <Link to="/phone" className="text-primary underline">
-          {t("phone.title")}
-        </Link>
-        <Link to="/attendance-questions" className="text-primary underline">
-          {t("insights.title")}
-        </Link>
-      </nav>
-
-      <div className="mt-14 grid gap-8 md:grid-cols-2">
-        <section className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-bold">{t("status.title")}</h2>
-          <ul className="mt-3 text-sm">
-            <Row label="status.databaseUrl" ok={data.database} />
-            <Row label="status.databaseReachable" ok={data.databaseReachable} />
-            <Row label="status.auth" ok={data.auth} />
-            <Row label="status.whatsapp" ok={data.whatsapp} />
-          </ul>
-        </section>
-        <section className="rounded-lg border border-border bg-muted p-6">
-          <h2 className="text-lg font-bold">{t("modules.title")}</h2>
-          <ol className="mt-3 space-y-2 text-sm">
-            {modules.map((m, i) => (
-              <li key={m} className="flex gap-3">
-                <span className="text-primary font-bold">{i + 1}</span>
-                {t(m)}
-              </li>
-            ))}
-          </ol>
-        </section>
-      </div>
+    <main className="min-h-dvh">
+      <header className="mx-auto flex max-w-6xl items-center border-b border-border px-5 py-6 sm:px-8">
+        <span className="text-xl font-bold">{t("app.name")}</span>
+      </header>
+      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
+        <p className="text-sm font-medium text-muted-foreground">{t("app.tagline")}</p>
+        <h1 className="mt-4 text-5xl font-bold sm:text-7xl">{t("app.name")}</h1>
+        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+          {t("app.description")}
+        </p>
+        <Button asChild className="mt-8 min-h-12 px-6">
+          <Link to={target}>
+            {t(session.data ? "landing.openDashboard" : "landing.cta")}
+            <ArrowUpLeft className="size-4" />
+          </Link>
+        </Button>
+      </section>
+      <section className="border-t border-border bg-muted/40">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-5 py-10 sm:grid-cols-3 sm:px-8">
+          {modules.map(([label, Icon]) => (
+            <div key={label} className="flex items-center gap-3">
+              <Icon aria-hidden className="size-5 shrink-0 text-accent" />
+              <span className="text-sm font-medium">{t(label as MessageKey)}</span>
+            </div>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }

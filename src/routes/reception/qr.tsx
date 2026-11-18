@@ -1,30 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { receptionQrSearchSchema } from "@/modules/attendance";
-import { ReceptionQr } from "@/modules/attendance/ui/reception-qr";
-import { t } from "@/i18n";
-
+import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/reception/qr")({
-  validateSearch: receptionQrSearchSchema,
-  ssr: false,
-  head: () => ({
-    meta: [
-      { title: t("qr.metaTitle") },
-      { name: "description", content: t("qr.metaDescription") },
-      { property: "og:title", content: t("qr.metaTitle") },
-      { property: "og:description", content: t("qr.metaDescription") },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
-  component: ReceptionQrPage,
+  beforeLoad: ({ location }) => {
+    throw redirect({ href: "/pos/qr" + location.searchStr, statusCode: 307 });
+  },
 });
-
-function ReceptionQrPage() {
-  const { branch } = Route.useSearch();
-  return (
-    <main className="flex min-h-dvh items-center justify-center px-4 py-6 sm:px-6 sm:py-10">
-      {branch ? <ReceptionQr branchId={branch} /> : <p>{t("qr.missingBranch")}</p>}
-    </main>
-  );
-}

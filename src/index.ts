@@ -1,5 +1,4 @@
 import "./styles.css";
-export { AppShell } from "./components/app-shell";
 export { Button } from "./components/ui/button";
 export { Input } from "./components/ui/input";
 export { AttendScan } from "./modules/attendance/ui/attend-scan";

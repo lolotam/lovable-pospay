@@ -1,4 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { sessionContextQuery } from "@/modules/permissions/ui/use-session-context";
+import { landingPath, safeRedirectPath } from "@/modules/permissions";
+import { pageAllowed } from "@/modules/permissions/ui/area-guard";
 import { useEffect, useState } from "react";
 import { duringAccountChange } from "@/lib/account-change";
 import { authClient, verifyAuthSession } from "@/lib/auth-client";
@@ -11,8 +15,12 @@ import { Input } from "@/components/ui/input";
 type Step = "login" | "request" | "code" | "choice" | "password" | "totp";
 
 export const Route = createFileRoute("/sign-in")({
-  validateSearch: (search: Record<string, unknown>): { twoFactor?: boolean } =>
-    search["twoFactor"] === "true" || search["twoFactor"] === true ? { twoFactor: true } : {},
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { twoFactor?: boolean; redirect?: string } => ({
+    ...(search["twoFactor"] === "true" || search["twoFactor"] === true ? { twoFactor: true } : {}),
+    ...(typeof search["redirect"] === "string" ? { redirect: search["redirect"] } : {}),
+  }),
   head: () => ({
     meta: [
       { title: "تسجيل الدخول — PosPay" },
@@ -28,6 +36,7 @@ export const Route = createFileRoute("/sign-in")({
 
 function useSignInFlow() {
   const navigate = useNavigate();
+  const cache = useQueryClient();
   const search = Route.useSearch();
   const [step, setStep] = useState<Step>("login");
   const [email, setEmail] = useState("");
@@ -53,7 +62,13 @@ function useSignInFlow() {
       setStep("totp");
       return;
     }
-    await navigate({ to: "/" });
+    const context = await cache.fetchQuery(sessionContextQuery);
+    const requested = safeRedirectPath(search.redirect);
+    const destination =
+      context && requested && pageAllowed(context, requested.split("?")[0] ?? "")
+        ? requested
+        : landingPath(context?.workspaces ?? [], context?.active ?? null);
+    await navigate({ to: destination });
   }
 
   async function requestCode() {
@@ -94,7 +109,7 @@ function useSignInFlow() {
         () =>
           authClient.signIn.social({
             provider: "google",
-            callbackURL: "/",
+            callbackURL: "/workspaces",
             errorCallbackURL: "/sign-in",
           }),
         verifyAuthSession,

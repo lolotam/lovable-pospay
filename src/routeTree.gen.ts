@@ -10,13 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
+import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as AttendRouteImport } from './routes/attend'
 import { Route as AttendanceCorrectionsRouteImport } from './routes/attendance-corrections'
 import { Route as AttendanceQuestionsRouteImport } from './routes/attendance-questions'
 import { Route as CardsRouteImport } from './routes/cards'
 import { Route as DiscountsRouteImport } from './routes/discounts'
 import { Route as InviteRouteImport } from './routes/invite'
+import { Route as MeRouteRouteImport } from './routes/me/route'
 import { Route as PhoneRouteImport } from './routes/phone'
+import { Route as PosRouteRouteImport } from './routes/pos/route'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServicesRouteImport } from './routes/services'
@@ -24,15 +28,48 @@ import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as TeamRouteImport } from './routes/team'
+import { Route as WorkspacesRouteImport } from './routes/workspaces'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminConnectorsRouteImport } from './routes/admin/connectors'
 import { Route as AdminDiagnoseRouteImport } from './routes/admin/diagnose'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
+import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppSettingsRouteImport } from './routes/app/settings'
+import { Route as MeIndexRouteImport } from './routes/me/index'
+import { Route as MeAttendRouteImport } from './routes/me/attend'
+import { Route as MePhoneRouteImport } from './routes/me/phone'
+import { Route as MeSettingsRouteImport } from './routes/me/settings'
+import { Route as PosIndexRouteImport } from './routes/pos/index'
+import { Route as PosCardsRouteImport } from './routes/pos/cards'
+import { Route as PosQrRouteImport } from './routes/pos/qr'
+import { Route as PosSessionsRouteImport } from './routes/pos/sessions'
+import { Route as PosSettingsRouteImport } from './routes/pos/settings'
 import { Route as ReceptionCardsRouteImport } from './routes/reception/cards'
 import { Route as ReceptionQrRouteImport } from './routes/reception/qr'
+import { Route as SSlugRouteImport } from './routes/s/$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AppAttendanceCorrectionsRouteImport } from './routes/app/attendance/corrections'
+import { Route as AppAttendanceQuestionsRouteImport } from './routes/app/attendance/questions'
+import { Route as AppAttendanceReportsRouteImport } from './routes/app/attendance/reports'
+import { Route as AppServicesIndexRouteImport } from './routes/app/services/index'
+import { Route as AppServicesDiscountsRouteImport } from './routes/app/services/discounts'
+import { Route as AppStaffCardsRouteImport } from './routes/app/staff/cards'
+import { Route as AppStaffPhonesRouteImport } from './routes/app/staff/phones'
+import { Route as AppStaffTeamRouteImport } from './routes/app/staff/team'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRouteRoute = AppRouteRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AttendRoute = AttendRouteImport.update({
@@ -65,9 +102,19 @@ const InviteRoute = InviteRouteImport.update({
   path: '/invite',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MeRouteRoute = MeRouteRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PhoneRoute = PhoneRouteImport.update({
   id: '/phone',
   path: '/phone',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PosRouteRoute = PosRouteRouteImport.update({
+  id: '/pos',
+  path: '/pos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsRoute = ReportsRouteImport.update({
@@ -105,15 +152,85 @@ const TeamRoute = TeamRouteImport.update({
   path: '/team',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminConnectorsRoute = AdminConnectorsRouteImport.update({
-  id: '/admin/connectors',
-  path: '/admin/connectors',
+const WorkspacesRoute = WorkspacesRouteImport.update({
+  id: '/workspaces',
+  path: '/workspaces',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminConnectorsRoute = AdminConnectorsRouteImport.update({
+  id: '/connectors',
+  path: '/connectors',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminDiagnoseRoute = AdminDiagnoseRouteImport.update({
-  id: '/admin/diagnose',
-  path: '/admin/diagnose',
-  getParentRoute: () => rootRouteImport,
+  id: '/diagnose',
+  path: '/diagnose',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const MeIndexRoute = MeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MeRouteRoute,
+} as any)
+const MeAttendRoute = MeAttendRouteImport.update({
+  id: '/attend',
+  path: '/attend',
+  getParentRoute: () => MeRouteRoute,
+} as any)
+const MePhoneRoute = MePhoneRouteImport.update({
+  id: '/phone',
+  path: '/phone',
+  getParentRoute: () => MeRouteRoute,
+} as any)
+const MeSettingsRoute = MeSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => MeRouteRoute,
+} as any)
+const PosIndexRoute = PosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PosRouteRoute,
+} as any)
+const PosCardsRoute = PosCardsRouteImport.update({
+  id: '/cards',
+  path: '/cards',
+  getParentRoute: () => PosRouteRoute,
+} as any)
+const PosQrRoute = PosQrRouteImport.update({
+  id: '/qr',
+  path: '/qr',
+  getParentRoute: () => PosRouteRoute,
+} as any)
+const PosSessionsRoute = PosSessionsRouteImport.update({
+  id: '/sessions',
+  path: '/sessions',
+  getParentRoute: () => PosRouteRoute,
+} as any)
+const PosSettingsRoute = PosSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => PosRouteRoute,
 } as any)
 const ReceptionCardsRoute = ReceptionCardsRouteImport.update({
   id: '/reception/cards',
@@ -125,14 +242,64 @@ const ReceptionQrRoute = ReceptionQrRouteImport.update({
   path: '/reception/qr',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SSlugRoute = SSlugRouteImport.update({
+  id: '/s/$slug',
+  path: '/s/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAttendanceCorrectionsRoute =
+  AppAttendanceCorrectionsRouteImport.update({
+    id: '/attendance/corrections',
+    path: '/attendance/corrections',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppAttendanceQuestionsRoute = AppAttendanceQuestionsRouteImport.update({
+  id: '/attendance/questions',
+  path: '/attendance/questions',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppAttendanceReportsRoute = AppAttendanceReportsRouteImport.update({
+  id: '/attendance/reports',
+  path: '/attendance/reports',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppServicesIndexRoute = AppServicesIndexRouteImport.update({
+  id: '/services/',
+  path: '/services/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppServicesDiscountsRoute = AppServicesDiscountsRouteImport.update({
+  id: '/services/discounts',
+  path: '/services/discounts',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppStaffCardsRoute = AppStaffCardsRouteImport.update({
+  id: '/staff/cards',
+  path: '/staff/cards',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppStaffPhonesRoute = AppStaffPhonesRouteImport.update({
+  id: '/staff/phones',
+  path: '/staff/phones',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppStaffTeamRoute = AppStaffTeamRouteImport.update({
+  id: '/staff/team',
+  path: '/staff/team',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/app': typeof AppRouteRouteWithChildren
+  '/me': typeof MeRouteRouteWithChildren
+  '/pos': typeof PosRouteRouteWithChildren
   '/attend': typeof AttendRoute
   '/attendance-corrections': typeof AttendanceCorrectionsRoute
   '/attendance-questions': typeof AttendanceQuestionsRoute
@@ -147,11 +314,34 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/team': typeof TeamRoute
+  '/workspaces': typeof WorkspacesRoute
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/me/attend': typeof MeAttendRoute
+  '/me/phone': typeof MePhoneRoute
+  '/me/settings': typeof MeSettingsRoute
+  '/pos/cards': typeof PosCardsRoute
+  '/pos/qr': typeof PosQrRoute
+  '/pos/sessions': typeof PosSessionsRoute
+  '/pos/settings': typeof PosSettingsRoute
   '/reception/cards': typeof ReceptionCardsRoute
   '/reception/qr': typeof ReceptionQrRoute
+  '/s/$slug': typeof SSlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
+  '/me/': typeof MeIndexRoute
+  '/pos/': typeof PosIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/app/attendance/corrections': typeof AppAttendanceCorrectionsRoute
+  '/app/attendance/questions': typeof AppAttendanceQuestionsRoute
+  '/app/attendance/reports': typeof AppAttendanceReportsRoute
+  '/app/services/discounts': typeof AppServicesDiscountsRoute
+  '/app/staff/cards': typeof AppStaffCardsRoute
+  '/app/staff/phones': typeof AppStaffPhonesRoute
+  '/app/staff/team': typeof AppStaffTeamRoute
+  '/app/services/': typeof AppServicesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -169,15 +359,42 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/team': typeof TeamRoute
+  '/workspaces': typeof WorkspacesRoute
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/me/attend': typeof MeAttendRoute
+  '/me/phone': typeof MePhoneRoute
+  '/me/settings': typeof MeSettingsRoute
+  '/pos/cards': typeof PosCardsRoute
+  '/pos/qr': typeof PosQrRoute
+  '/pos/sessions': typeof PosSessionsRoute
+  '/pos/settings': typeof PosSettingsRoute
   '/reception/cards': typeof ReceptionCardsRoute
   '/reception/qr': typeof ReceptionQrRoute
+  '/s/$slug': typeof SSlugRoute
+  '/admin': typeof AdminIndexRoute
+  '/app': typeof AppIndexRoute
+  '/me': typeof MeIndexRoute
+  '/pos': typeof PosIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/app/attendance/corrections': typeof AppAttendanceCorrectionsRoute
+  '/app/attendance/questions': typeof AppAttendanceQuestionsRoute
+  '/app/attendance/reports': typeof AppAttendanceReportsRoute
+  '/app/services/discounts': typeof AppServicesDiscountsRoute
+  '/app/staff/cards': typeof AppStaffCardsRoute
+  '/app/staff/phones': typeof AppStaffPhonesRoute
+  '/app/staff/team': typeof AppStaffTeamRoute
+  '/app/services': typeof AppServicesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/app': typeof AppRouteRouteWithChildren
+  '/me': typeof MeRouteRouteWithChildren
+  '/pos': typeof PosRouteRouteWithChildren
   '/attend': typeof AttendRoute
   '/attendance-corrections': typeof AttendanceCorrectionsRoute
   '/attendance-questions': typeof AttendanceQuestionsRoute
@@ -192,16 +409,43 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/team': typeof TeamRoute
+  '/workspaces': typeof WorkspacesRoute
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/me/attend': typeof MeAttendRoute
+  '/me/phone': typeof MePhoneRoute
+  '/me/settings': typeof MeSettingsRoute
+  '/pos/cards': typeof PosCardsRoute
+  '/pos/qr': typeof PosQrRoute
+  '/pos/sessions': typeof PosSessionsRoute
+  '/pos/settings': typeof PosSettingsRoute
   '/reception/cards': typeof ReceptionCardsRoute
   '/reception/qr': typeof ReceptionQrRoute
+  '/s/$slug': typeof SSlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
+  '/me/': typeof MeIndexRoute
+  '/pos/': typeof PosIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/app/attendance/corrections': typeof AppAttendanceCorrectionsRoute
+  '/app/attendance/questions': typeof AppAttendanceQuestionsRoute
+  '/app/attendance/reports': typeof AppAttendanceReportsRoute
+  '/app/services/discounts': typeof AppServicesDiscountsRoute
+  '/app/staff/cards': typeof AppStaffCardsRoute
+  '/app/staff/phones': typeof AppStaffPhonesRoute
+  '/app/staff/team': typeof AppStaffTeamRoute
+  '/app/services/': typeof AppServicesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
+    | '/app'
+    | '/me'
+    | '/pos'
     | '/attend'
     | '/attendance-corrections'
     | '/attendance-questions'
@@ -216,11 +460,34 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-in'
     | '/team'
+    | '/workspaces'
     | '/admin/connectors'
     | '/admin/diagnose'
+    | '/admin/settings'
+    | '/app/settings'
+    | '/me/attend'
+    | '/me/phone'
+    | '/me/settings'
+    | '/pos/cards'
+    | '/pos/qr'
+    | '/pos/sessions'
+    | '/pos/settings'
     | '/reception/cards'
     | '/reception/qr'
+    | '/s/$slug'
+    | '/admin/'
+    | '/app/'
+    | '/me/'
+    | '/pos/'
     | '/api/auth/$'
+    | '/app/attendance/corrections'
+    | '/app/attendance/questions'
+    | '/app/attendance/reports'
+    | '/app/services/discounts'
+    | '/app/staff/cards'
+    | '/app/staff/phones'
+    | '/app/staff/team'
+    | '/app/services/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -238,14 +505,41 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-in'
     | '/team'
+    | '/workspaces'
     | '/admin/connectors'
     | '/admin/diagnose'
+    | '/admin/settings'
+    | '/app/settings'
+    | '/me/attend'
+    | '/me/phone'
+    | '/me/settings'
+    | '/pos/cards'
+    | '/pos/qr'
+    | '/pos/sessions'
+    | '/pos/settings'
     | '/reception/cards'
     | '/reception/qr'
+    | '/s/$slug'
+    | '/admin'
+    | '/app'
+    | '/me'
+    | '/pos'
     | '/api/auth/$'
+    | '/app/attendance/corrections'
+    | '/app/attendance/questions'
+    | '/app/attendance/reports'
+    | '/app/services/discounts'
+    | '/app/staff/cards'
+    | '/app/staff/phones'
+    | '/app/staff/team'
+    | '/app/services'
   id:
     | '__root__'
     | '/'
+    | '/admin'
+    | '/app'
+    | '/me'
+    | '/pos'
     | '/attend'
     | '/attendance-corrections'
     | '/attendance-questions'
@@ -260,15 +554,42 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-in'
     | '/team'
+    | '/workspaces'
     | '/admin/connectors'
     | '/admin/diagnose'
+    | '/admin/settings'
+    | '/app/settings'
+    | '/me/attend'
+    | '/me/phone'
+    | '/me/settings'
+    | '/pos/cards'
+    | '/pos/qr'
+    | '/pos/sessions'
+    | '/pos/settings'
     | '/reception/cards'
     | '/reception/qr'
+    | '/s/$slug'
+    | '/admin/'
+    | '/app/'
+    | '/me/'
+    | '/pos/'
     | '/api/auth/$'
+    | '/app/attendance/corrections'
+    | '/app/attendance/questions'
+    | '/app/attendance/reports'
+    | '/app/services/discounts'
+    | '/app/staff/cards'
+    | '/app/staff/phones'
+    | '/app/staff/team'
+    | '/app/services/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  AppRouteRoute: typeof AppRouteRouteWithChildren
+  MeRouteRoute: typeof MeRouteRouteWithChildren
+  PosRouteRoute: typeof PosRouteRouteWithChildren
   AttendRoute: typeof AttendRoute
   AttendanceCorrectionsRoute: typeof AttendanceCorrectionsRoute
   AttendanceQuestionsRoute: typeof AttendanceQuestionsRoute
@@ -283,10 +604,10 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SignInRoute: typeof SignInRoute
   TeamRoute: typeof TeamRoute
-  AdminConnectorsRoute: typeof AdminConnectorsRoute
-  AdminDiagnoseRoute: typeof AdminDiagnoseRoute
+  WorkspacesRoute: typeof WorkspacesRoute
   ReceptionCardsRoute: typeof ReceptionCardsRoute
   ReceptionQrRoute: typeof ReceptionQrRoute
+  SSlugRoute: typeof SSlugRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -297,6 +618,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/attend': {
@@ -341,11 +676,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/phone': {
       id: '/phone'
       path: '/phone'
       fullPath: '/phone'
       preLoaderRoute: typeof PhoneRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pos': {
+      id: '/pos'
+      path: '/pos'
+      fullPath: '/pos'
+      preLoaderRoute: typeof PosRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
@@ -397,19 +746,117 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workspaces': {
+      id: '/workspaces'
+      path: '/workspaces'
+      fullPath: '/workspaces'
+      preLoaderRoute: typeof WorkspacesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/connectors': {
       id: '/admin/connectors'
-      path: '/admin/connectors'
+      path: '/connectors'
       fullPath: '/admin/connectors'
       preLoaderRoute: typeof AdminConnectorsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/admin/diagnose': {
       id: '/admin/diagnose'
-      path: '/admin/diagnose'
+      path: '/diagnose'
       fullPath: '/admin/diagnose'
       preLoaderRoute: typeof AdminDiagnoseRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/me/': {
+      id: '/me/'
+      path: '/'
+      fullPath: '/me/'
+      preLoaderRoute: typeof MeIndexRouteImport
+      parentRoute: typeof MeRouteRoute
+    }
+    '/me/attend': {
+      id: '/me/attend'
+      path: '/attend'
+      fullPath: '/me/attend'
+      preLoaderRoute: typeof MeAttendRouteImport
+      parentRoute: typeof MeRouteRoute
+    }
+    '/me/phone': {
+      id: '/me/phone'
+      path: '/phone'
+      fullPath: '/me/phone'
+      preLoaderRoute: typeof MePhoneRouteImport
+      parentRoute: typeof MeRouteRoute
+    }
+    '/me/settings': {
+      id: '/me/settings'
+      path: '/settings'
+      fullPath: '/me/settings'
+      preLoaderRoute: typeof MeSettingsRouteImport
+      parentRoute: typeof MeRouteRoute
+    }
+    '/pos/': {
+      id: '/pos/'
+      path: '/'
+      fullPath: '/pos/'
+      preLoaderRoute: typeof PosIndexRouteImport
+      parentRoute: typeof PosRouteRoute
+    }
+    '/pos/cards': {
+      id: '/pos/cards'
+      path: '/cards'
+      fullPath: '/pos/cards'
+      preLoaderRoute: typeof PosCardsRouteImport
+      parentRoute: typeof PosRouteRoute
+    }
+    '/pos/qr': {
+      id: '/pos/qr'
+      path: '/qr'
+      fullPath: '/pos/qr'
+      preLoaderRoute: typeof PosQrRouteImport
+      parentRoute: typeof PosRouteRoute
+    }
+    '/pos/sessions': {
+      id: '/pos/sessions'
+      path: '/sessions'
+      fullPath: '/pos/sessions'
+      preLoaderRoute: typeof PosSessionsRouteImport
+      parentRoute: typeof PosRouteRoute
+    }
+    '/pos/settings': {
+      id: '/pos/settings'
+      path: '/settings'
+      fullPath: '/pos/settings'
+      preLoaderRoute: typeof PosSettingsRouteImport
+      parentRoute: typeof PosRouteRoute
     }
     '/reception/cards': {
       id: '/reception/cards'
@@ -425,6 +872,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReceptionQrRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/s/$slug': {
+      id: '/s/$slug'
+      path: '/s/$slug'
+      fullPath: '/s/$slug'
+      preLoaderRoute: typeof SSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -432,11 +886,156 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/attendance/corrections': {
+      id: '/app/attendance/corrections'
+      path: '/attendance/corrections'
+      fullPath: '/app/attendance/corrections'
+      preLoaderRoute: typeof AppAttendanceCorrectionsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/attendance/questions': {
+      id: '/app/attendance/questions'
+      path: '/attendance/questions'
+      fullPath: '/app/attendance/questions'
+      preLoaderRoute: typeof AppAttendanceQuestionsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/attendance/reports': {
+      id: '/app/attendance/reports'
+      path: '/attendance/reports'
+      fullPath: '/app/attendance/reports'
+      preLoaderRoute: typeof AppAttendanceReportsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/services/': {
+      id: '/app/services/'
+      path: '/services'
+      fullPath: '/app/services/'
+      preLoaderRoute: typeof AppServicesIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/services/discounts': {
+      id: '/app/services/discounts'
+      path: '/services/discounts'
+      fullPath: '/app/services/discounts'
+      preLoaderRoute: typeof AppServicesDiscountsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/staff/cards': {
+      id: '/app/staff/cards'
+      path: '/staff/cards'
+      fullPath: '/app/staff/cards'
+      preLoaderRoute: typeof AppStaffCardsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/staff/phones': {
+      id: '/app/staff/phones'
+      path: '/staff/phones'
+      fullPath: '/app/staff/phones'
+      preLoaderRoute: typeof AppStaffPhonesRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/staff/team': {
+      id: '/app/staff/team'
+      path: '/staff/team'
+      fullPath: '/app/staff/team'
+      preLoaderRoute: typeof AppStaffTeamRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
   }
 }
 
+interface AdminRouteRouteChildren {
+  AdminConnectorsRoute: typeof AdminConnectorsRoute
+  AdminDiagnoseRoute: typeof AdminDiagnoseRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminConnectorsRoute: AdminConnectorsRoute,
+  AdminDiagnoseRoute: AdminDiagnoseRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
+interface AppRouteRouteChildren {
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppAttendanceCorrectionsRoute: typeof AppAttendanceCorrectionsRoute
+  AppAttendanceQuestionsRoute: typeof AppAttendanceQuestionsRoute
+  AppAttendanceReportsRoute: typeof AppAttendanceReportsRoute
+  AppServicesDiscountsRoute: typeof AppServicesDiscountsRoute
+  AppStaffCardsRoute: typeof AppStaffCardsRoute
+  AppStaffPhonesRoute: typeof AppStaffPhonesRoute
+  AppStaffTeamRoute: typeof AppStaffTeamRoute
+  AppServicesIndexRoute: typeof AppServicesIndexRoute
+}
+
+const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppSettingsRoute: AppSettingsRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppAttendanceCorrectionsRoute: AppAttendanceCorrectionsRoute,
+  AppAttendanceQuestionsRoute: AppAttendanceQuestionsRoute,
+  AppAttendanceReportsRoute: AppAttendanceReportsRoute,
+  AppServicesDiscountsRoute: AppServicesDiscountsRoute,
+  AppStaffCardsRoute: AppStaffCardsRoute,
+  AppStaffPhonesRoute: AppStaffPhonesRoute,
+  AppStaffTeamRoute: AppStaffTeamRoute,
+  AppServicesIndexRoute: AppServicesIndexRoute,
+}
+
+const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
+  AppRouteRouteChildren,
+)
+
+interface MeRouteRouteChildren {
+  MeAttendRoute: typeof MeAttendRoute
+  MePhoneRoute: typeof MePhoneRoute
+  MeSettingsRoute: typeof MeSettingsRoute
+  MeIndexRoute: typeof MeIndexRoute
+}
+
+const MeRouteRouteChildren: MeRouteRouteChildren = {
+  MeAttendRoute: MeAttendRoute,
+  MePhoneRoute: MePhoneRoute,
+  MeSettingsRoute: MeSettingsRoute,
+  MeIndexRoute: MeIndexRoute,
+}
+
+const MeRouteRouteWithChildren =
+  MeRouteRoute._addFileChildren(MeRouteRouteChildren)
+
+interface PosRouteRouteChildren {
+  PosCardsRoute: typeof PosCardsRoute
+  PosQrRoute: typeof PosQrRoute
+  PosSessionsRoute: typeof PosSessionsRoute
+  PosSettingsRoute: typeof PosSettingsRoute
+  PosIndexRoute: typeof PosIndexRoute
+}
+
+const PosRouteRouteChildren: PosRouteRouteChildren = {
+  PosCardsRoute: PosCardsRoute,
+  PosQrRoute: PosQrRoute,
+  PosSessionsRoute: PosSessionsRoute,
+  PosSettingsRoute: PosSettingsRoute,
+  PosIndexRoute: PosIndexRoute,
+}
+
+const PosRouteRouteWithChildren = PosRouteRoute._addFileChildren(
+  PosRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
+  AppRouteRoute: AppRouteRouteWithChildren,
+  MeRouteRoute: MeRouteRouteWithChildren,
+  PosRouteRoute: PosRouteRouteWithChildren,
   AttendRoute: AttendRoute,
   AttendanceCorrectionsRoute: AttendanceCorrectionsRoute,
   AttendanceQuestionsRoute: AttendanceQuestionsRoute,
@@ -451,10 +1050,10 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SignInRoute: SignInRoute,
   TeamRoute: TeamRoute,
-  AdminConnectorsRoute: AdminConnectorsRoute,
-  AdminDiagnoseRoute: AdminDiagnoseRoute,
+  WorkspacesRoute: WorkspacesRoute,
   ReceptionCardsRoute: ReceptionCardsRoute,
   ReceptionQrRoute: ReceptionQrRoute,
+  SSlugRoute: SSlugRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
