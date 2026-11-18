@@ -4,12 +4,21 @@ import {
   loadCardManagement,
   revokeCardUseCase,
 } from "../use-cases/card-actions";
-import { recordCard, recordCardRequest } from "../use-cases/card-scan";
+import { recordCard, recordCardRequest, settleCardRequest } from "../use-cases/card-scan";
 import { systemClock } from "@/shared/kernel/clock";
 import { cryptoIds } from "@/shared/kernel/ids";
+import type pg from "pg";
+import type { CardScanReceipts } from "../ports/card-scan-receipts";
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
-import { cardScope, cardStaffInput, revokeCardInput, cardScanInput } from "../card.contracts";
+import {
+  cardScope,
+  cardStaffInput,
+  revokeCardInput,
+  cardScanInput,
+  cardRequestInput,
+  type CardRequest,
+} from "../card.contracts";
 export const getCardsFn = createServerFn({ method: "GET" })
   .inputValidator((v: unknown) => cardScope.extend({ expectedUserId: z.string().min(1) }).parse(v))
   .handler(async ({ data }) => {
@@ -62,7 +71,9 @@ export const revokeCardFn = createServerFn({ method: "POST" })
     );
   });
 type CardScanResponse =
-  { status: "recorded"; scan: Awaited<ReturnType<typeof recordCard>> } | { status: "rejected" };
+  | { status: "recorded"; scan: Awaited<ReturnType<typeof recordCard>> }
+  | { status: "rejected" }
+  | { status: "cancelled" };
 
 async function executeCardScan(
   execute: () => Promise<Awaited<ReturnType<typeof recordCard>>>,
@@ -78,44 +89,70 @@ async function executeCardScan(
 
 export const scanCardFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => cardScanInput.parse(v))
-  .handler(async ({ data }) => {
-    const { requireUserId } = await import("@/lib/server/session.server");
-    const { withUser } = await import("@/lib/server/db.server");
-    const { scanCard } = await import("../persistence/card-scan.server");
-    const { pgCardScanReceipts } = await import("../persistence/card-scan-receipts.server");
-    const { cardHash } = await import("../persistence/card-repository.server");
-    try {
-      const id = await requireUserId();
-      if (id !== data.expectedUserId) return { status: "rejected" as const };
+  .handler(({ data }) =>
+    withCardRequest(data, async ({ db, userId, receipts }) => {
+      const { scanCard } = await import("../persistence/card-scan.server");
+      const { cardHash } = await import("../persistence/card-repository.server");
       const fingerprint = await cardHash(
         JSON.stringify([data.token, data.intent, data.promptedRecordId?.toLowerCase() ?? null]),
       );
-      return await withUser(id, async (db) => {
-        const { rows } = await db.query<{ member: boolean }>(
-          "select public.is_member($1) as member",
-          [data.companyId],
-        );
-        if (!rows[0]?.member) return { status: "rejected" as const };
-        return recordCardRequest(
-          pgCardScanReceipts<CardScanResponse>(db, data.companyId, id, data.requestId),
-          fingerprint,
-          () =>
-            executeCardScan(async () =>
-              recordCard(
-                { ...data, location: null },
-                await scanCard(db, id, data),
-                systemClock,
-                cryptoIds,
-              ),
-            ),
-        );
-      });
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        ["UNAUTHENTICATED", "CARD_REQUEST_CONFLICT"].includes(error.message)
-      )
-        return { status: "rejected" as const };
-      throw error;
-    }
-  });
+      return recordCardRequest(receipts, fingerprint, () =>
+        executeCardScan(async () =>
+          recordCard(
+            { ...data, location: null },
+            await scanCard(db, userId, data),
+            systemClock,
+            cryptoIds,
+          ),
+        ),
+      );
+    }),
+  );
+
+export const settleCardScanFn = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => cardRequestInput.parse(v))
+  .handler(({ data }) =>
+    withCardRequest(data, ({ receipts }) => settleCardRequest(receipts, { status: "cancelled" })),
+  );
+
+type CardRequestContext = {
+  db: pg.PoolClient;
+  userId: string;
+  receipts: CardScanReceipts<CardScanResponse>;
+};
+
+async function withCardRequest(
+  data: CardRequest,
+  run: (context: CardRequestContext) => Promise<CardScanResponse>,
+): Promise<CardScanResponse> {
+  const { requireUserId } = await import("@/lib/server/session.server");
+  const { withUser } = await import("@/lib/server/db.server");
+  const { pgCardScanReceipts } = await import("../persistence/card-scan-receipts.server");
+  try {
+    const userId = await requireUserId();
+    const age = Date.now() - data.requestedAt;
+    if (userId !== data.expectedUserId || age < -5 * 60_000 || age >= 7 * 24 * 60 * 60_000)
+      return { status: "rejected" };
+    return await withUser(userId, async (db) => {
+      const { rows } = await db.query<{ member: boolean }>(
+        "select public.is_member($1) as member",
+        [data.companyId],
+      );
+      if (!rows[0]?.member) return { status: "rejected" };
+      const receipts = pgCardScanReceipts<CardScanResponse>(
+        db,
+        data.companyId,
+        userId,
+        data.requestId,
+      );
+      return run({ db, userId, receipts });
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      ["UNAUTHENTICATED", "CARD_REQUEST_CONFLICT"].includes(error.message)
+    )
+      return { status: "rejected" };
+    throw error;
+  }
+}

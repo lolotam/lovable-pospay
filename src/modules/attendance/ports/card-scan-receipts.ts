@@ -1,6 +1,6 @@
 /** نتيجة محاولة مسح محفوظة مع بصمة بيانات الطلب. */
 export interface CardScanReceipt<Result> {
-  fingerprint: string;
+  fingerprint: string | null;
   result: Result;
 }
 

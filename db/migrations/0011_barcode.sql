@@ -139,9 +139,12 @@ create trigger guard_card_attendance_update before update on public.attendance_r
 create table if not exists public.card_scan_requests (
  company_id uuid not null references public.companies(id) on delete cascade,
  actor_user_id text not null, id uuid not null,
- fingerprint text not null check(length(fingerprint)=64), result jsonb not null,
+ fingerprint text check(length(fingerprint)=64), result jsonb not null,
+ created_at timestamptz not null default now(),
  primary key(company_id,actor_user_id,id)
 );
+alter table public.card_scan_requests add column if not exists created_at timestamptz not null default now();
+alter table public.card_scan_requests alter column fingerprint drop not null;
 alter table public.card_scan_requests enable row level security;
 grant select,insert on public.card_scan_requests to pospay_app;
 drop policy if exists card_scan_request_read on public.card_scan_requests;
@@ -150,3 +153,18 @@ create policy card_scan_request_read on public.card_scan_requests for select to 
 drop policy if exists card_scan_request_insert on public.card_scan_requests;
 create policy card_scan_request_insert on public.card_scan_requests for insert to pospay_app
  with check(actor_user_id=public.current_app_user() and public.is_member(company_id));
+
+-- Request expiry is seven days, plus five minutes for accepted browser clock skew.
+create index if not exists card_scan_requests_expiry on public.card_scan_requests(created_at);
+create or replace function public.prune_card_scan_requests() returns void
+language sql volatile security definer set search_path=pg_catalog as $$
+ with expired as (
+  select company_id,actor_user_id,id from public.card_scan_requests
+  where created_at < now() - interval '7 days 5 minutes'
+  order by created_at limit 100 for update skip locked
+ )
+ delete from public.card_scan_requests r using expired e
+ where (r.company_id,r.actor_user_id,r.id)=(e.company_id,e.actor_user_id,e.id)
+$$;
+revoke all on function public.prune_card_scan_requests() from public;
+grant execute on function public.prune_card_scan_requests() to pospay_app;

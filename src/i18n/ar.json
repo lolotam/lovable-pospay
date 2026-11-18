@@ -250,6 +250,8 @@
   "cards.confirmScanOutcome": "رد المسح ما وصلش. استرجع نتيجة نفس الطلب قبل مسح بطاقة تانية.",
   "cards.checkScanStatus": "استرجع نتيجة المسح",
   "cards.statusUnavailable": "النتيجة لسه غير متاحة. أعد إرسال نفس طلب المسح.",
+  "cards.scanCancelled": "المسح السابق ما سجّلش حركة حضور. تقدر تمسح البطاقة من جديد.",
+  "cards.scanStorageUnavailable": "تعذّر تجهيز استرجاع المسح في التبويب ده.",
   "cards.statusDiscontinued": "تعذّر التحقق من المسح السابق. اطلب من المدير مراجعة السجل قبل تكراره. يمكنك مسح بطاقة أخرى.",
   "services.createUnconfirmed": "تعذّر تأكيد إنشاء الخدمة. أعد إرسال الطلب الأصلي لاسترجاع الخدمة.",
   "services.retryCreate": "أعد محاولة الإنشاء",

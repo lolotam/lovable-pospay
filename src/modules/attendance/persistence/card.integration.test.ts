@@ -14,7 +14,7 @@ import {
   loadCardManagement,
   revokeCardUseCase,
 } from "../use-cases/card-actions";
-import { recordCard, recordCardRequest } from "../use-cases/card-scan";
+import { recordCard, recordCardRequest, settleCardRequest } from "../use-cases/card-scan";
 import { cryptoIds } from "@/shared/kernel/ids";
 const issueCard = (db: pg.PoolClient, user: string, company: string, staff: string) =>
   issueCardUseCase(pgCardRepository(db, user, company), cardTokens, staff);
@@ -238,6 +238,29 @@ describe.skipIf(!url)("card/report real RLS", () => {
           ).rowCount,
       ),
     ).resolves.toBe(0);
+  });
+  it("cancels a missing scan under its request lock and prunes only expired receipts", async () => {
+    const user = "cards-reception";
+    const requestId = crypto.randomUUID();
+    const expiredId = crypto.randomUUID();
+    await admin.query(
+      "insert into public.card_scan_requests(company_id,actor_user_id,id,result,created_at) values($1,$2,$3,'{}',now()-interval '8 days')",
+      [company, user, expiredId],
+    );
+    const resolve = (db: pg.PoolClient) => pgCardScanReceipts<string>(db, company, user, requestId);
+    await expect(withUser(user, (db) => settleCardRequest(resolve(db), "cancelled"))).resolves.toBe(
+      "cancelled",
+    );
+    await expect(
+      withUser(user, (db) =>
+        recordCardRequest(resolve(db), "a".repeat(64), async () => "unexpected"),
+      ),
+    ).rejects.toThrow("CARD_REQUEST_CONFLICT");
+    const { rows } = await admin.query(
+      "select id from public.card_scan_requests where id=any($1::uuid[])",
+      [[requestId, expiredId]],
+    );
+    expect(rows).toEqual([{ id: requestId }]);
   });
   it("reception waits for a manager revocation and rejects the card after commit", async () => {
     await withUser("cards-manager", async (db) => {

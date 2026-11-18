@@ -24,6 +24,7 @@ export function pgCardScanReceipts<Result>(
         "insert into public.card_scan_requests(company_id,actor_user_id,id,fingerprint,result) values($1,$2,$3,$4,$5)",
         [companyId, userId, requestId, receipt.fingerprint, JSON.stringify(receipt.result)],
       );
+      await db.query("select public.prune_card_scan_requests()");
     },
   };
 }

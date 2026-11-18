@@ -5,8 +5,13 @@ import { CompanyScope } from "@/modules/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
-import { cardTokenInput, type CardScanRequest } from "../card.contracts";
-import { scanCardFn } from "../functions/card.functions";
+import {
+  cardRequestInput,
+  cardTokenInput,
+  type CardRequest,
+  type CardScanRequest,
+} from "../card.contracts";
+import { scanCardFn, settleCardScanFn } from "../functions/card.functions";
 export function CardScanPage() {
   const [switchLocked, setSwitchLocked] = useState(false);
   return (
@@ -42,41 +47,81 @@ function createScanRequest(
     token,
     intent,
     requestId: crypto.randomUUID(),
+    requestedAt: Date.now(),
     ...(prompt ? { promptedRecordId: prompt } : {}),
   };
 }
 
+function usePendingScan(companyId: string, userId: string) {
+  const key = "pospay:card-scan:" + JSON.stringify([userId, companyId]);
+  const [pending, setPending] = useState<CardRequest | null>(null);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(key);
+      const attempt = raw ? cardRequestInput.parse(JSON.parse(raw)) : null;
+      if (attempt && (attempt.companyId !== companyId || attempt.expectedUserId !== userId))
+        throw new Error("Unexpected scanner recovery scope");
+      setPending(attempt);
+      setReady(true);
+    } catch {
+      setReady(false);
+    }
+  }, [companyId, key, userId]);
+
+  function remember(request: CardRequest) {
+    try {
+      const attempt = cardRequestInput.parse(request);
+      sessionStorage.setItem(key, JSON.stringify(attempt));
+      setPending(attempt);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function forget() {
+    sessionStorage.removeItem(key);
+    setPending(null);
+  }
+
+  return { pending, ready, remember, forget };
+}
+
 function useScanner(companyId: string, userId: string) {
   const scan = useServerFn(scanCardFn);
+  const settle = useServerFn(settleCardScanFn);
   const inFlight = useRef(false);
+  const current = useRef<CardScanRequest | null>(null);
+  const { pending, ready, remember, forget } = usePendingScan(companyId, userId);
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
-  const [pending, setPending] = useState<CardScanRequest | null>(null);
   const [prompt, setPrompt] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
-  async function submit(request: CardScanRequest, retry: boolean) {
+  async function submit(attempt: CardRequest, request: CardScanRequest | null, retry: boolean) {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
     setMessage("");
     try {
-      const response = await scan({ data: request });
-      setPending(null);
-      if (response.status === "recorded" && response.scan.result.outcome === "needs_intent") {
+      current.current = request;
+      const response = request ? await scan({ data: request }) : await settle({ data: attempt });
+      forget();
+      current.current = null;
+      setPrompt(null);
+      if (
+        response.status === "recorded" &&
+        response.scan.result.outcome === "needs_intent" &&
+        request
+      ) {
         setPrompt(response.scan.result.recordId);
         return;
       }
-      setPrompt(null);
       setToken("");
-      setMessage(
-        response.status === "recorded"
-          ? scanResultMessage(response.scan)
-          : t(retry ? "cards.statusDiscontinued" : "cards.scanError"),
-      );
+      setMessage(tallyScanMessage(response, retry));
     } catch {
       setPrompt(null);
-      setPending(request);
       setMessage(t(retry ? "cards.statusUnavailable" : "cards.confirmScanOutcome"));
     } finally {
       inFlight.current = false;
@@ -85,16 +130,30 @@ function useScanner(companyId: string, userId: string) {
   }
 
   function run(intent: CardScanRequest["intent"] = null) {
-    if (pending || !token) return;
-    if (!cardTokenInput.safeParse(token).success) {
+    if (inFlight.current || !ready || pending || !token) return;
+    if (cardTokenInput.safeParse(token).success) {
+      const request = createScanRequest(companyId, userId, token, intent, prompt);
+      if (remember(request)) void submit(request, request, false);
+      else setMessage(t("cards.scanStorageUnavailable"));
+    } else {
       setToken("");
       setMessage(t("cards.scanError"));
-      return;
     }
-    void submit(createScanRequest(companyId, userId, token, intent, prompt), false);
   }
 
-  return { token, setToken, busy, prompt, setPrompt, message, pending, submit, run };
+  const controls = { token, setToken, busy, prompt, setPrompt, message };
+  function recover() {
+    if (pending) void submit(pending, current.current, true);
+  }
+  return { ...controls, pending, ready, run, recover };
+}
+
+function tallyScanMessage(response: Awaited<ReturnType<typeof scanCardFn>>, retry: boolean) {
+  if (response.status === "recorded" && response.scan.result.outcome !== "needs_intent")
+    return scanResultMessage(response.scan);
+  if (response.status === "cancelled" || response.status === "recorded")
+    return t("cards.scanCancelled");
+  return t(retry ? "cards.statusDiscontinued" : "cards.scanError");
 }
 
 type ScannerProps = {
@@ -104,10 +163,8 @@ type ScannerProps = {
 };
 
 function Scanner({ companyId, userId, onSwitchLockChange }: ScannerProps) {
-  const { token, setToken, busy, prompt, setPrompt, message, pending, submit, run } = useScanner(
-    companyId,
-    userId,
-  );
+  const { token, setToken, busy, prompt, setPrompt, message, pending, ready, recover, run } =
+    useScanner(companyId, userId);
   const uncertain = !!pending;
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -115,8 +172,8 @@ function Scanner({ companyId, userId, onSwitchLockChange }: ScannerProps) {
     return () => onSwitchLockChange(false);
   }, [busy, uncertain, prompt, onSwitchLockChange]);
   useEffect(() => {
-    if (!busy && !prompt && !uncertain) input.current?.focus();
-  }, [busy, prompt, uncertain]);
+    if (ready && !busy && !prompt && !uncertain) input.current?.focus();
+  }, [busy, prompt, ready, uncertain]);
   return (
     <form
       className="max-w-xl space-y-5"
@@ -131,7 +188,7 @@ function Scanner({ companyId, userId, onSwitchLockChange }: ScannerProps) {
           ref={input}
           autoComplete="off"
           value={uncertain ? "" : token}
-          disabled={busy || !!prompt || uncertain}
+          disabled={!ready || busy || !!prompt || uncertain}
           onChange={(e) => {
             setToken(e.target.value);
             setPrompt(null);
@@ -139,7 +196,7 @@ function Scanner({ companyId, userId, onSwitchLockChange }: ScannerProps) {
         />
       </label>
       {pending ? (
-        <Button type="button" disabled={busy} onClick={() => submit(pending, true)}>
+        <Button type="button" disabled={busy} onClick={recover}>
           {t("cards.checkScanStatus")}
         </Button>
       ) : prompt ? (
@@ -152,12 +209,12 @@ function Scanner({ companyId, userId, onSwitchLockChange }: ScannerProps) {
           }}
         />
       ) : (
-        <Button disabled={busy || !token}>
+        <Button disabled={!ready || busy || !token}>
           <ScanLine />
           {t("cards.scan")}
         </Button>
       )}
-      <p role="status">{message}</p>
+      <p role="status">{message || (!ready ? t("cards.scanStorageUnavailable") : "")}</p>
     </form>
   );
 }

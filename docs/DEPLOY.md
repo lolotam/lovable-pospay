@@ -10,6 +10,8 @@
 
 Before applying migration 0012, check the row estimate and size of production attendance records and run it in a low-traffic window. The report index uses a regular build in the migration transaction, with a two-second lock wait budget and five-second statement budget. If the table size suggests the build cannot finish within budget, or the attempt times out, stop and review a separately approved concurrent index build with the database operator before retrying.
 
+Card scan recovery allows a seven-day retry window. Each saved result or cancellation removes up to 100 expired scan receipts across companies. The extra five minutes of retention covers tolerated browser clock skew. Attendance records and audit history follow their own retention.
+
 Database provisioning is a separate approved operation. Run `db/seeds/super-admin.sql` as the database owner only after all migrations and after the intended Better Auth account has verified its email.
 
 ## Password recovery through Resend

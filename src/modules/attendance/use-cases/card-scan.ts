@@ -21,6 +21,17 @@ export async function recordCardRequest<Result>(
   return result;
 }
 
+/** ???? ????? ??????? ????? ????? ??????? ?? ????? ???? ??? ??????. */
+export async function settleCardRequest<Result>(
+  receipts: CardScanReceipts<Result>,
+  cancelled: Result,
+): Promise<Result> {
+  const previous = await receipts.lockAndRead();
+  if (previous) return previous.result;
+  await receipts.save({ fingerprint: null, result: cancelled });
+  return cancelled;
+}
+
 export interface CardScanContext {
   name: string;
   branch: BranchInfo;
