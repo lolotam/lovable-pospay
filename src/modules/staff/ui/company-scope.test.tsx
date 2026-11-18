@@ -31,7 +31,24 @@ it("uses the new account's companies when the query client survives an account s
   await act(async () => {
     view = render(screenForAccount());
   });
-  expect(screen.getByText("first-company")).toBeInTheDocument();
+  expect(screen.getByText("first-company")).toBeVisible();
+
+  useSession.mockReturnValue({
+    data: { user: { id: "first" } },
+    isPending: false,
+    isRefetching: true,
+  });
+  view.rerender(screenForAccount());
+  expect(screen.getByText("first-company")).not.toBeVisible();
+
+  useSession.mockReturnValue({
+    data: { user: { id: "first" } },
+    isPending: false,
+    error: new Error("Session check failed"),
+  });
+  view.rerender(screenForAccount());
+  expect(screen.getByText("first-company")).not.toBeVisible();
+
   useSession.mockReturnValue({ data: { user: { id: "second" } }, isPending: false });
   view.rerender(screenForAccount());
   expect(screen.queryByText("first-company")).not.toBeInTheDocument();

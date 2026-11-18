@@ -3,8 +3,16 @@ import { t } from "@/i18n";
 
 type Table = { title: string; head: string[]; body: string[][] };
 
-export const formatReportDate = (value: string | null, timeZone: string) =>
-  value ? new Date(value).toLocaleString("ar-KW", { timeZone }) : "";
+export function formatReportDate(value: string | null, timeZone: string): string {
+  if (!value) return "";
+  const date = new Date(value);
+  try {
+    return date.toLocaleString("ar-KW", { timeZone });
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error;
+    return date.toLocaleString("ar-KW", { timeZone: "UTC", timeZoneName: "short" });
+  }
+}
 export const formatMills = (m: string) =>
   `${BigInt(m) / 1000n}.${(BigInt(m) % 1000n).toString().padStart(3, "0")}`;
 

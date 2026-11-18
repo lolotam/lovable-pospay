@@ -10,20 +10,33 @@ export interface CompanyScopeProps {
   children: (companyId: string, userId: string) => ReactNode;
 }
 export function CompanyScope(props: CompanyScopeProps) {
-  const { data, error, isPending } = authClient.useSession();
-  if (isPending) return <p role="status">{t("phone.loading")}</p>;
+  const { data, error, isPending, isRefetching } = authClient.useSession();
+  const checkingSession = isPending || isRefetching;
   const userId = data?.user.id;
-  if (!userId) {
-    return (
-      <p role="status">
-        {t(isAuthNotConfigured(error) ? "auth.notConfigured" : "attend.signInFirst")}
-      </p>
-    );
-  }
+  const blocked = checkingSession || !!error;
   return (
-    <Suspense key={userId} fallback={<p role="status">{t("phone.loading")}</p>}>
-      <SignedInCompanyScope {...props} userId={userId} />
-    </Suspense>
+    <>
+      {blocked || !userId ? (
+        <p role="status">
+          {t(
+            checkingSession
+              ? "phone.loading"
+              : isAuthNotConfigured(error)
+                ? "auth.notConfigured"
+                : error
+                  ? "ops.forbidden"
+                  : "attend.signInFirst",
+          )}
+        </p>
+      ) : null}
+      {userId && (
+        <div hidden={blocked}>
+          <Suspense key={userId} fallback={<p role="status">{t("phone.loading")}</p>}>
+            <SignedInCompanyScope {...props} userId={userId} />
+          </Suspense>
+        </div>
+      )}
+    </>
   );
 }
 
