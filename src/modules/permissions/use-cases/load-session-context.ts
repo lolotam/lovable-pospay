@@ -13,7 +13,7 @@ export async function loadSessionContext(
     : companies;
   const found = remembered ? workspaces.find((ws) => sameWorkspace(ws, remembered)) : undefined;
   const staleChoice = remembered !== null && !found;
-  const active = found ?? (workspaces.length === 1 ? workspaces[0] : null);
+  const active = found ?? (workspaces.length === 1 ? (workspaces[0] ?? null) : null);
   const permissions =
     active?.kind === "company"
       ? effectivePermissions(active.role, await repo.listOverrides(active.companyId))

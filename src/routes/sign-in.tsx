@@ -14,6 +14,12 @@ import { Input } from "@/components/ui/input";
 
 type Step = "login" | "request" | "code" | "choice" | "password" | "totp";
 
+/** يرجّع Google لصفحة اختيار المساحة مع المسار المطلوب، عشان يتطبّق نفس فحص الصلاحية بعد الدخول. */
+function googleCallbackURL(redirect: string | undefined): string {
+  const requested = safeRedirectPath(redirect);
+  return requested ? `/workspaces?redirect=${encodeURIComponent(requested)}` : "/workspaces";
+}
+
 export const Route = createFileRoute("/sign-in")({
   validateSearch: (
     search: Record<string, unknown>,
@@ -68,7 +74,7 @@ function useSignInFlow() {
       context && requested && pageAllowed(context, requested.split("?")[0] ?? "")
         ? requested
         : landingPath(context?.workspaces ?? [], context?.active ?? null);
-    await navigate({ to: destination });
+    await navigate({ href: destination });
   }
 
   async function requestCode() {
@@ -109,7 +115,7 @@ function useSignInFlow() {
         () =>
           authClient.signIn.social({
             provider: "google",
-            callbackURL: "/workspaces",
+            callbackURL: googleCallbackURL(search.redirect),
             errorCallbackURL: "/sign-in",
           }),
         verifyAuthSession,
