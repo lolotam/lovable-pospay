@@ -57,25 +57,40 @@ export function DiagnosePage() {
           <span className={tooLong ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
             {tooLong ? t("diag.tooLong") : `${text.length} / ${DIAGNOSIS_MAX_CHARS}`}
           </span>
-          <Button type="submit" disabled={busy || tooLong || text.trim().length < 3} className="min-h-11 w-full sm:w-auto">
+          <Button
+            type="submit"
+            disabled={busy || tooLong || text.trim().length < 3}
+            className="min-h-11 w-full sm:w-auto"
+          >
             {busy ? t("diag.busy") : t("diag.submit")}
           </Button>
         </div>
       </form>
       {error && (
-        <p role="alert" className="mt-6 rounded-md border border-border bg-warning-soft px-4 py-3 text-sm text-destructive">
+        <p
+          role="alert"
+          className="mt-6 rounded-md border border-border bg-warning-soft px-4 py-3 text-sm text-destructive"
+        >
           {t(error)}
         </p>
       )}
       {result && (
-        <section className="mt-6 rounded-lg border border-border bg-card p-4 sm:p-6" aria-live="polite">
+        <section
+          className="mt-6 rounded-lg border border-border bg-card p-4 sm:p-6"
+          aria-live="polite"
+        >
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
             <h2 className="text-base font-bold text-foreground">{t("diag.result")}</h2>
             <span>
-              {t("diag.model")}: <span dir="ltr">{result.provider} / {result.model}</span>
+              {t("diag.model")}:{" "}
+              <span dir="ltr">
+                {result.provider} / {result.model}
+              </span>
             </span>
           </div>
-          <div className="mt-4 whitespace-pre-wrap break-words text-sm leading-7">{result.answer}</div>
+          <div className="mt-4 whitespace-pre-wrap break-words text-sm leading-7">
+            {result.answer}
+          </div>
         </section>
       )}
     </div>

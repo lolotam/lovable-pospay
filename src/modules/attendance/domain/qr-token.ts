@@ -16,7 +16,11 @@ export type Signer = (message: string) => Promise<string>;
  * يُصدر كود QR موقّعاً للفرع.
  * @returns نص الكود: branchId.issuedAt.signature
  */
-export async function issueQrToken(branchId: string, nowSeconds: number, sign: Signer): Promise<string> {
+export async function issueQrToken(
+  branchId: string,
+  nowSeconds: number,
+  sign: Signer,
+): Promise<string> {
   const message = `${branchId}.${nowSeconds}`;
   return `${message}.${await sign(message)}`;
 }
@@ -31,7 +35,11 @@ export function qrBranchId(token: string): string | null {
  * يتحقق من توقيع الكود وعمره.
  * @returns محتوى الكود لو صالح، وإلا null
  */
-export async function verifyQrToken(token: string, nowSeconds: number, sign: Signer): Promise<QrPayload | null> {
+export async function verifyQrToken(
+  token: string,
+  nowSeconds: number,
+  sign: Signer,
+): Promise<QrPayload | null> {
   const [branchId, issued, signature] = token.split(".");
   if (!branchId || !issued || !signature) return null;
   const issuedAt = Number(issued);

@@ -17,7 +17,9 @@ export async function scanAttendance(input: ScanInputDto, deps: ScanDeps): Promi
   const now = deps.clock.now();
   const branchId = qrBranchId(input.token);
   const signer = branchId ? await deps.signerFor(branchId) : null;
-  const payload = signer ? await verifyQrToken(input.token, Math.floor(now.getTime() / 1000), signer) : null;
+  const payload = signer
+    ? await verifyQrToken(input.token, Math.floor(now.getTime() / 1000), signer)
+    : null;
   const branch = payload ? await deps.repo.branch(payload.branchId) : null;
   if (!payload || !branch) return { outcome: "rejected", reason: "invalid_qr" };
 
@@ -34,7 +36,10 @@ export async function scanAttendance(input: ScanInputDto, deps: ScanDeps): Promi
       return { outcome: "needs_intent" };
     case "check_out":
       await deps.repo.close(branch.companyId, decision.recordId, now, decision.status, exception);
-      await deps.repo.audit(branch.companyId, "attendance.check_out", decision.recordId, { status: decision.status, exception });
+      await deps.repo.audit(branch.companyId, "attendance.check_out", decision.recordId, {
+        status: decision.status,
+        exception,
+      });
       return { outcome: "checked_out", status: decision.status, exception };
     case "forgotten_then_check_in":
       await deps.repo.markForgotten(branch.companyId, decision.forgottenId);
@@ -57,8 +62,14 @@ async function checkIn(
   const id = deps.ids.next();
   const late = lateMinutes(now, shift);
   await deps.repo.insertCheckIn(branch.companyId, {
-    id, staffId, branchId, shiftId: shift?.id ?? null,
-    workDate: workDate(now, branch.timeZone), checkInAt: now, lateMinutes: late, exception,
+    id,
+    staffId,
+    branchId,
+    shiftId: shift?.id ?? null,
+    workDate: workDate(now, branch.timeZone),
+    checkInAt: now,
+    lateMinutes: late,
+    exception,
   });
   await deps.repo.audit(branch.companyId, "attendance.check_in", id, { late, exception });
   return { outcome: "checked_in", lateMinutes: late, exception };

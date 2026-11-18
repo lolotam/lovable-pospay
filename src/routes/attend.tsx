@@ -25,7 +25,11 @@ function AttendPage() {
   return (
     <main className="mx-auto max-w-sm px-4 py-8 sm:px-6 sm:py-16">
       <h1 className="mb-8 text-2xl font-bold">{t("attend.title")}</h1>
-      {token ? <AttendScan token={token} /> : <p className="text-destructive">{t("attend.invalidQr")}</p>}
+      {token ? (
+        <AttendScan token={token} />
+      ) : (
+        <p className="text-destructive">{t("attend.invalidQr")}</p>
+      )}
     </main>
   );
 }

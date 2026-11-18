@@ -26,7 +26,6 @@ const exceptionKey: Record<string, MessageKey> = {
   outside_geofence: "attend.outside",
 };
 
-
 export function AttendScan({ token }: { token: string }) {
   const scan = useServerFn(scanAttendanceFn);
   const getChallenge = useServerFn(scanChallengeFn);

@@ -8,7 +8,6 @@ import { ConnectorRow } from "./connector-row";
 
 const GROUPS: ConnectorGroup[] = ["ai_account", "ai_key", "messaging"];
 
-
 export function ConnectorsPage() {
   const q = useQuery({
     queryKey: ["platform", "connectors"],

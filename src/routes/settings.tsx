@@ -52,7 +52,9 @@ function SettingsPage() {
                     : "size-6 rounded-full border border-border bg-[oklch(0.97_0_0)]"
                 }
               />
-              <span className="font-medium">{t(opt === "dark" ? "settings.dark" : "settings.light")}</span>
+              <span className="font-medium">
+                {t(opt === "dark" ? "settings.dark" : "settings.light")}
+              </span>
             </button>
           ))}
         </div>

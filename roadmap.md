@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Continuation (2026-11-18)
+- [ ] 009 / 008 default-check blockers — spec and plan written; repair generated-cache lint traversal and same-local-database test scheduling without weakening tests/rules. Authenticated acceptance/PR/CI remain separate.
 - [x] 008 / remaining 001 transition safety implementation — spec → plan → tests RED (3 failures) → rowCount guards GREEN (4/4); 81/81 full-suite tests pass with --no-file-parallelism, including SQL isolation. Fresh whole-range review: 0 Standards/Spec findings; commit 8bc5bf8. No shared DB/env/server/deploy writes.
 - [ ] 008 verification gates — default parallel suites collide on shared local migration DDL (`tuple concurrently updated`); full lint SIGTERM after 120 seconds (exit 124), not a pass. Harness build OK; changed-file lint/diff check pass. Authenticated 001/002/007 acceptance and PR/CI gates remain open; see docs/specs/008-attendance-transition-safety/verification.md.
 - [x] 007 / remaining 001 D-32 — spec → plan → manager correction screen implemented; original checkout retained, required reason, row lock, transactional audit, permission recheck and verified readback. 77 tests pass on disposable localhost pospay_test; changed-file lint passes; latest harness build OK. No shared DB/server/env/deploy writes.
