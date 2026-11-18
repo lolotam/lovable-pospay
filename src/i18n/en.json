@@ -222,5 +222,18 @@
   "nav.cardScan": "Card scanner",
   "nav.services": "Services",
   "nav.reports": "Reports",
-  "ops.denied": "You do not have permission for this action"
+  "ops.denied": "You do not have permission for this action",
+  "nav.sessions": "Record sessions",
+  "sessions.title": "Record a service session",
+  "sessions.service": "Service",
+  "sessions.staff": "Employee",
+  "sessions.choose": "Choose",
+  "sessions.clientName": "Client name",
+  "sessions.clientPhone": "Client phone",
+  "sessions.at": "Performed at",
+  "sessions.save": "Save session",
+  "sessions.saved": "Session saved",
+  "sessions.error": "Save failed; check service, employee, phone and permission.",
+  "reports.client": "Client",
+  "reports.lateSession": "Late"
 }

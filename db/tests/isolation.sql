@@ -22,6 +22,7 @@ insert into public.service_assignments(company_id,service_id,staff_id)
  select s.company_id,c.id,s.id from public.staff_members s join public.service_catalog c using(company_id) where s.user_id='user-b';
 insert into public.service_sessions(company_id,service_id,staff_id,branch_id,occurred_at,service_name,price_mills)
  select s.company_id,c.id,s.id,s.branch_id,now(),c.name,c.price_mills from public.staff_members s join public.service_catalog c using(company_id) where s.user_id='user-b';
+insert into public.clients(company_id,name,phone) values ('00000000-0000-0000-0000-00000000000b','B client','96500000001');
 select set_config('test.b_branch' , (select id::text from public.branches where name='B-1'), true);
 set local role pospay_app;
 select set_config('app.user_id','user-a',true);
@@ -37,6 +38,7 @@ do $$ begin
   if exists(select 1 from public.service_catalog) then raise exception 'LEAK catalog'; end if;
   if exists(select 1 from public.service_assignments) then raise exception 'LEAK assignments'; end if;
   if exists(select 1 from public.service_sessions) then raise exception 'LEAK sessions'; end if;
+  if exists(select 1 from public.clients) then raise exception 'LEAK clients'; end if;
   if (select count(*) from public.companies where name='B') <> 0 then raise exception 'LEAK companies'; end if;
   if (select count(*) from public.branches where name='B-1') <> 0 then raise exception 'LEAK branches'; end if;
   if (select count(*) from public.memberships where user_id='user-b') <> 0 then raise exception 'LEAK memberships'; end if;

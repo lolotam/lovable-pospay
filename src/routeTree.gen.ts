@@ -18,6 +18,7 @@ import { Route as PhoneRouteImport } from './routes/phone'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AdminConnectorsRouteImport } from './routes/admin/connectors'
@@ -71,6 +72,11 @@ const ServicesRoute = ServicesRouteImport.update({
   path: '/services',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SessionsRoute = SessionsRouteImport.update({
+  id: '/sessions',
+  path: '/sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/admin/connectors': typeof AdminConnectorsRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/admin/connectors': typeof AdminConnectorsRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/admin/connectors': typeof AdminConnectorsRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/services'
+    | '/sessions'
     | '/settings'
     | '/sign-in'
     | '/admin/connectors'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/services'
+    | '/sessions'
     | '/settings'
     | '/sign-in'
     | '/admin/connectors'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/services'
+    | '/sessions'
     | '/settings'
     | '/sign-in'
     | '/admin/connectors'
@@ -229,6 +241,7 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
+  SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRoute
   SignInRoute: typeof SignInRoute
   AdminConnectorsRoute: typeof AdminConnectorsRoute
@@ -303,6 +316,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sessions': {
+      id: '/sessions'
+      path: '/sessions'
+      fullPath: '/sessions'
+      preLoaderRoute: typeof SessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -365,6 +385,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
+  SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRoute,
   SignInRoute: SignInRoute,
   AdminConnectorsRoute: AdminConnectorsRoute,

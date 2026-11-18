@@ -25,4 +25,19 @@ export interface SessionReportRow {
   service: string;
   occurredAt: string;
   priceMills: string;
+  clientName: string | null;
+  clientPhone: string | null;
+  late: boolean;
+}
+export const recordSessionInput = serviceScope.extend({
+  serviceId: z.string().uuid(),
+  staffId: z.string().uuid(),
+  clientName: z.string().trim().min(1).max(120),
+  clientPhone: z.string().trim().min(8).max(24),
+  occurredAt: z.string().datetime({ offset: true }),
+});
+export interface SessionFormDto {
+  canRecord: boolean;
+  services: { id: string; name: string; priceMills: string; staffIds: string[] }[];
+  staff: { id: string; name: string }[];
 }

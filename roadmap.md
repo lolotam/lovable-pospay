@@ -5,7 +5,7 @@
 - [x] Services catalog implementation: create/edit prices in bigint mills and employee assignments.
 - [x] Operational reports implementation: date-range attendance, corrected checkouts and recorded service sessions; tenant/role isolation.
 - [x] 003 final review closure (12:33 Kuwait): card issue/revoke orchestration moved to use-cases behind ports/card-repository.ts; persistence only implements the port. 5 new use-case tests; full suite 180/180 on local pospay_test; lint 0 errors on attendance; tsgo OK. Self-review only (no independent reviewer).
-- [ ] Authenticated UI/physical scanner acceptance blocked by preview AUTH_NOT_CONFIGURED; production migrations/deployment and exact-head PR/CI remain external gates. Services session writer remains outside this catalog slice pending its approved workflow; empty session report is truthful.
+- [ ] Authenticated UI/physical scanner acceptance blocked by preview AUTH_NOT_CONFIGURED; production migrations/deployment and exact-head PR/CI remain external gates. Services session writer added in 011 (see below).
 - [x] Local migrations 0011/0012 double-applied, tenant negative SQL and card/catalog/report integration verified. See docs/specs/003-barcode/verification.md for check evidence.
 
 ## Continuation (2026-11-18)
@@ -78,3 +78,8 @@
 - [x] Redeploy zod fix from synchronized GitHub commit 51fdab3
 - [ ] /api/auth/sign-in/email acceptance — zod crash resolved; pooler ENOIDENTIFIER returns 500
 - [ ] After auth works: Waleed registers dr.vet.waleedtam@gmail.com, then run db/seeds/super-admin.sql
+
+## 011 Service session recording (12:40 Kuwait)
+- [x] Migration 0013 (clients per company by phone D-30, session_writer for owner/manager/reception, insert RLS), /sessions form, reports show client name + last-3 phone (D-43) and late flag (D-49). 193/193 tests, isolation PASS, lint 0, tsgo OK on local pospay_test.
+- [ ] TODO(spec) ق-1: price override and discount limit (D-44) — sessions use the catalog price snapshot until approved.
+- [ ] Production apply of 0011–0013 — needs Waleed approval. Authenticated UI acceptance unverified (preview auth not configured).

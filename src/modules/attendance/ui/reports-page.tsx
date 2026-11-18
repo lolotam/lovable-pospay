@@ -117,7 +117,15 @@ function SessionRows({ rows }: { rows: OperationalReport["sessions"] }) {
           <h3>
             {r.name} · {r.service}
           </h3>
-          <p>{new Date(r.occurredAt).toLocaleString("ar-KW")}</p>
+          <p>
+            {new Date(r.occurredAt).toLocaleString("ar-KW")}
+            {r.late && <span className="ms-2 text-destructive">{t("reports.lateSession")}</span>}
+          </p>
+          {r.clientName && (
+            <p>
+              {t("reports.client")}: {r.clientName} <span dir="ltr">{r.clientPhone}</span>
+            </p>
+          )}
           <p dir="ltr">
             {`${BigInt(r.priceMills) / 1000n}.${(BigInt(r.priceMills) % 1000n).toString().padStart(3, "0")}`}{" "}
             {t("ops.kwd")}

@@ -222,5 +222,18 @@
   "nav.cardScan": "مسح البطاقات",
   "nav.services": "الخدمات",
   "nav.reports": "التقارير",
-  "ops.denied": "ليس لديك صلاحية لهذه العملية"
+  "ops.denied": "ليس لديك صلاحية لهذه العملية",
+  "nav.sessions": "تسجيل الجلسات",
+  "sessions.title": "تسجيل جلسة خدمة",
+  "sessions.service": "الخدمة",
+  "sessions.staff": "الموظفة",
+  "sessions.choose": "اختاري",
+  "sessions.clientName": "اسم العميلة",
+  "sessions.clientPhone": "رقم العميلة",
+  "sessions.at": "وقت التنفيذ",
+  "sessions.save": "حفظ الجلسة",
+  "sessions.saved": "تم حفظ الجلسة",
+  "sessions.error": "تعذر الحفظ؛ تحققي من الخدمة والموظفة والرقم والصلاحية.",
+  "reports.client": "العميلة",
+  "reports.lateSession": "متأخرة"
 }
