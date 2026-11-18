@@ -80,3 +80,16 @@ it("redacts credential objects and arrays while keeping adjacent diagnostic fiel
   });
   expect(redactSecrets('accessToken={value: "synthetic-value"')).not.toContain("synthetic-value");
 });
+
+it("redacts inspected credential fields with backtick-quoted text", () => {
+  const log = 'accessToken={label:`}`,value:"synthetic-value"} evidence=provider-response';
+  expect(redactSecrets(log)).toBe('accessToken="[REDACTED]" evidence=provider-response');
+  expect(redactSecrets("secret=`multi word value` evidence=ok")).toBe(
+    'secret="[REDACTED]" evidence=ok',
+  );
+});
+
+it("redacts the remaining log when a credential contains template interpolation", () => {
+  const log = 'accessToken={label:`${`}`}`,value:"synthetic-value"} evidence=provider-response';
+  expect(redactSecrets(log)).toBe('accessToken="[REDACTED]"');
+});

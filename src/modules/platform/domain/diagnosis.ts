@@ -26,8 +26,12 @@ function structuredValueEnd(text: string, start: number): number {
     const char = text[i];
     if (quoted) {
       if (char === "\\") i++;
-      else if (char === quoted) quoted = "";
-    } else if (char === '"' || char === "'") {
+      else if (quoted === "`" && char === "$" && text[i + 1] === "{") return text.length;
+      else if (char === quoted) {
+        if (!closing.length) return i + 1;
+        quoted = "";
+      }
+    } else if (char === '"' || char === "'" || char === "`") {
       quoted = char;
     } else if (char === "{" || char === "[") {
       closing.push(char === "{" ? "}" : "]");
@@ -41,7 +45,7 @@ function structuredValueEnd(text: string, start: number): number {
 
 function redactStructuredFields(text: string): string {
   const fields =
-    /\b(?:authorization|cookie|set-cookie|[\w.-]*(?:api[_-]?key|token|secret|password|passphrase))["']?\s*[:=]\s*(?=\{|\[)/gi;
+    /\b(?:authorization|cookie|set-cookie|[\w.-]*(?:api[_-]?key|token|secret|password|passphrase))["']?\s*[:=]\s*(?=\{|\[|\x60)/gi;
   let start = 0;
   let output = "";
   for (let match = fields.exec(text); match; match = fields.exec(text)) {
