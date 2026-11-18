@@ -134,3 +134,19 @@ revoke all on function public.guard_card_attendance_update() from public;
 drop trigger if exists guard_card_attendance_update on public.attendance_records;
 create trigger guard_card_attendance_update before update on public.attendance_records
  for each row execute function public.guard_card_attendance_update();
+
+-- Keep an operator's scan result in the same transaction as the attendance write.
+create table if not exists public.card_scan_requests (
+ company_id uuid not null references public.companies(id) on delete cascade,
+ actor_user_id text not null, id uuid not null,
+ fingerprint text not null check(length(fingerprint)=64), result jsonb not null,
+ primary key(company_id,actor_user_id,id)
+);
+alter table public.card_scan_requests enable row level security;
+grant select,insert on public.card_scan_requests to pospay_app;
+drop policy if exists card_scan_request_read on public.card_scan_requests;
+create policy card_scan_request_read on public.card_scan_requests for select to pospay_app
+ using(actor_user_id=public.current_app_user() and public.is_member(company_id));
+drop policy if exists card_scan_request_insert on public.card_scan_requests;
+create policy card_scan_request_insert on public.card_scan_requests for insert to pospay_app
+ with check(actor_user_id=public.current_app_user() and public.is_member(company_id));

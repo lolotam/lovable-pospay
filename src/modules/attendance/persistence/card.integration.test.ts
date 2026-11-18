@@ -5,6 +5,7 @@ import pg from "pg";
 import { getPool, withUser } from "@/lib/server/db.server";
 import { cardAudit, insertCardPolicy, readCardAccess, readCards } from "./card-repository.server";
 import { cardTokens, pgCardRepository } from "./card-actions.server";
+import { pgCardScanReceipts } from "./card-scan-receipts.server";
 import { scanCard as readCardScan } from "./card-scan.server";
 import { readAttendanceReport } from "./report.server";
 import {
@@ -13,7 +14,7 @@ import {
   loadCardManagement,
   revokeCardUseCase,
 } from "../use-cases/card-actions";
-import { readCardStatus, recordCard } from "../use-cases/card-scan";
+import { recordCard, recordCardRequest } from "../use-cases/card-scan";
 import { cryptoIds } from "@/shared/kernel/ids";
 const issueCard = (db: pg.PoolClient, user: string, company: string, staff: string) =>
   issueCardUseCase(pgCardRepository(db, user, company), cardTokens, staff);
@@ -182,18 +183,34 @@ describe.skipIf(!url)("card/report real RLS", () => {
     ).rejects.toThrow("ACTIVE_CARD");
   });
   it("reception scans check-in then checkout", async () => {
-    expect(
-      (
-        await withUser("cards-reception", (db) =>
-          scanCard(db, "cards-reception", { companyId: company, token, intent: null }),
-        )
-      ).result.outcome,
-    ).toBe("checked_in");
-    await expect(
-      withUser("cards-reception", async (db) =>
-        readCardStatus(await readCardScan(db, "cards-reception", { companyId: company, token })),
-      ),
-    ).resolves.toEqual({ name: "Mona", checkedIn: true });
+    const user = "cards-reception";
+    const requestId = crypto.randomUUID();
+    const fingerprint = "a".repeat(64);
+    const input = { companyId: company, token, intent: null };
+    const submit = (hash = fingerprint) =>
+      withUser(user, (db) =>
+        recordCardRequest(
+          pgCardScanReceipts<Awaited<ReturnType<typeof scanCard>>>(db, company, user, requestId),
+          hash,
+          () => scanCard(db, user, input),
+        ),
+      );
+    let releaseOriginal!: () => void;
+    const original = new Promise<void>((resolve) => {
+      releaseOriginal = resolve;
+    }).then(() => submit());
+    const recovered = await submit();
+    releaseOriginal();
+    expect(recovered.result.outcome).toBe("checked_in");
+    await expect(original).resolves.toEqual(recovered);
+    await expect(submit("b".repeat(64))).rejects.toThrow("CARD_REQUEST_CONFLICT");
+    const otherActor = await withUser(
+      "cards-manager",
+      async (db) =>
+        (await db.query("select id from public.card_scan_requests where company_id=$1", [company]))
+          .rows,
+    );
+    expect(otherActor).toEqual([]);
     await expect(
       withUser("cards-reception", (db) =>
         db.query(
@@ -209,11 +226,6 @@ describe.skipIf(!url)("card/report real RLS", () => {
         )
       ).result.outcome,
     ).toBe("checked_out");
-    await expect(
-      withUser("cards-reception", async (db) =>
-        readCardStatus(await readCardScan(db, "cards-reception", { companyId: company, token })),
-      ),
-    ).resolves.toEqual({ name: "Mona", checkedIn: false });
     await expect(
       withUser(
         "cards-reception",

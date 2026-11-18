@@ -14,6 +14,8 @@ insert into public.staff_members (company_id, id, branch_id, user_id, display_na
 insert into public.attendance_records (company_id, id, staff_id, branch_id, work_date, check_in_at)
   select s.company_id, gen_random_uuid(), s.id, s.branch_id, current_date, now() from public.staff_members s;
 
+insert into public.card_scan_requests(company_id,actor_user_id,id,fingerprint,result)
+ values ('00000000-0000-0000-0000-00000000000b','user-b',gen_random_uuid(),repeat('b',64),'{}');
 insert into public.card_policies(company_id,approved_by) values ('00000000-0000-0000-0000-00000000000b','user-b');
 insert into public.attendance_cards(company_id,staff_id,token_hash,issued_by)
  select company_id,id,repeat('b',64),'user-b' from public.staff_members where user_id='user-b';
@@ -35,6 +37,7 @@ do $$ begin
   ) then raise exception 'Branch QR secret default missing'; end if;
   if exists(select 1 from public.card_policies) then raise exception 'LEAK card policy'; end if;
   if exists(select 1 from public.attendance_cards) then raise exception 'LEAK cards'; end if;
+  if exists(select 1 from public.card_scan_requests) then raise exception 'LEAK card scan receipts'; end if;
   if exists(select 1 from public.service_catalog) then raise exception 'LEAK catalog'; end if;
   if exists(select 1 from public.service_assignments) then raise exception 'LEAK assignments'; end if;
   if exists(select 1 from public.service_sessions) then raise exception 'LEAK sessions'; end if;

@@ -5,23 +5,18 @@ import { CompanyScope } from "@/modules/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
-import { cardTokenInput } from "../card.contracts";
-import { getCardStatusFn, scanCardFn } from "../functions/card.functions";
+import { cardTokenInput, type CardScanRequest } from "../card.contracts";
+import { scanCardFn } from "../functions/card.functions";
 export function CardScanPage() {
   const [switchLocked, setSwitchLocked] = useState(false);
   return (
     <CompanyScope title="cards.scanTitle" switchLocked={switchLocked}>
-      {(id) => <Scanner companyId={id} onSwitchLockChange={setSwitchLocked} />}
+      {(id, userId) => (
+        <Scanner companyId={id} userId={userId} onSwitchLockChange={setSwitchLocked} />
+      )}
     </CompanyScope>
   );
 }
-function scanStatusMessage(status: Awaited<ReturnType<typeof getCardStatusFn>>) {
-  if (status.status === "unavailable") return t("cards.statusDiscontinued");
-  return (
-    status.name + " \u00b7 " + t(status.checkedIn ? "cards.currentlyIn" : "cards.currentlyOut")
-  );
-}
-
 type RecordedScan = Extract<Awaited<ReturnType<typeof scanCardFn>>, { status: "recorded" }>["scan"];
 
 function scanResultMessage({ name, result }: RecordedScan) {
@@ -34,72 +29,86 @@ function scanResultMessage({ name, result }: RecordedScan) {
   return name + " \u00b7 " + t(key);
 }
 
-function useScanner({ companyId }: { companyId: string }) {
+function createScanRequest(
+  companyId: string,
+  expectedUserId: string,
+  token: string,
+  intent: CardScanRequest["intent"],
+  prompt: string | null,
+): CardScanRequest {
+  return {
+    companyId,
+    expectedUserId,
+    token,
+    intent,
+    requestId: crypto.randomUUID(),
+    ...(prompt ? { promptedRecordId: prompt } : {}),
+  };
+}
+
+function useScanner(companyId: string, userId: string) {
   const scan = useServerFn(scanCardFn);
-  const fetchStatus = useServerFn(getCardStatusFn);
+  const inFlight = useRef(false);
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
-  const [uncertain, setUncertain] = useState(false);
+  const [pending, setPending] = useState<CardScanRequest | null>(null);
   const [prompt, setPrompt] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  async function run(intent: "new_shift" | "check_out" | null = null) {
-    if (busy || uncertain || !token) return;
+
+  async function submit(request: CardScanRequest, retry: boolean) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await scan({ data: request });
+      setPending(null);
+      if (response.status === "recorded" && response.scan.result.outcome === "needs_intent") {
+        setPrompt(response.scan.result.recordId);
+        return;
+      }
+      setPrompt(null);
+      setToken("");
+      setMessage(
+        response.status === "recorded"
+          ? scanResultMessage(response.scan)
+          : t(retry ? "cards.statusDiscontinued" : "cards.scanError"),
+      );
+    } catch {
+      setPrompt(null);
+      setPending(request);
+      setMessage(t(retry ? "cards.statusUnavailable" : "cards.confirmScanOutcome"));
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  function run(intent: CardScanRequest["intent"] = null) {
+    if (pending || !token) return;
     if (!cardTokenInput.safeParse(token).success) {
       setToken("");
       setMessage(t("cards.scanError"));
       return;
     }
-    setBusy(true);
-    setMessage("");
-    try {
-      const response = await scan({
-        data: { companyId, token, intent, ...(prompt ? { promptedRecordId: prompt } : {}) },
-      });
-      if (response.status === "rejected") {
-        setPrompt(null);
-        setToken("");
-        setMessage(t("cards.scanError"));
-        return;
-      }
-      const r = response.scan;
-      if (r.result.outcome === "needs_intent") setPrompt(r.result.recordId);
-      else {
-        setPrompt(null);
-        setToken("");
-        setMessage(scanResultMessage(r));
-      }
-    } catch {
-      setPrompt(null);
-      setUncertain(true);
-      setMessage(t("cards.confirmScanOutcome"));
-    } finally {
-      setBusy(false);
-    }
+    void submit(createScanRequest(companyId, userId, token, intent, prompt), false);
   }
-  async function confirmStatus() {
-    if (busy || !uncertain) return;
-    setBusy(true);
-    try {
-      const status = await fetchStatus({ data: { companyId, token } });
-      setMessage(scanStatusMessage(status));
-      setToken("");
-      setUncertain(false);
-    } catch {
-      setMessage(t("cards.statusUnavailable"));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return { token, setToken, busy, prompt, setPrompt, message, uncertain, confirmStatus, run };
+
+  return { token, setToken, busy, prompt, setPrompt, message, pending, submit, run };
 }
+
 type ScannerProps = {
   companyId: string;
+  userId: string;
   onSwitchLockChange: (locked: boolean) => void;
 };
 
-function Scanner({ companyId, onSwitchLockChange }: ScannerProps) {
-  const { token, setToken, busy, prompt, setPrompt, message, uncertain, confirmStatus, run } =
-    useScanner({ companyId });
+function Scanner({ companyId, userId, onSwitchLockChange }: ScannerProps) {
+  const { token, setToken, busy, prompt, setPrompt, message, pending, submit, run } = useScanner(
+    companyId,
+    userId,
+  );
+  const uncertain = !!pending;
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     onSwitchLockChange(busy || uncertain || !!prompt);
@@ -129,8 +138,8 @@ function Scanner({ companyId, onSwitchLockChange }: ScannerProps) {
           }}
         />
       </label>
-      {uncertain ? (
-        <Button type="button" disabled={busy} onClick={confirmStatus}>
+      {pending ? (
+        <Button type="button" disabled={busy} onClick={() => submit(pending, true)}>
           {t("cards.checkScanStatus")}
         </Button>
       ) : prompt ? (

@@ -1,11 +1,24 @@
+import type { CardScanReceipts } from "../ports/card-scan-receipts";
 import type { ScanInputDto } from "../contracts";
 import type { AttendanceRepository, BranchInfo } from "../ports/attendance-repository";
 import type { Clock } from "@/shared/kernel/clock";
 import type { IdGenerator } from "@/shared/kernel/ids";
 import { recordAttendance } from "./record-attendance";
-export async function readCardStatus(context: CardScanContext) {
-  const open = await context.repo.openRecord(context.branch.companyId, context.staffId);
-  return { name: context.name, checkedIn: !!open };
+/** يعيد نتيجة الطلب نفسه عند إعادة المحاولة من غير تسجيل حركة ثانية. */
+export async function recordCardRequest<Result>(
+  receipts: CardScanReceipts<Result>,
+  fingerprint: string,
+  record: () => Promise<Result>,
+): Promise<Result> {
+  const previous = await receipts.lockAndRead();
+  if (previous) {
+    if (previous.fingerprint !== fingerprint) throw new Error("CARD_REQUEST_CONFLICT");
+    return previous.result;
+  }
+
+  const result = await record();
+  await receipts.save({ fingerprint, result });
+  return result;
 }
 
 export interface CardScanContext {
