@@ -1,20 +1,32 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { t } from "@/i18n";
 import { CardScanPage } from "./card-scan-page";
 
 const { scan, settle, operator } = vi.hoisted(() => ({
   scan: vi.fn(),
   settle: vi.fn(),
-  operator: { id: "reception" },
+  operator: { id: "reception", available: true },
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (handler: unknown) => handler }));
 vi.mock("@/modules/staff", () => ({
-  CompanyScope: ({ children }: { children: (id: string, userId: string) => ReactNode }) =>
-    children("30000000-0000-4000-8000-000000000001", operator.id),
+  CompanyScope: ({
+    children,
+  }: {
+    children: (id: string, userId: string, available: boolean) => ReactNode;
+  }) => (
+    <div hidden={!operator.available}>
+      {children("30000000-0000-4000-8000-000000000001", operator.id, operator.available)}
+    </div>
+  ),
 }));
 vi.mock("../functions/card.functions", () => ({ scanCardFn: scan, settleCardScanFn: settle }));
+
+afterEach(() => {
+  operator.id = "reception";
+  operator.available = true;
+});
 
 it("allows another card after a terminal status response and preserves uncertainty after a transport error", async () => {
   scan.mockRejectedValueOnce(new Error("Connection lost"));
@@ -77,39 +89,60 @@ it("recovers after leaving the scanner without storing the card token", async ()
   expect(scan).toHaveBeenCalledTimes(1);
 });
 
-it("preserves a receipt for recovery when the scan response arrives after unmount", async () => {
-  let finishScan!: (reply: unknown) => void;
-  scan.mockReset().mockReturnValueOnce(
-    new Promise((resolve) => {
-      finishScan = resolve;
-    }),
-  );
-  settle.mockReset().mockResolvedValueOnce({
-    status: "recorded",
-    scan: { name: "Employee", result: { outcome: "checked_in" } },
-  });
-  const first = render(<CardScanPage />);
-  fireEvent.change(screen.getByRole("textbox", { name: t("cards.scanInput") }), {
-    target: { value: "c".repeat(48) },
-  });
-  fireEvent.click(screen.getByRole("button", { name: t("cards.scan") }));
-  const key = sessionStorage.key(0);
-  if (!key) throw new Error("Expected a stored recovery request");
-  const stored = sessionStorage.getItem(key);
-  first.unmount();
-  await act(async () =>
-    finishScan({
+it.each(["unmounted", "hidden", "restored"] as const)(
+  "preserves a receipt until the result is shown when the scanner is %s",
+  async (state) => {
+    let finishScan!: (reply: unknown) => void;
+    scan.mockReset().mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishScan = resolve;
+      }),
+    );
+    settle.mockReset().mockResolvedValueOnce({
       status: "recorded",
       scan: { name: "Employee", result: { outcome: "checked_in" } },
-    }),
-  );
-  expect(sessionStorage.getItem(key)).toBe(stored);
+    });
+    const first = render(<CardScanPage />);
+    fireEvent.change(screen.getByRole("textbox", { name: t("cards.scanInput") }), {
+      target: { value: "c".repeat(48) },
+    });
+    fireEvent.click(screen.getByRole("button", { name: t("cards.scan") }));
+    const key = sessionStorage.key(0);
+    if (!key) throw new Error("Expected a stored recovery request");
+    const stored = sessionStorage.getItem(key);
+    if (state === "unmounted") {
+      first.unmount();
+    } else {
+      operator.available = false;
+      first.rerender(<CardScanPage />);
+    }
+    await act(async () =>
+      finishScan({
+        status: "recorded",
+        scan: { name: "Employee", result: { outcome: "checked_in" } },
+      }),
+    );
+    expect(sessionStorage.getItem(key)).toBe(stored);
 
-  render(<CardScanPage />);
-  fireEvent.click(screen.getByRole("button", { name: t("cards.checkScanStatus") }));
-  expect(await screen.findByText(new RegExp(t("attend.checkedIn")))).toBeInTheDocument();
-  expect(sessionStorage.getItem(key)).toBeNull();
-});
+    if (state === "restored") {
+      expect(screen.getByText(new RegExp(t("attend.checkedIn")))).not.toBeVisible();
+      operator.available = true;
+      first.rerender(<CardScanPage />);
+      expect(screen.getByText(new RegExp(t("attend.checkedIn")))).toBeVisible();
+      expect(sessionStorage.getItem(key)).toBeNull();
+      expect(settle).not.toHaveBeenCalled();
+      return;
+    }
+    if (state === "hidden") {
+      first.unmount();
+      operator.available = true;
+    }
+    render(<CardScanPage />);
+    fireEvent.click(screen.getByRole("button", { name: t("cards.checkScanStatus") }));
+    expect(await screen.findByText(new RegExp(t("attend.checkedIn")))).toBeInTheDocument();
+    expect(sessionStorage.getItem(key)).toBeNull();
+  },
+);
 
 it("keeps the original request blocked through an expired session", async () => {
   let finishOriginal!: (value: unknown) => void;

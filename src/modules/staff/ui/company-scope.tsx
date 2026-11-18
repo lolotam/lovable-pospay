@@ -9,7 +9,7 @@ import { t, type MessageKey } from "@/i18n";
 export interface CompanyScopeProps {
   title: MessageKey;
   switchLocked?: boolean;
-  children: (companyId: string, userId: string) => ReactNode;
+  children: (companyId: string, userId: string, available: boolean) => ReactNode;
 }
 export function CompanyScope(props: CompanyScopeProps) {
   const { data, error, isPending, isRefetching, refetch } = authClient.useSession();
@@ -40,6 +40,7 @@ export function CompanyScope(props: CompanyScopeProps) {
             key={userId}
             {...props}
             userId={userId}
+            available={!loading && !failed}
             selected={selection?.userId === userId ? selection.companyId : ""}
             setSelected={(companyId) => setSelection({ userId, companyId })}
           />
@@ -62,6 +63,7 @@ function SessionVerificationError({ retry }: { retry: () => void }) {
 
 type SignedInProps = CompanyScopeProps & {
   userId: string;
+  available: boolean;
   selected: string;
   setSelected: (companyId: string) => void;
 };
@@ -82,6 +84,7 @@ function SignedInCompanyScope({
   children,
   switchLocked = false,
   userId,
+  available,
   selected,
   setSelected,
 }: SignedInProps) {
@@ -123,7 +126,9 @@ function SignedInCompanyScope({
             </select>
           </label>
           <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
-            <div key={companyId}>{children(companyId, userId)}</div>
+            <div key={companyId}>
+              {children(companyId, userId, available && !checking && !isError)}
+            </div>
           </Suspense>
         </div>
       ) : !checking && !isError && !data?.error ? (

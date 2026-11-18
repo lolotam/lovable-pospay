@@ -16,8 +16,13 @@ export function CardScanPage() {
   const [switchLocked, setSwitchLocked] = useState(false);
   return (
     <CompanyScope title="cards.scanTitle" switchLocked={switchLocked}>
-      {(id, userId) => (
-        <Scanner companyId={id} userId={userId} onSwitchLockChange={setSwitchLocked} />
+      {(id, userId, available) => (
+        <Scanner
+          companyId={id}
+          userId={userId}
+          available={available}
+          onSwitchLockChange={setSwitchLocked}
+        />
       )}
     </CompanyScope>
   );
@@ -59,12 +64,12 @@ function readPendingScan() {
   return raw ? cardRequestInput.parse(JSON.parse(raw)) : null;
 }
 
-function usePendingScan(companyId: string, userId: string) {
+function usePendingScan(companyId: string, userId: string, available: boolean) {
   const [pending, setPending] = useState<CardRequest | null>(null);
   const [ready, setReady] = useState(false);
   const [displayedRequestId, acknowledge] = useState<string | null>(null);
   useLayoutEffect(() => {
-    if (!displayedRequestId) return;
+    if (!available || !displayedRequestId) return;
     acknowledge(null);
     try {
       const stored = readPendingScan();
@@ -77,7 +82,7 @@ function usePendingScan(companyId: string, userId: string) {
     } catch {
       setReady(false);
     }
-  }, [displayedRequestId]);
+  }, [available, displayedRequestId]);
   useEffect(() => {
     try {
       setPending(readPendingScan());
@@ -104,11 +109,12 @@ function usePendingScan(companyId: string, userId: string) {
   return { pending: blocked ? null : pending, blocked, ready, remember, acknowledge };
 }
 
-function useScanner(companyId: string, userId: string) {
+function useScanner(companyId: string, userId: string, available: boolean) {
   const scan = useServerFn(scanCardFn);
   const settle = useServerFn(settleCardScanFn);
   const inFlight = useRef(false);
-  const { pending, blocked, ready, remember, acknowledge } = usePendingScan(companyId, userId);
+  const recovery = usePendingScan(companyId, userId, available);
+  const { pending, blocked, ready, remember, acknowledge } = recovery;
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [prompt, setPrompt] = useState<string | null>(null);
@@ -143,7 +149,7 @@ function useScanner(companyId: string, userId: string) {
   }
 
   function run(intent: CardScanRequest["intent"] = null) {
-    if (inFlight.current || !ready || blocked || pending || !token) return;
+    if (inFlight.current || !available || !ready || blocked || pending || !token) return;
     if (cardTokenInput.safeParse(token).success) {
       const request = createScanRequest(companyId, userId, token, intent, prompt);
       if (remember(request)) void submit(request, request, false);
@@ -156,7 +162,7 @@ function useScanner(companyId: string, userId: string) {
 
   const controls = { token, setToken, busy, prompt, setPrompt, message };
   function recover() {
-    if (pending) void submit(pending, null, true);
+    if (available && pending) void submit(pending, null, true);
   }
   return { ...controls, pending, blocked, ready, run, recover };
 }
@@ -173,11 +179,12 @@ function tallyScanMessage(response: Awaited<ReturnType<typeof scanCardFn>>, retr
 type ScannerProps = {
   companyId: string;
   userId: string;
+  available: boolean;
   onSwitchLockChange: (locked: boolean) => void;
 };
 
-function Scanner({ companyId, userId, onSwitchLockChange }: ScannerProps) {
-  const state = useScanner(companyId, userId);
+function Scanner({ companyId, userId, available, onSwitchLockChange }: ScannerProps) {
+  const state = useScanner(companyId, userId, available);
   const { token, setToken, busy, prompt, setPrompt, message } = state;
   const { pending, blocked, ready, recover, run } = state;
   const uncertain = !!pending;
@@ -187,8 +194,8 @@ function Scanner({ companyId, userId, onSwitchLockChange }: ScannerProps) {
     return () => onSwitchLockChange(false);
   }, [busy, uncertain, prompt, onSwitchLockChange]);
   useEffect(() => {
-    if (ready && !blocked && !busy && !prompt && !uncertain) input.current?.focus();
-  }, [blocked, busy, prompt, ready, uncertain]);
+    if (available && ready && !blocked && !busy && !prompt && !uncertain) input.current?.focus();
+  }, [available, blocked, busy, prompt, ready, uncertain]);
   return (
     <form
       className="max-w-xl space-y-5"
