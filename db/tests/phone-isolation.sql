@@ -12,6 +12,14 @@ select set_config('app.user_id','phone-a',true);
 insert into public.phone_bindings (company_id,user_id,credential_id,device_hash) values ('10000000-0000-0000-0000-000000000001','phone-a','a','device-a');
 do $$ begin
  if (select count(*) from public.phone_bindings)<>1 then raise exception 'LEAK phones'; end if;
+ perform id from public.phone_bindings where user_id='phone-a' for update;
+ if not found then raise exception 'Staff could not lock own phone'; end if;
+ perform id from public.phone_bindings where user_id='phone-b' for update;
+ if found then raise exception 'Staff locked another company phone'; end if;
+ begin
+  update public.phone_bindings set id=gen_random_uuid() where user_id='phone-a';
+  raise exception 'Staff changed phone binding ID';
+ exception when insufficient_privilege then null; end;
  delete from public.phone_bindings;
  if found then raise exception 'Staff unbound phone'; end if;
  begin
@@ -24,6 +32,10 @@ do $$ begin
  exception when insufficient_privilege then null; end;
 end $$;
 select set_config('app.user_id','phone-manager',true);
+do $$ begin
+ perform id from public.phone_bindings where user_id='phone-a' for update;
+ if found then raise exception 'Manager locked another user phone'; end if;
+end $$;
 delete from public.phone_bindings where user_id='phone-a';
 do $$ begin
  if exists (select 1 from public.phone_bindings) then raise exception 'Manager unbinding failed'; end if;

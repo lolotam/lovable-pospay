@@ -4,7 +4,7 @@ import { betterAuth } from "better-auth";
 import { phoneNumber } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
-import { getPool } from "./db.server";
+import { getAuthPool } from "./db.server";
 import { sendWhatsAppOtp } from "./whatsapp.server";
 import { passwordRecoveryOptions } from "./password-recovery.server";
 import { getResendPasswordSender, getResendOtpSender } from "./resend.server";
@@ -18,7 +18,7 @@ function createAuth() {
     appName: "PosPay",
     baseURL,
     secret: process.env["BETTER_AUTH_SECRET"],
-    database: getPool(),
+    database: getAuthPool(),
     account: {
       accountLinking: {
         enabled: true,
