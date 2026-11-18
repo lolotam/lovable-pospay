@@ -1,8 +1,12 @@
 import type { SessionReportRow } from "@/modules/services";
 import { z } from "zod";
+const reportTabSchema = z.enum(["attendance", "corrected", "services"]);
+export type ReportTab = z.infer<typeof reportTabSchema>;
+
 export const reportInput = z
   .object({
     companyId: z.string().uuid(),
+    tab: reportTabSchema,
     from: z.string().datetime({ offset: true }),
     until: z.string().datetime({ offset: true }),
   })

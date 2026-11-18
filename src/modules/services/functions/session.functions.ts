@@ -1,6 +1,6 @@
-import { loadSessionForm } from "../use-cases/record-session";
+import { loadSessionForm, recordAvailableSession } from "../use-cases/record-session";
 import { createServerFn } from "@tanstack/react-start";
-import { serviceScope, recordSessionInput, serviceSessionRecordingAvailable } from "../contracts";
+import { serviceScope, recordSessionInput } from "../contracts";
 export const getSessionFormFn = createServerFn({ method: "GET" })
   .inputValidator((v: unknown) => serviceScope.parse(v))
   .handler(({ data }) =>
@@ -13,14 +13,15 @@ export const getSessionFormFn = createServerFn({ method: "GET" })
   );
 export const recordSessionFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => recordSessionInput.parse(v))
-  .handler(async ({ data }) => {
-    if (!serviceSessionRecordingAvailable) throw new Error("SESSION_RECORDING_UNAVAILABLE");
-    const { requireUserId } = await import("@/lib/server/session.server");
-    const { withUser } = await import("@/lib/server/db.server");
-    const { pgSessionRepository } = await import("../persistence/session.server");
-    const { recordSession } = await import("../use-cases/record-session");
-    const userId = await requireUserId();
-    return withUser(userId, (db) =>
-      recordSession(pgSessionRepository(db, userId, data.companyId), data, new Date()),
-    );
-  });
+  .handler(({ data }) =>
+    recordAvailableSession(async () => {
+      const { requireUserId } = await import("@/lib/server/session.server");
+      const { withUser } = await import("@/lib/server/db.server");
+      const { pgSessionRepository } = await import("../persistence/session.server");
+      const { recordSession } = await import("../use-cases/record-session");
+      const userId = await requireUserId();
+      return withUser(userId, (db) =>
+        recordSession(pgSessionRepository(db, userId, data.companyId), data, new Date()),
+      );
+    }),
+  );

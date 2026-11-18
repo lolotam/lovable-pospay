@@ -12,7 +12,7 @@ export async function loadCatalog(repo: CatalogReader): Promise<ServiceCatalogDt
     services: catalog.services.map(({ id, name, priceMills, version, staffIds }) => ({
       id,
       name,
-      priceMills,
+      priceMills: priceMills.toString(),
       version,
       staffIds,
     })),
@@ -25,7 +25,7 @@ export async function saveService(repo: CatalogWriter, input: z.infer<typeof sav
 
   const details = {
     name: input.name,
-    priceMills: servicePrice(input.price).toString(),
+    priceMills: servicePrice(input.price),
     staffIds: [...new Set(input.staffIds)],
   };
   const previous = input.id ? await repo.lock(input.id) : undefined;

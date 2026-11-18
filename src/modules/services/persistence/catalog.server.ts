@@ -16,7 +16,9 @@ export function pgCatalogReader(db: pg.PoolClient, companyId: string): CatalogRe
       return rows[0];
     },
     async read() {
-      const { rows: services } = await db.query(
+      const { rows: services } = await db.query<
+        Omit<CatalogDetails, "priceMills"> & { id: string; version: number; priceMills: string }
+      >(
         `select c.id,c.name,c.price_mills::text as "priceMills",c.version,
          coalesce((select json_agg(a.staff_id) from public.service_assignments a
           where a.company_id=c.company_id and a.service_id=c.id and a.active),'[]') as "staffIds"
@@ -27,7 +29,13 @@ export function pgCatalogReader(db: pg.PoolClient, companyId: string): CatalogRe
         "select id,display_name as name from public.staff_members where company_id=$1 order by display_name",
         [companyId],
       );
-      return { services, staff };
+      return {
+        services: services.map((service) => ({
+          ...service,
+          priceMills: BigInt(service.priceMills),
+        })),
+        staff,
+      };
     },
   };
 }
@@ -46,16 +54,17 @@ export function pgCatalogWriter(
       return !!rows[0]?.manager;
     },
     async lock(id) {
-      const { rows } = await db.query<CatalogSnapshot>(
-        "select name,price_mills::text,version from public.service_catalog where company_id=$1 and id=$2 for update",
+      const { rows } = await db.query<Omit<CatalogSnapshot, "priceMills"> & { priceMills: string }>(
+        `select name,price_mills::text as "priceMills",version from public.service_catalog where company_id=$1 and id=$2 for update`,
         [companyId, id],
       );
-      return rows[0];
+      const row = rows[0];
+      return row && { ...row, priceMills: BigInt(row.priceMills) };
     },
     async update(id, details) {
       await db.query(
         "update public.service_catalog set name=$3,price_mills=$4,version=version+1 where company_id=$1 and id=$2",
-        [companyId, id, details.name, details.priceMills],
+        [companyId, id, details.name, details.priceMills.toString()],
       );
     },
     async create(details, requestId) {
@@ -63,7 +72,7 @@ export function pgCatalogWriter(
         `insert into public.service_catalog(company_id,name,price_mills,id)
          values($1,$2,$3,coalesce($4::uuid,gen_random_uuid()))
          on conflict(company_id,id) do nothing returning id`,
-        [companyId, details.name, details.priceMills, requestId ?? null],
+        [companyId, details.name, details.priceMills.toString(), requestId ?? null],
       );
       return rows[0]?.id ?? null;
     },
@@ -73,7 +82,20 @@ export function pgCatalogWriter(
       await db.query(
         `insert into public.audit_log(company_id,actor_user_id,action,entity,entity_id,details)
          values($1,$2,'service.saved','service',$3,$4)`,
-        [companyId, userId, id, JSON.stringify({ previous, ...details })],
+        [
+          companyId,
+          userId,
+          id,
+          JSON.stringify({
+            previous: previous && {
+              name: previous.name,
+              version: previous.version,
+              price_mills: previous.priceMills.toString(),
+            },
+            ...details,
+            priceMills: details.priceMills.toString(),
+          }),
+        ],
       );
     },
   };
@@ -95,7 +117,14 @@ async function matchesCreation(
           and details->>'name'=$4 and details->>'priceMills'=$5
           and (details->'staffIds') @> $6::jsonb and $6::jsonb @> (details->'staffIds')
       ) as matches`,
-    [companyId, userId, id, details.name, details.priceMills, JSON.stringify(details.staffIds)],
+    [
+      companyId,
+      userId,
+      id,
+      details.name,
+      details.priceMills.toString(),
+      JSON.stringify(details.staffIds),
+    ],
   );
   return !!rows[0]?.matches;
 }

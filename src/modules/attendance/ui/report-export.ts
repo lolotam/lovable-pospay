@@ -1,7 +1,6 @@
-import type { AttendanceReportRow, OperationalReport } from "../report.contracts";
+import type { AttendanceReportRow, OperationalReport, ReportTab } from "../report.contracts";
 import { t } from "@/i18n";
 
-export type ReportTab = "attendance" | "corrected" | "services";
 type Table = { title: string; head: string[]; body: string[][] };
 
 export const formatReportDate = (value: string | null, timeZone: string) =>

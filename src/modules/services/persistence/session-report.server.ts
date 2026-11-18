@@ -8,6 +8,8 @@ export async function readSessionReport(
   until: string,
   limit: number,
 ): Promise<SessionReportRow[]> {
+  const access = await db.query("select public.report_reader($1) as allowed", [companyId]);
+  if (!access.rows[0]?.allowed) throw new Error("FORBIDDEN");
   const rows = await db.query(
     `select r.id,s.display_name as name,r.service_name as service,r.occurred_at,r.recorded_at,r.price_mills::text as "priceMills",c.name as "clientName",b.timezone
  from public.service_sessions r join public.staff_members s on s.company_id=r.company_id and s.id=r.staff_id

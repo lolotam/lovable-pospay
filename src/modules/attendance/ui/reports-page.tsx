@@ -1,4 +1,4 @@
-import type { AttendanceReportRow, OperationalReport } from "../report.contracts";
+import type { AttendanceReportRow, OperationalReport, ReportTab } from "../report.contracts";
 import { Suspense, useState } from "react";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { CompanyScope } from "@/modules/staff";
@@ -64,31 +64,10 @@ function ReportFilters({ companyId }: { companyId: string }) {
     </div>
   );
 }
-function ReportRows({
-  companyId,
-  range,
-}: {
-  companyId: string;
-  range: { from: string; until: string; fromDate: string };
-}) {
-  const { data } = useSuspenseQuery(
-    queryOptions({
-      queryKey: ["reports", companyId, range],
-      queryFn: async () => {
-        try {
-          return await getOperationalReportFn({
-            data: { companyId, from: range.from, until: range.until },
-          });
-        } catch {
-          return null;
-        }
-      },
-    }),
-  );
-  const [tab, setTab] = useState<"attendance" | "corrected" | "services">("attendance");
-  if (!data) return <p role="alert">{t("ops.forbidden")}</p>;
-  if (data === "REPORT_TOO_LARGE") return <p role="alert">{t("reports.narrowRange")}</p>;
-  const rows = tab === "corrected" ? data.attendance.filter((r) => r.corrected) : data.attendance;
+type ReportRange = { from: string; until: string; fromDate: string };
+
+function ReportRows({ companyId, range }: { companyId: string; range: ReportRange }) {
+  const [tab, setTab] = useState<ReportTab>("attendance");
   return (
     <section className="space-y-4">
       <div role="tablist" className="flex flex-wrap gap-2">
@@ -110,9 +89,47 @@ function ReportRows({
           </Button>
         ))}
       </div>
-      <ReportExports data={data} tab={tab} range={range} />
-      {tab === "services" ? <SessionRows rows={data.sessions} /> : <AttendanceRows rows={rows} />}
+      <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
+        <ReportTabRows companyId={companyId} range={range} tab={tab} />
+      </Suspense>
     </section>
+  );
+}
+
+function ReportTabRows({
+  companyId,
+  range,
+  tab,
+}: {
+  companyId: string;
+  range: ReportRange;
+  tab: ReportTab;
+}) {
+  const { data } = useSuspenseQuery(
+    queryOptions({
+      queryKey: ["reports", companyId, range, tab],
+      queryFn: async () => {
+        try {
+          return await getOperationalReportFn({
+            data: { companyId, from: range.from, until: range.until, tab },
+          });
+        } catch {
+          return null;
+        }
+      },
+    }),
+  );
+  if (!data) return <p role="alert">{t("ops.forbidden")}</p>;
+  if (data === "REPORT_TOO_LARGE") return <p role="alert">{t("reports.narrowRange")}</p>;
+  return (
+    <>
+      <ReportExports data={data} tab={tab} range={range} />
+      {tab === "services" ? (
+        <SessionRows rows={data.sessions} />
+      ) : (
+        <AttendanceRows rows={data.attendance} />
+      )}
+    </>
   );
 }
 
@@ -122,8 +139,8 @@ function ReportExports({
   range,
 }: {
   data: OperationalReport;
-  tab: "attendance" | "corrected" | "services";
-  range: { from: string; until: string; fromDate: string };
+  tab: ReportTab;
+  range: ReportRange;
 }) {
   const [printBlocked, setPrintBlocked] = useState(false);
   return (

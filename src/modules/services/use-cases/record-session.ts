@@ -1,4 +1,5 @@
-import { serviceSessionRecordingAvailable, type SessionFormDto } from "../contracts";
+import type { SessionFormDto } from "../contracts";
+import { serviceSessionRecordingAvailable } from "../domain/session-availability";
 import { normalizePhone } from "../domain/client-phone";
 import type { SessionRepository } from "../ports/session-repository";
 
@@ -53,4 +54,9 @@ export function loadSessionForm(read: () => Promise<SessionFormDto>): Promise<Se
   return serviceSessionRecordingAvailable
     ? read()
     : Promise.resolve({ canRecord: false, services: [], staff: [] });
+}
+
+export async function recordAvailableSession(record: () => Promise<{ id: string }>) {
+  if (!serviceSessionRecordingAvailable) throw new Error("SESSION_RECORDING_UNAVAILABLE");
+  return record();
 }

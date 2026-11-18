@@ -1,14 +1,16 @@
+import type { Mills } from "@/shared/kernel/money";
+
 /** بيانات الخدمة والإسنادات المستخدمة عند إنشاء سجل أو تحديثه. */
 export interface CatalogDetails {
   name: string;
-  priceMills: string;
+  priceMills: Mills;
   staffIds: string[];
 }
 
 /** حالة الخدمة قبل التعديل، والنسخة تمنع الحفظ فوق تعديل أحدث. */
 export interface CatalogSnapshot {
   name: string;
-  price_mills: string;
+  priceMills: Mills;
   version: number;
 }
 

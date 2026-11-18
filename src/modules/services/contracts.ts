@@ -30,9 +30,6 @@ export interface SessionReportRow {
   clientName: string | null;
   late: boolean;
 }
-// D-44: release requires an owner decision on adjusted prices and discounts.
-export const serviceSessionRecordingAvailable = false;
-
 export const recordSessionInput = serviceScope.extend({
   requestId: z.string().uuid(),
   serviceId: z.string().uuid(),

@@ -253,5 +253,6 @@
   "services.savedRefreshFailed": "Service saved. Refresh the catalog to see the update.",
   "export.printBlocked": "Your browser blocked the print window.",
   "reports.narrowRange": "This report exceeds 2,000 rows. Choose a shorter date range.",
-  "cards.issueUnconfirmed": "Issuance could not be confirmed. Check the refreshed list. If the card is active and you cannot print it, revoke it before issuing a replacement."
+  "cards.issueUnconfirmed": "Issuance could not be confirmed. Check the refreshed list. If the card is active and you cannot print it, revoke it before issuing a replacement.",
+  "cards.savedRefreshFailed": "Changes were saved, but the card list could not be refreshed. Reload the list before making another change."
 }

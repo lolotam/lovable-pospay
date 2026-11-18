@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Printer, CreditCard, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,8 +33,7 @@ export function CardsPage() {
   );
 }
 function useCards({ companyId, policyOnly = false }: { companyId: string; policyOnly?: boolean }) {
-  const { data, isFetching } = useSuspenseQuery(cardQuery(companyId));
-  const cache = useQueryClient();
+  const { data, isFetching, refetch } = useSuspenseQuery(cardQuery(companyId));
   const [issued, setIssued] = useState<IssuedCard | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -47,16 +46,21 @@ function useCards({ companyId, policyOnly = false }: { companyId: string; policy
     setBusy(true);
     setMessage("");
     setIssued(null);
+    let saved = false;
     try {
       if (action === "approve") await approve({ data: { companyId } });
       else if (action === "issue") setIssued(await issue({ data: { companyId, staffId: id } }));
       else await revoke({ data: { companyId, cardId: id } });
       setConfirm(null);
-      setMessage(t("ops.saved"));
+      saved = true;
     } catch {
       setMessage(t(action === "issue" ? "cards.issueUnconfirmed" : "cards.error"));
     } finally {
-      await cache.invalidateQueries({ queryKey: ["cards", companyId] }).catch(() => undefined);
+      const refreshed = await refetch().catch(() => undefined);
+      if (saved) {
+        const verified = refreshed?.data?.value && !refreshed.data.error;
+        setMessage(t(verified ? "ops.saved" : "cards.savedRefreshFailed"));
+      }
       setBusy(false);
     }
   }

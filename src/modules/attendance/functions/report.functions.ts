@@ -9,9 +9,9 @@ export const getOperationalReportFn = createServerFn({ method: "GET" })
     const { readAttendanceReport } = await import("../persistence/report.server");
     const { readSessionReport } = await import("@/modules/services/index.server");
     return withUser(await requireUserId(), (db) =>
-      readOperationalReport({
-        attendance: (limit) =>
-          readAttendanceReport(db, data.companyId, data.from, data.until, limit),
+      readOperationalReport(data.tab, {
+        attendance: (limit, correctedOnly) =>
+          readAttendanceReport(db, data.companyId, data.from, data.until, limit, correctedOnly),
         sessions: (limit) => readSessionReport(db, data.companyId, data.from, data.until, limit),
       }),
     );

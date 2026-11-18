@@ -16,20 +16,28 @@ const row: AttendanceReportRow = {
   status: "open",
 };
 
-it("rejects an over-limit report without reading sessions", async () => {
+it("bounds one tab without blocking or querying the other tabs", async () => {
   const attendance = vi.fn(async (limit: number) => Array.from({ length: limit }, () => row));
   const sessions = vi.fn(async () => []);
-  await expect(readOperationalReport({ attendance, sessions })).resolves.toBe("REPORT_TOO_LARGE");
-  expect(attendance).toHaveBeenCalledWith(2001);
+  const read = { attendance, sessions };
+  await expect(readOperationalReport("attendance", read)).resolves.toBe("REPORT_TOO_LARGE");
+  expect(attendance).toHaveBeenCalledWith(2001, false);
   expect(sessions).not.toHaveBeenCalled();
+  await expect(readOperationalReport("services", read)).resolves.toEqual({
+    attendance: [],
+    sessions: [],
+  });
+  expect(attendance).toHaveBeenCalledTimes(1);
+  expect(sessions).toHaveBeenCalledWith(2001);
 });
 
-it("only fetches the remaining allowance plus one detection row", async () => {
+it("bounds corrected records independently from total attendance", async () => {
   const attendance = vi.fn(async () => [row]);
   const sessions = vi.fn(async () => []);
-  await expect(readOperationalReport({ attendance, sessions })).resolves.toEqual({
+  await expect(readOperationalReport("corrected", { attendance, sessions })).resolves.toEqual({
     attendance: [row],
     sessions: [],
   });
-  expect(sessions).toHaveBeenCalledWith(2000);
+  expect(attendance).toHaveBeenCalledWith(2001, true);
+  expect(sessions).not.toHaveBeenCalled();
 });

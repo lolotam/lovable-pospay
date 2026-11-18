@@ -4,4 +4,4 @@ export type { SessionFormDto } from "./contracts";
 export type { ServiceDto, ServiceCatalogDto } from "./contracts";
 
 export type { SessionReportRow } from "./contracts";
-export { serviceSessionRecordingAvailable } from "./contracts";
+export { serviceSessionRecordingAvailable } from "./domain/session-availability";
