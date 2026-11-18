@@ -147,7 +147,7 @@ it("offers session re-verification after an unexpected network failure", async (
   useSession.mockReturnValue(session);
   verifyAuthSession
     .mockRejectedValueOnce(new Error("Unavailable"))
-    .mockResolvedValueOnce(undefined);
+    .mockResolvedValueOnce("manager");
   getMyCompanies.mockResolvedValue([{ id: "company", name: "Company", role: "owner" }]);
   cache.setQueryData(["operator-companies", "manager"], {
     companies: [{ id: "company", name: "Company", role: "owner" }],
@@ -173,7 +173,8 @@ it("offers session re-verification after an unexpected network failure", async (
   fireEvent.click(screen.getByRole("button", { name: t("auth.retrySession") }));
   expect(await screen.findByRole("combobox")).toBeVisible();
   expect(screen.getByText("Company data")).toBeVisible();
-  expect(refetch).toHaveBeenCalledWith({ query: { disableCookieCache: true } });
+  expect(refetch).not.toHaveBeenCalled();
+  expect(getMyCompanies).toHaveBeenLastCalledWith({ data: { expectedUserId: "manager" } });
 });
 
 it("keeps cached company details hidden while membership is being checked", async () => {

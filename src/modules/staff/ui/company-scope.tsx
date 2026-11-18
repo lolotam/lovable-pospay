@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAuthNotConfigured } from "@/lib/auth-errors";
 import { duringAccountChange, useAccountChangeStatus } from "@/lib/account-change";
 import { Button } from "@/components/ui/button";
@@ -12,22 +12,34 @@ export interface CompanyScopeProps {
   children: (companyId: string, userId: string, available: boolean) => ReactNode;
 }
 export function CompanyScope(props: CompanyScopeProps) {
-  const { data, error, isPending, isRefetching, refetch } = authClient.useSession();
+  const { data, error, isPending, isRefetching } = authClient.useSession();
+  const cache = useQueryClient();
   const accountChange = useAccountChangeStatus();
   const [selection, setSelection] = useState<{ userId: string; companyId: string } | null>(null);
+  const [recovered, setRecovered] = useState<{
+    userId: string | null;
+    data: typeof data;
+    error: typeof error;
+  }>();
+  const recovery = recovered?.data === data && recovered?.error === error ? recovered : undefined;
   const retry = () =>
     void duringAccountChange(
-      () => refetch({ query: { disableCookieCache: true } }),
-      verifyAuthSession,
+      async () => undefined,
+      async () => {
+        const id = await verifyAuthSession();
+        setRecovered({ userId: id, data, error });
+        if (id) await cache.invalidateQueries({ queryKey: operatorCompaniesQuery(id).queryKey });
+      },
     );
   const loading = isPending || isRefetching || accountChange === "pending";
-  const failed = accountChange === "unverified" || !!error;
-  const userId = data?.user.id;
+  const sessionError = recovery ? null : error;
+  const failed = accountChange === "unverified" || !!sessionError;
+  const userId = recovery ? recovery.userId : data?.user.id;
   return (
     <>
       {loading ? (
         <p role="status">{t("phone.loading")}</p>
-      ) : isAuthNotConfigured(error) ? (
+      ) : isAuthNotConfigured(sessionError) ? (
         <p role="status">{t("auth.notConfigured")}</p>
       ) : failed ? (
         <SessionVerificationError retry={retry} />

@@ -155,6 +155,7 @@ export function CardActions({
     return () => onSwitchLockChange?.(false);
   }, [busy, issued, onSwitchLockChange]);
   const value = isFetching ? null : data?.value;
+  const canPrint = value?.staff.some((staff) => staff.canIssue && staff.cardId === issued?.cardId);
   return (
     <div className="space-y-6">
       <CardRosterStatus data={data} isFetching={isFetching} refetch={refetch} />
@@ -173,7 +174,8 @@ export function CardActions({
       )}
       {!policyOnly && issued && (
         <>
-          {value && <PrintableCard card={issued} />}
+          {canPrint && <PrintableCard card={issued} />}
+          {value && !canPrint && <p role="status">{t("cards.issuedInactive")}</p>}
           <Button type="button" variant="outline" onClick={dismissIssued}>
             {t("cards.dismissIssued")}
           </Button>
@@ -204,12 +206,15 @@ function CardRosterStatus({
 function PrintableCard({ card }: { card: IssuedCard }) {
   const ref = useRef<SVGSVGElement>(null);
   const [error, setError] = useState(false);
+  const [readyToken, setReadyToken] = useState<string>();
   useEffect(() => {
     let active = true;
     import("jsbarcode")
       .then(({ default: render }) => {
-        if (active && ref.current)
+        if (active && ref.current) {
           render(ref.current, card.token, { format: "CODE128", displayValue: false });
+          setReadyToken(card.token);
+        }
       })
       .catch(() => {
         if (active) setError(true);
@@ -228,7 +233,11 @@ function PrintableCard({ card }: { card: IssuedCard }) {
           <svg ref={ref} role="img" aria-label={t("cards.barcode")} className="max-w-full" />
         )}
       </div>
-      <Button variant="outline" disabled={error} onClick={() => window.print()}>
+      <Button
+        variant="outline"
+        disabled={error || readyToken !== card.token}
+        onClick={() => window.print()}
+      >
         <Printer />
         {t("cards.print")}
       </Button>

@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 
 const listeners = new Set<() => void>();
 let pending = 0;
-let revision = 0;
+let lastChange: Promise<void> = Promise.resolve();
 let verificationFailed = false;
 
 function subscribe(listener: () => void) {
@@ -22,24 +22,30 @@ export function useAccountChangeStatus() {
   );
 }
 
-export async function duringAccountChange<T>(
+export function duringAccountChange<T>(
   change: () => Promise<T>,
-  verify: () => Promise<void>,
+  verify: () => Promise<unknown>,
 ): Promise<T> {
-  const current = ++revision;
   pending++;
   notify();
-  try {
-    return await change();
-  } finally {
+  const run = lastChange.then(async () => {
     try {
-      await verify();
-      if (current === revision) verificationFailed = false;
-    } catch {
-      if (current === revision) verificationFailed = true;
+      return await change();
     } finally {
-      pending--;
-      notify();
+      try {
+        await verify();
+        verificationFailed = false;
+      } catch {
+        verificationFailed = true;
+      } finally {
+        pending--;
+        notify();
+      }
     }
-  }
+  });
+  lastChange = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
 }

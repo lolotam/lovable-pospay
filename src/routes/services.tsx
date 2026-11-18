@@ -15,9 +15,10 @@ export const Route = createFileRoute("/services")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  loader: ({ context: { queryClient } }) =>
-    preloadOperatorCompanies(queryClient, (companyId, userId) =>
+  loader: ({ context: { queryClient } }) => {
+    void preloadOperatorCompanies(queryClient, (companyId, userId) =>
       queryClient.ensureQueryData(catalogQuery(companyId, userId)),
-    ),
+    );
+  },
   component: CatalogPage,
 });

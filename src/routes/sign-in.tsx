@@ -134,11 +134,13 @@ function useSignInFlow() {
             ? "auth.rateLimited"
             : isAuthNotConfigured(error)
               ? "auth.notConfigured"
-              : step === "request"
-                ? "auth.resetUnavailable"
-                : step === "login"
-                  ? "auth.failed"
-                  : "auth.otpInvalid",
+              : status === 503
+                ? "auth.temporarilyUnavailable"
+                : step === "request"
+                  ? "auth.resetUnavailable"
+                  : step === "login"
+                    ? "auth.failed"
+                    : "auth.otpInvalid",
         ),
       );
     } finally {

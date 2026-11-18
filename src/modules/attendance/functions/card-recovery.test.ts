@@ -1,14 +1,23 @@
 import { expect, it, vi } from "vitest";
 import { settleCardScanFn } from "./card.functions";
 
-const { lockAndRead, save } = vi.hoisted(() => ({ lockAndRead: vi.fn(), save: vi.fn() }));
+const { lockAndRead, save, requireUserId } = vi.hoisted(() => ({
+  lockAndRead: vi.fn(),
+  save: vi.fn(),
+  requireUserId: vi.fn().mockResolvedValue("reception"),
+}));
 vi.mock("@tanstack/react-start", () => ({
   createServerFn: () => ({
-    inputValidator: () => ({ handler: (handler: unknown) => handler }),
+    inputValidator: (validate: (input: unknown) => unknown) => ({
+      handler:
+        (handler: (args: { data: unknown }) => unknown) =>
+        ({ data }: { data: unknown }) =>
+          handler({ data: validate(data) }),
+    }),
   }),
 }));
 vi.mock("@/lib/server/session.server", () => ({
-  requireUserId: async () => "reception",
+  requireUserId,
 }));
 vi.mock("@/lib/server/db.server", () => ({
   withUser: async (_userId: string, run: (db: unknown) => unknown) =>
@@ -57,6 +66,13 @@ it("waits for the original scan receipt when recovery crosses the request age li
   } finally {
     clock.mockRestore();
   }
+});
+
+it("identifies an expired session before parsing the recovery payload", async () => {
+  requireUserId.mockRejectedValueOnce(new Error("UNAUTHENTICATED"));
+  const data = { companyId: "", expectedUserId: "", requestId: "", requestedAt: 0 };
+  await expect(settleCardScanFn({ data })).resolves.toEqual({ status: "unverified" });
+  await expect(settleCardScanFn({ data })).rejects.toMatchObject({ name: "ZodError" });
 });
 
 it("settles an attempt from a fast workstation without waiting for its old clock", async () => {

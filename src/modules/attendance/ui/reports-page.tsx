@@ -98,15 +98,17 @@ function ReportRows({ companyId, range, userId }: ReportScope) {
 }
 
 function ReportTabRows({ companyId, range, tab, userId }: ReportScope & { tab: ReportTab }) {
-  const { data, isError, isPending, isFetching, isFetchedAfterMount, refetch } = useQuery({
-    queryKey: ["reports", userId, companyId, range, tab],
-    queryFn: () =>
-      getOperationalReportFn({
-        data: { companyId, expectedUserId: userId, from: range.from, until: range.until, tab },
-      }),
-    retry: 1,
-    refetchOnMount: "always",
-  });
+  const { data, isError, isPending, isFetching, fetchStatus, isFetchedAfterMount, refetch } =
+    useQuery({
+      queryKey: ["reports", userId, companyId, range, tab],
+      queryFn: () =>
+        getOperationalReportFn({
+          data: { companyId, expectedUserId: userId, from: range.from, until: range.until, tab },
+        }),
+      retry: 1,
+      refetchOnMount: "always",
+    });
+  if (fetchStatus === "paused") return <p role="status">{t("reports.reconnect")}</p>;
   if (isPending || (!isError && (!isFetchedAfterMount || isFetching)))
     return <p role="status">{t("phone.loading")}</p>;
   if (isError) {

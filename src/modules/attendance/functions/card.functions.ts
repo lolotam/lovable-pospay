@@ -24,13 +24,19 @@ import {
   cardRequestInput,
   type CardRequest,
 } from "../card.contracts";
+
+const cardAccountScope = cardScope.extend({ expectedUserId: z.string().min(1) });
+const issueCardRequest = cardStaffInput.extend({ expectedUserId: z.string().min(1) });
+const revokeCardRequest = revokeCardInput.extend({ expectedUserId: z.string().min(1) });
+
 export const getCardsFn = createServerFn({ method: "GET" })
-  .inputValidator((v: unknown) => cardScope.extend({ expectedUserId: z.string().min(1) }).parse(v))
-  .handler(async ({ data }) => {
+  .inputValidator((v: z.input<typeof cardAccountScope>) => v)
+  .handler(async ({ data: input }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { readCardAccess, readCards } = await import("../persistence/card-repository.server");
     const userId = await requireUserId();
+    const data = cardAccountScope.parse(input);
     if (userId !== data.expectedUserId) throw new Error("FORBIDDEN");
     return withUser(userId, (db) =>
       loadCardManagement({
@@ -40,12 +46,13 @@ export const getCardsFn = createServerFn({ method: "GET" })
     );
   });
 export const approveCardsFn = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => cardScope.extend({ expectedUserId: z.string().min(1) }).parse(v))
-  .handler(async ({ data }) => {
+  .inputValidator((v: z.input<typeof cardAccountScope>) => v)
+  .handler(async ({ data: input }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { cardAudit, insertCardPolicy } = await import("../persistence/card-repository.server");
     const id = await requireUserId();
+    const data = cardAccountScope.parse(input);
     if (id !== data.expectedUserId) throw new Error("FORBIDDEN");
     return withUser(id, (db) =>
       approveCardPolicy({
@@ -55,28 +62,26 @@ export const approveCardsFn = createServerFn({ method: "POST" })
     );
   });
 export const issueCardFn = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) =>
-    cardStaffInput.extend({ expectedUserId: z.string().min(1) }).parse(v),
-  )
-  .handler(async ({ data }) => {
+  .inputValidator((v: z.input<typeof issueCardRequest>) => v)
+  .handler(async ({ data: input }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { pgCardRepository, cardTokens } = await import("../persistence/card-actions.server");
     const id = await requireUserId();
+    const data = issueCardRequest.parse(input);
     if (id !== data.expectedUserId) throw new Error("FORBIDDEN");
     return withUser(id, (db) =>
       issueCardUseCase(pgCardRepository(db, id, data.companyId), cardTokens, data.staffId),
     );
   });
 export const revokeCardFn = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) =>
-    revokeCardInput.extend({ expectedUserId: z.string().min(1) }).parse(v),
-  )
-  .handler(async ({ data }) => {
+  .inputValidator((v: z.input<typeof revokeCardRequest>) => v)
+  .handler(async ({ data: input }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { pgCardRepository } = await import("../persistence/card-actions.server");
     const id = await requireUserId();
+    const data = revokeCardRequest.parse(input);
     if (id !== data.expectedUserId) throw new Error("FORBIDDEN");
     return withUser(id, (db) =>
       revokeCardUseCase(pgCardRepository(db, id, data.companyId), data.cardId),
@@ -102,9 +107,9 @@ async function executeCardScan(
 }
 
 export const scanCardFn = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => cardScanInput.parse(v))
-  .handler(({ data }) =>
-    withCardRequest(data, async ({ db, userId, receipts }) => {
+  .inputValidator((v: z.input<typeof cardScanInput>) => v)
+  .handler(({ data: input }) =>
+    withCardRequest(input, cardScanInput, async (data, { db, userId, receipts }) => {
       const { scanCard } = await import("../persistence/card-scan.server");
       const { cardHash } = await import("../persistence/card-repository.server");
       const promptedRecordId = data.promptedRecordId?.toLowerCase();
@@ -128,9 +133,9 @@ export const scanCardFn = createServerFn({ method: "POST" })
   );
 
 export const settleCardScanFn = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => cardRequestInput.parse(v))
-  .handler(({ data }) =>
-    withCardRequest(data, ({ receipts }) =>
+  .inputValidator((v: z.input<typeof cardRequestInput>) => v)
+  .handler(({ data: input }) =>
+    withCardRequest(input, cardRequestInput, (data, { receipts }) =>
       settleCardRequest(receipts, () => {
         const window = cardRequestWindow(data.requestedAt, Date.now());
         if (window === "too_early") return { status: "clock_invalid" };
@@ -145,15 +150,17 @@ type CardRequestContext = {
   receipts: CardScanReceipts<CardScanResponse>;
 };
 
-async function withCardRequest(
-  data: CardRequest,
-  run: (context: CardRequestContext) => Promise<CardScanResponse>,
+async function withCardRequest<Request extends CardRequest>(
+  input: unknown,
+  schema: { parse(input: unknown): Request },
+  run: (data: Request, context: CardRequestContext) => Promise<CardScanResponse>,
 ): Promise<CardScanResponse> {
   const { requireUserId } = await import("@/lib/server/session.server");
   const { withUser } = await import("@/lib/server/db.server");
   const { pgCardScanReceipts } = await import("../persistence/card-scan-receipts.server");
   try {
     const userId = await requireUserId();
+    const data = schema.parse(input);
     if (userId !== data.expectedUserId) return { status: "unverified" };
     return await withUser(userId, async (db) => {
       const { rows } = await db.query<{ member: boolean }>(
@@ -167,7 +174,7 @@ async function withCardRequest(
         userId,
         data.requestId,
       );
-      return run({ db, userId, receipts });
+      return run(data, { db, userId, receipts });
     });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHENTICATED")

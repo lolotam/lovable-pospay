@@ -23,11 +23,12 @@ vi.mock("../functions/card.functions", () => ({
 }));
 
 it("keeps an issued card recoverable after same-account session revalidation", async () => {
-  getCards.mockResolvedValue({
+  const roster = {
     approvedAt: "2026-11-01T00:00:00Z",
     canApprove: true,
     staff: [{ id: "staff", name: "Employee", branchName: "Branch", cardId: null, canIssue: true }],
-  });
+  };
+  getCards.mockReset().mockResolvedValue(roster);
   const issued = { cardId: "new-card", name: "Employee", token: "c".repeat(48) };
   let finishIssue!: (card: typeof issued) => void;
   issue.mockReturnValueOnce(
@@ -51,6 +52,7 @@ it("keeps an issued card recoverable after same-account session revalidation", a
   const issueButton = await screen.findByRole("button", { name: t("cards.issue") });
   expect(issueButton).toBeDisabled();
   fireEvent.click(issueButton);
+  getCards.mockResolvedValue({ ...roster, staff: [{ ...roster.staff[0], cardId: issued.cardId }] });
   await act(async () => finishIssue(issued));
   expect(await screen.findByRole("button", { name: t("cards.print") })).toBeInTheDocument();
   expect(issue).toHaveBeenCalledTimes(1);
@@ -59,7 +61,7 @@ it("keeps an issued card recoverable after same-account session revalidation", a
   });
 });
 
-it.each(["retry", "dismiss"] as const)(
+it.each(["retry", "dismiss", "revoked"] as const)(
   "lets the operator %s after a failed post-issuance refresh",
   async (action) => {
     const roster = {
@@ -85,7 +87,11 @@ it.each(["retry", "dismiss"] as const)(
     const dismiss = screen.getByRole("button", { name: t("cards.dismissIssued") });
     expect(screen.queryByRole("button", { name: t("cards.print") })).toBeNull();
 
-    getCards.mockResolvedValue(roster);
+    getCards.mockResolvedValue(
+      action === "retry"
+        ? { ...roster, staff: [{ ...roster.staff[0], cardId: "new-card" }] }
+        : roster,
+    );
     if (action === "dismiss") {
       fireEvent.click(dismiss);
       fireEvent.click(retry);
@@ -94,6 +100,12 @@ it.each(["retry", "dismiss"] as const)(
       return;
     }
     fireEvent.click(retry);
+    if (action === "revoked") {
+      expect(await screen.findByText(t("cards.issuedInactive"))).toBeVisible();
+      expect(screen.queryByRole("button", { name: t("cards.print") })).toBeNull();
+      expect(screen.getByRole("button", { name: t("cards.dismissIssued") })).toBeVisible();
+      return;
+    }
     expect(await screen.findByRole("button", { name: t("cards.print") })).toBeVisible();
     expect(issue).toHaveBeenCalledTimes(1);
   },

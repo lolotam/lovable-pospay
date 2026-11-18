@@ -22,11 +22,20 @@ insert into public.attendance_cards(company_id,staff_id,token_hash,issued_by)
 insert into public.service_catalog(company_id,name,price_mills) values ('00000000-0000-0000-0000-00000000000b','B service',25125);
 insert into public.service_assignments(company_id,service_id,staff_id)
  select s.company_id,c.id,s.id from public.staff_members s join public.service_catalog c using(company_id) where s.user_id='user-b';
-insert into public.service_sessions(company_id,service_id,staff_id,branch_id,occurred_at,service_name,price_mills)
- select s.company_id,c.id,s.id,s.branch_id,now(),c.name,c.price_mills from public.staff_members s join public.service_catalog c using(company_id) where s.user_id='user-b';
 insert into public.clients(company_id,name,phone) values ('00000000-0000-0000-0000-00000000000b','B client','96500000001');
+insert into public.service_sessions(company_id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,price_mills)
+ select s.company_id,c.id,s.id,s.branch_id,b.id,now(),c.name,c.price_mills
+ from public.staff_members s join public.service_catalog c using(company_id)
+ join public.clients b using(company_id) where s.user_id='user-b';
 select set_config('test.b_branch' , (select id::text from public.branches where name='B-1'), true);
 set local role pospay_app;
+select set_config('app.user_id','user-b',true);
+do $$ begin
+  if not exists (
+    select 1 from public.service_sessions s join public.clients c
+      on c.company_id=s.company_id and c.id=s.client_id where c.name='B client'
+  ) then raise exception 'B cannot read its linked client'; end if;
+end $$;
 select set_config('app.user_id','user-a',true);
 do $$ begin
   insert into public.branches (company_id, name)

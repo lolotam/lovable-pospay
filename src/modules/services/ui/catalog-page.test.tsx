@@ -52,36 +52,54 @@ it("preserves the exact account-bound create across a company scope refresh fail
   expect(save.mock.calls[0]?.[0].data.expectedUserId).toBe("manager");
 });
 
-it("retries only the catalog read after an uncertain create is confirmed", async () => {
-  const empty = { canManage: true, services: [], staff: [] };
-  getCatalog.mockReset().mockResolvedValue(empty);
-  save
-    .mockReset()
-    .mockRejectedValueOnce(new Error("Response lost"))
-    .mockImplementationOnce(async () => {
-      getCatalog.mockRejectedValue(new Error("Catalog refresh failed"));
-      return { status: "saved", id: "saved-service" };
+it.each([true, false])(
+  "retries a confirmed create read with manage access %s",
+  async (canManage) => {
+    const id = "30000000-0000-4000-8000-000000000004";
+    const empty = { canManage: true, services: [], staff: [] };
+    getCatalog.mockReset().mockResolvedValue(empty);
+    save
+      .mockReset()
+      .mockRejectedValueOnce(new Error("Response lost"))
+      .mockImplementationOnce(async () => {
+        getCatalog.mockResolvedValue(null);
+        return { status: "saved", id };
+      })
+      .mockResolvedValueOnce({ status: "saved", id });
+    const cache = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
+    render(
+      <QueryClientProvider client={cache}>
+        <CatalogPage />
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: t("services.add") }));
+    fireEvent.change(screen.getByLabelText(t("services.name")), {
+      target: { value: "New service" },
     });
-  const cache = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
-  render(
-    <QueryClientProvider client={cache}>
-      <CatalogPage />
-    </QueryClientProvider>,
-  );
-  fireEvent.click(await screen.findByRole("button", { name: t("services.add") }));
-  fireEvent.change(screen.getByLabelText(t("services.name")), { target: { value: "New service" } });
-  fireEvent.change(screen.getByLabelText(t("services.price")), { target: { value: "10" } });
-  fireEvent.click(screen.getByRole("button", { name: t("services.save") }));
-  await screen.findByText(t("services.createUnconfirmed"));
-  fireEvent.click(screen.getByRole("button", { name: t("services.retryCreate") }));
-  const retryRead = await screen.findByRole("button", { name: t("ops.retryLoad") });
-  getCatalog.mockResolvedValue({
-    ...empty,
-    services: [
-      { id: "saved-service", name: "New service", priceMills: "10000", version: 1, staffIds: [] },
-    ],
-  });
-  fireEvent.click(retryRead);
-  expect(await screen.findByLabelText(t("services.name"))).toHaveValue("New service");
-  expect(save).toHaveBeenCalledTimes(2);
-});
+    fireEvent.change(screen.getByLabelText(t("services.price")), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: t("services.save") }));
+    await screen.findByText(t("services.createUnconfirmed"));
+    fireEvent.click(screen.getByRole("button", { name: t("services.retryCreate") }));
+    const retryRead = await screen.findByRole("button", { name: t("ops.retryLoad") });
+    expect(screen.getByText(t("ops.denied"))).toBeVisible();
+    getCatalog.mockResolvedValue({
+      ...empty,
+      canManage,
+      services: [{ id, name: "New service", priceMills: "10000", version: 1, staffIds: [] }],
+    });
+    fireEvent.click(retryRead);
+    await screen.findByText("New service");
+    expect(save).toHaveBeenCalledTimes(2);
+    if (!canManage) {
+      expect(screen.queryByLabelText(t("services.name"))).toBeNull();
+      return;
+    }
+    const field = await screen.findByLabelText(t("services.name"));
+    expect(field).toHaveValue("New service");
+    fireEvent.change(field, { target: { value: "Renamed service" } });
+    fireEvent.click(screen.getByRole("button", { name: t("services.save") }));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(3));
+    expect(save.mock.calls[2]?.[0].data).toMatchObject({ id, version: 1 });
+    expect(save.mock.calls[2]?.[0].data).not.toHaveProperty("requestId");
+  },
+);
