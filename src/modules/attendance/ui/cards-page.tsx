@@ -157,15 +157,7 @@ export function CardActions({
   const value = isFetching ? null : data?.value;
   return (
     <div className="space-y-6">
-      {isFetching && <p role="status">{t("phone.loading")}</p>}
-      {!isFetching && data?.error && (
-        <div className="space-y-2">
-          <p role="alert">{t(data.error)}</p>
-          <Button type="button" onClick={() => void refetch()}>
-            {t("ops.retryLoad")}
-          </Button>
-        </div>
-      )}
+      <CardRosterStatus data={data} isFetching={isFetching} refetch={refetch} />
       {value && <CardPolicy value={value} busy={busy || isFetching || !!issued} run={run} />}
       {value && !policyOnly && (
         <>
@@ -191,6 +183,24 @@ export function CardActions({
     </div>
   );
 }
+
+function CardRosterStatus({
+  data,
+  isFetching,
+  refetch,
+}: Pick<CardsState, "data" | "isFetching" | "refetch">) {
+  if (isFetching) return <p role="status">{t("phone.loading")}</p>;
+  if (!data?.error) return null;
+  return (
+    <div className="space-y-2">
+      <p role="alert">{t(data.error)}</p>
+      <Button type="button" onClick={() => void refetch()}>
+        {t("ops.retryLoad")}
+      </Button>
+    </div>
+  );
+}
+
 function PrintableCard({ card }: { card: IssuedCard }) {
   const ref = useRef<SVGSVGElement>(null);
   const [error, setError] = useState(false);
