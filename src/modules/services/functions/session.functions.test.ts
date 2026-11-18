@@ -13,6 +13,7 @@ const companyId = "40000000-0000-0000-0000-000000000001";
 it("keeps the session form and mutation unavailable pending the price policy", async () => {
   await expect(getSessionFormFn({ data: { companyId } })).resolves.toEqual({
     canRecord: false,
+    discountCap: 0,
     services: [],
     staff: [],
   });

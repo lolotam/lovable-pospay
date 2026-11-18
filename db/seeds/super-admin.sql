@@ -6,7 +6,7 @@ declare
 begin
   select id into strict verified_user_id
   from public."user"
-  where lower(email) = lower('dr.vet.waleedtam@gmail.com') and "emailVerified" is true;
+  where lower(email) = lower('pospay.systems@gmail.com') and "emailVerified" is true;
 
   insert into public.platform_admins (user_id)
   values (verified_user_id)

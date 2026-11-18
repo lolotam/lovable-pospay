@@ -15,6 +15,8 @@ export interface NewSession {
   occurredAt: Date;
   serviceName: string;
   priceMills: bigint;
+  listPriceMills: bigint;
+  discountReason: string | null;
 }
 /** منفذ تخزين الجلسات داخل معاملة المستخدم الحالي. */
 export interface SessionRepository {
@@ -23,6 +25,8 @@ export interface SessionRepository {
   resolveTime(local: string, timeZone: string): Promise<Date>;
   lockRecordedSession(id: string): Promise<boolean>;
   upsertClient(branchId: string, name: string, phone: string): Promise<string>;
+  /** أقصى نسبة خصم مسموحة للمستخدم الحالي (0 = بدون صلاحية). */
+  discountCap(): Promise<number>;
   insertSession(session: NewSession): Promise<void>;
   audit(sessionId: string, details: unknown): Promise<void>;
 }
@@ -30,6 +34,7 @@ export interface SessionRepository {
 /** خيارات نموذج الجلسات مع الأسعار بالفلس. */
 export interface SessionFormRecord {
   canRecord: boolean;
+  discountCap: number;
   services: { id: string; name: string; priceMills: bigint; staffIds: string[] }[];
   staff: { id: string; name: string; timeZone: string }[];
 }

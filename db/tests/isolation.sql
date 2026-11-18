@@ -27,14 +27,73 @@ insert into public.service_sessions(company_id,service_id,staff_id,branch_id,cli
  select s.company_id,c.id,s.id,s.branch_id,b.id,now(),c.name,c.price_mills
  from public.staff_members s join public.service_catalog c using(company_id)
  join public.clients b using(company_id) where s.user_id='user-b';
+insert into public.discount_grants(company_id,role,max_percent,granted_by) values ('00000000-0000-0000-0000-00000000000b','reception',10,'seed');
+insert into public.discount_grants(company_id,user_id,max_percent,granted_by) values ('00000000-0000-0000-0000-00000000000b','user-former',50,'seed');
+insert into public.invitations(company_id,email,role,token_hash,expires_at,invited_by)
+ values ('00000000-0000-0000-0000-00000000000b','invite-b@example.test','staff',repeat('b',64),now()+interval '1 day','user-b');
 select set_config('test.b_branch' , (select id::text from public.branches where name='B-1'), true);
+select set_config('test.a_branch' , (select id::text from public.branches where name='A-1'), true);
+insert into public.memberships (company_id, user_id, role, branch_id)
+ values ('00000000-0000-0000-0000-00000000000b','user-bm','branch_manager',current_setting('test.b_branch')::uuid);
+insert into public."user"(id,email,name,"emailVerified") values
+ ('user-invited','invite-b@example.test','Invited',true),('user-other','other@example.test','Other',true);
 set local role pospay_app;
 select set_config('app.user_id','user-b',true);
 do $$ begin
+  if not exists(select 1 from public.invitations where email='invite-b@example.test')
+    then raise exception 'B cannot read its invitation'; end if;
   if not exists (
     select 1 from public.service_sessions s join public.clients c
       on c.company_id=s.company_id and c.id=s.client_id where c.name='B client'
   ) then raise exception 'B cannot read its linked client'; end if;
+end $$;
+do $$ begin
+  begin
+    insert into public.discount_grants(company_id,user_id,max_percent,granted_by)
+      values ('00000000-0000-0000-0000-00000000000b','user-outsider',20,'user-b');
+    raise exception 'Discount grant accepted a non-member';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+do $$ begin
+  begin
+    insert into public.invitations(company_id,email,role,branch_id,token_hash,expires_at,invited_by)
+      values ('00000000-0000-0000-0000-00000000000b','cross@example.test','staff',current_setting('test.a_branch')::uuid,repeat('c',64),now()+interval '1 day','user-b');
+    raise exception 'Invitation accepted another company branch';
+  exception when foreign_key_violation then null;
+  end;
+end $$;
+select set_config('app.user_id','user-bm',true);
+do $$ begin
+  begin
+    insert into public.invitations(company_id,email,role,token_hash,expires_at,invited_by)
+      values ('00000000-0000-0000-0000-00000000000b','wide@example.test','reception',repeat('d',64),now()+interval '1 day','user-bm');
+    raise exception 'Branch manager invited outside the branch scope';
+  exception when insufficient_privilege then null;
+  end;
+  insert into public.invitations(company_id,email,role,branch_id,token_hash,expires_at,invited_by)
+    values ('00000000-0000-0000-0000-00000000000b','scoped@example.test','reception',current_setting('test.b_branch')::uuid,repeat('e',64),now()+interval '1 day','user-bm');
+end $$;
+select set_config('app.user_id','user-other',true);
+do $$ begin
+  begin
+    perform public.accept_invitation(repeat('b',64),'invite-b@example.test');
+    raise exception 'Invitation accepted by a different signed-in email';
+  exception when raise_exception then
+    if sqlerrm <> 'INVITE_EMAIL_MISMATCH' then raise; end if;
+  end;
+end $$;
+select set_config('app.user_id','user-invited',true);
+do $$ begin
+  perform public.accept_invitation(repeat('b',64),'invite-b@example.test');
+  if not exists(select 1 from public.memberships where user_id='user-invited' and role='staff')
+    then raise exception 'Invited user did not become a member'; end if;
+end $$;
+select set_config('app.user_id','user-former',true);
+do $$ begin
+  if exists(select 1 from public.discount_grants) then raise exception 'LEAK discount grant to former member'; end if;
+  if public.discount_cap('00000000-0000-0000-0000-00000000000b') <> 0
+    then raise exception 'Former member keeps a discount cap'; end if;
 end $$;
 select set_config('app.user_id','user-a',true);
 do $$ begin
@@ -45,12 +104,14 @@ do $$ begin
       and length(public.branch_qr_secret(id)) = 64
   ) then raise exception 'Branch QR secret default missing'; end if;
   if exists(select 1 from public.card_policies) then raise exception 'LEAK card policy'; end if;
+  if exists(select 1 from public.invitations) then raise exception 'LEAK invitations'; end if;
   if exists(select 1 from public.attendance_cards) then raise exception 'LEAK cards'; end if;
   if exists(select 1 from public.card_scan_requests) then raise exception 'LEAK card scan receipts'; end if;
   if exists(select 1 from public.service_catalog) then raise exception 'LEAK catalog'; end if;
   if exists(select 1 from public.service_assignments) then raise exception 'LEAK assignments'; end if;
   if exists(select 1 from public.service_sessions) then raise exception 'LEAK sessions'; end if;
   if exists(select 1 from public.clients) then raise exception 'LEAK clients'; end if;
+  if exists(select 1 from public.discount_grants) then raise exception 'LEAK discount_grants'; end if;
   if (select count(*) from public.companies where name='B') <> 0 then raise exception 'LEAK companies'; end if;
   if (select count(*) from public.branches where name='B-1') <> 0 then raise exception 'LEAK branches'; end if;
   if (select count(*) from public.memberships where user_id='user-b') <> 0 then raise exception 'LEAK memberships'; end if;

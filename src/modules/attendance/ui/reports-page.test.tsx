@@ -11,6 +11,9 @@ vi.mock("@/modules/staff", () => ({
     children("company", "report-user"),
 }));
 vi.mock("../functions/report.functions", () => ({ getOperationalReportFn: getReport }));
+vi.mock("./report-pdf", () => ({
+  downloadPdf: vi.fn().mockRejectedValue(new Error("canvas unavailable")),
+}));
 
 it("retries a failed report with the original account, company, range and tab", async () => {
   getReport.mockRejectedValueOnce(new Error("Offline")).mockRejectedValueOnce(new Error("Offline"));
@@ -77,4 +80,23 @@ it("holds cached exports until report access is freshly verified", async () => {
   await act(async () => deny("FORBIDDEN"));
   expect(await screen.findByRole("alert")).toHaveTextContent(t("ops.denied"));
   expect(screen.queryByRole("button", { name: t("export.pdf") })).not.toBeInTheDocument();
+});
+
+it("tells the user when the PDF export fails and allows another attempt", async () => {
+  getReport.mockReset().mockResolvedValue({ attendance: [], sessions: [] });
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ReportsPage />
+    </QueryClientProvider>,
+  );
+  fireEvent.change(screen.getByLabelText(t("reports.from")), {
+    target: { value: "2026-11-01T09:00" },
+  });
+  fireEvent.change(screen.getByLabelText(t("reports.until")), {
+    target: { value: "2026-11-02T09:00" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: t("reports.show") }));
+  fireEvent.click(await screen.findByRole("button", { name: t("export.pdf") }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(t("export.pdfFailed"));
+  expect(screen.getByRole("button", { name: t("export.pdf") })).toBeEnabled();
 });

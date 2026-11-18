@@ -2,6 +2,8 @@ import type { SessionFormDto } from "../contracts";
 import { serviceSessionRecordingAvailable } from "../domain/session-availability";
 import { normalizePhone } from "../domain/client-phone";
 import type { SessionFormRecord, SessionRepository } from "../ports/session-repository";
+import { checkDiscount } from "../domain/discount";
+import { servicePrice } from "./service-price";
 
 /** مدخلات تسجيل جلسة خدمة منفذة. */
 export interface RecordSessionInput {
@@ -11,10 +13,12 @@ export interface RecordSessionInput {
   clientName: string;
   clientPhone: string;
   occurredAt: string;
+  price?: string | undefined;
+  discountReason?: string | undefined;
 }
 /**
- * يسجل جلسة خدمة بسعر الكتالوج الحالي للموظفة المسندة.
- * TODO(spec): تعديل السعر والخصم ينتظران اعتماد ق-1.
+ * يسجل جلسة خدمة للموظفة المسندة؛ السعر هو سعر الكتالوج
+ * إلا لو المستخدم عنده صلاحية خصم (ق-1) في حدودها.
  */
 export async function recordSession(
   repo: SessionRepository,
@@ -31,6 +35,10 @@ export async function recordSession(
   if (await repo.lockRecordedSession(id)) return { id };
   const occurredAt = await repo.resolveTime(input.occurredAt, service.timeZone);
   if (occurredAt.getTime() > now.getTime()) throw new Error("FUTURE_SESSION");
+  const priceMills = input.price ? servicePrice(input.price) : service.priceMills;
+  const reason = input.discountReason?.trim() ?? "";
+  const bad = checkDiscount(service.priceMills, priceMills, await repo.discountCap(), reason);
+  if (bad) throw new Error(bad);
   const clientId = await repo.upsertClient(service.branchId, name, phone);
   await repo.insertSession({
     id,
@@ -40,12 +48,16 @@ export async function recordSession(
     branchId: service.branchId,
     clientId,
     serviceName: service.serviceName,
-    priceMills: service.priceMills,
+    priceMills,
+    listPriceMills: service.priceMills,
+    discountReason: priceMills === service.priceMills ? null : reason,
   });
   await repo.audit(id, {
     serviceId: input.serviceId,
     staffId: input.staffId,
-    priceMills: service.priceMills.toString(),
+    priceMills: priceMills.toString(),
+    listPriceMills: service.priceMills.toString(),
+    discountReason: priceMills === service.priceMills ? null : reason,
   });
   return { id };
 }
@@ -54,10 +66,12 @@ export async function recordSession(
 export async function loadSessionForm(
   read: () => Promise<SessionFormRecord>,
 ): Promise<SessionFormDto> {
-  if (!serviceSessionRecordingAvailable) return { canRecord: false, services: [], staff: [] };
-  const { canRecord, services, staff } = await read();
+  if (!serviceSessionRecordingAvailable)
+    return { canRecord: false, discountCap: 0, services: [], staff: [] };
+  const { canRecord, discountCap, services, staff } = await read();
   return {
     canRecord,
+    discountCap,
     services: services.map((service) => ({
       ...service,
       priceMills: service.priceMills.toString(),
