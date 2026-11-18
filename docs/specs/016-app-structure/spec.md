@@ -140,7 +140,7 @@ Simple cards and quick links only, no charts.
 
 ## Schema changes
 
-Migration `0016_app_structure.sql` (idempotent):
+Migration `0017_app_structure.sql` (idempotent):
 
 - `alter table public.companies add column if not exists business_type text not null default 'salon' check (business_type in ('salon','restaurant','laundry','other'))`.
 - `public.has_permission(_company uuid, _permission text) returns boolean` — `security definer`,
@@ -193,7 +193,7 @@ against the database on every `getSessionContext()`.
 - **016-A (Lovable, frontend):** landing page, `/workspaces`, the four layouts with sidebars,
   sub-menus, mobile drawer, switcher, user menu and sign-out, moving existing pages to the new
   paths, redirects, dashboard shells, i18n keys. Reads a typed `SessionContextDto`.
-- **016-B (backend):** migration 0016, `permissions` module (domain, use cases, persistence,
+- **016-B (backend):** migration 0017, `permissions` module (domain, use cases, persistence,
   functions), route guards, tests, production migration after approval.
 - **016-C (later):** `/app/permissions` management page, staff passkey sign-in, real dashboard data
   beyond the cards above, invitation acceptance page.
