@@ -88,22 +88,21 @@ export const disconnectFn = createServerFn({ method: "POST" })
 
 export const testConnectorFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => defaultAiSchema.parse(v))
-  .handler(async ({ data }) =>
-    asSuperAdmin(async (db, userId) => {
-      const { isAllowedModel } = await import("../domain/providers");
-      if (!isAllowedModel(data.provider, data.model)) throw new Error("MODEL_NOT_ALLOWED");
-      const { callConnector } = await import("../persistence/ai-call.server");
-      const reply = await callConnector(
-        db,
-        userId,
-        data.provider,
-        data.model,
-        "Reply in one short sentence.",
-        "Say that the PosPay connection works.",
-      );
-      return { reply: reply.slice(0, 300) };
-    }),
-  );
+  .handler(async ({ data }) => {
+    const { requireUserId } = await import("@/lib/server/session.server");
+    const userId = await requireUserId();
+    const { isAllowedModel } = await import("../domain/providers");
+    if (!isAllowedModel(data.provider, data.model)) throw new Error("MODEL_NOT_ALLOWED");
+    const { callConnector } = await import("../persistence/ai-call.server");
+    const reply = await callConnector(
+      userId,
+      data.provider,
+      data.model,
+      "Reply in one short sentence.",
+      "Say that the PosPay connection works.",
+    );
+    return { reply: reply.slice(0, 300) };
+  });
 
 export const setDefaultAiFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => defaultAiSchema.parse(v))

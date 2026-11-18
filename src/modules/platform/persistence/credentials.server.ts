@@ -1,11 +1,7 @@
 import type pg from "pg";
+import { withUser } from "@/lib/server/db.server";
 import { needsRefresh } from "../domain/providers";
-import {
-  AuthRejected,
-  refreshCredential,
-  type AccountProvider,
-  type Credential,
-} from "./oauth-flows.server";
+import { refreshCredential, type AccountProvider, type Credential } from "./oauth-flows.server";
 import { open, seal } from "./vault.server";
 
 export async function requireSuperAdmin(db: pg.PoolClient) {
@@ -69,31 +65,33 @@ export async function listStatus(db: pg.PoolClient) {
   };
 }
 export async function loadCredential(
-  db: pg.PoolClient,
   userId: string,
   provider: string,
-  force = false,
+  rejectedAccess?: string,
 ): Promise<Credential> {
-  const { rows } = await db.query("select * from public.platform_credentials where provider=$1", [
-    provider,
-  ]);
-  const row = rows[0];
-  if (!row) throw new Error("NOT_CONNECTED");
-  let c: Credential = {
-    access: await open(row.secret),
-    refresh: row.refresh_secret ? await open(row.refresh_secret) : null,
-    expires: row.expires_at ? (row.expires_at as Date).getTime() : null,
-    extras: row.extras ?? {},
-  };
-  if (row.kind !== "account" || !(force || needsRefresh(c.expires ?? null, Date.now()))) return c;
-  try {
-    c = await refreshCredential(provider as AccountProvider, c);
-    await saveCredential(db, userId, provider, "account", c);
-  } catch (e) {
-    if (e instanceof AuthRejected) await deleteCredential(db, provider);
-    throw e;
-  }
-  return c;
+  return withUser(userId, async (db) => {
+    await requireSuperAdmin(db);
+    // Wait for any refresh of this provider, then use the committed row.
+    const { rows } = await db.query(
+      "select * from public.platform_credentials where provider=$1 for update",
+      [provider],
+    );
+    const row = rows[0];
+    if (!row) throw new Error("NOT_CONNECTED");
+    const c: Credential = {
+      access: await open(row.secret),
+      refresh: row.refresh_secret ? await open(row.refresh_secret) : null,
+      expires: row.expires_at ? (row.expires_at as Date).getTime() : null,
+      extras: row.extras ?? {},
+    };
+    const rejected = rejectedAccess === c.access;
+    if (row.kind !== "account" || !(rejected || needsRefresh(c.expires ?? null, Date.now())))
+      return c;
+
+    const refreshed = await refreshCredential(provider as AccountProvider, c);
+    await saveCredential(db, userId, provider, "account", refreshed);
+    return refreshed;
+  });
 }
 export async function saveLogin(
   db: pg.PoolClient,

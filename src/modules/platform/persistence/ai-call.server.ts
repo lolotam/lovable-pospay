@@ -1,4 +1,3 @@
-import type pg from "pg";
 import { findConnector } from "../domain/providers";
 import type { Credential } from "./oauth-flows.server";
 import { loadCredential } from "./credentials.server";
@@ -84,7 +83,6 @@ async function chatCall(
 
 /** Runs one prompt through a connected platform connector; retries once after a 401 with a fresh token. */
 export async function callConnector(
-  db: pg.PoolClient,
   userId: string,
   provider: string,
   model: string,
@@ -97,10 +95,11 @@ export async function callConnector(
     provider === "codex"
       ? codexCall(c, model, system, user)
       : chatCall(provider, c, model, system, user);
+  const credential = await loadCredential(userId, provider);
   try {
-    return await run(await loadCredential(db, userId, provider));
+    return await run(credential);
   } catch (e) {
     if (!(e instanceof HttpError) || e.status !== 401 || def.kind !== "account") throw e;
-    return run(await loadCredential(db, userId, provider, true));
+    return run(await loadCredential(userId, provider, credential.access));
   }
 }
