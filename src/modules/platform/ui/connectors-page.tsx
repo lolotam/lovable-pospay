@@ -1,3 +1,4 @@
+import { isAuthNotConfigured } from "@/lib/auth-errors";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { t } from "@/i18n";
@@ -6,6 +7,7 @@ import { getConnectorsFn } from "../functions/connectors.functions";
 import { ConnectorRow } from "./connector-row";
 
 const GROUPS: ConnectorGroup[] = ["ai_account", "ai_key", "messaging"];
+
 
 export function ConnectorsPage() {
   const q = useQuery({
@@ -27,7 +29,7 @@ export function ConnectorsPage() {
           role="alert"
           className="mt-8 rounded-md border border-border bg-warning-soft px-4 py-3 text-sm text-destructive"
         >
-          {t("conn.forbidden")}
+          {t(isAuthNotConfigured(q.error) ? "auth.notConfigured" : "conn.forbidden")}
         </p>
       )}
       {q.data &&

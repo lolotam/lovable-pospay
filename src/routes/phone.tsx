@@ -1,3 +1,4 @@
+import { isAuthNotConfigured } from "@/lib/auth-errors";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/phone")({
   }),
   component: PhonePage,
 });
+
 function PhonePage() {
   const [companyId, setCompany] = useState("");
   const [userId, setUser] = useState("");
@@ -39,14 +41,15 @@ function PhonePage() {
       if (remove) await unbind({ data: { companyId, userId } });
       else {
         const added = await authClient.passkey.addPasskey({ authenticatorAttachment: "platform" });
-        if (added?.error) throw new Error("PASSKEY_FAILED");
+        if (added?.error)
+          throw new Error(isAuthNotConfigured(added.error) ? "AUTH_NOT_CONFIGURED" : "PASSKEY_FAILED");
         const proof = await begin({ data: { companyId } });
         const response = await startAuthentication({ optionsJSON: proof.options });
         await finish({ data: { companyId, challengeId: proof.challengeId, response } });
       }
       setMessage(t("phone.success"));
-    } catch {
-      setMessage(t("phone.error"));
+    } catch (e) {
+      setMessage(t(isAuthNotConfigured(e) ? "auth.notConfigured" : "phone.error"));
     } finally {
       setBusy(false);
     }

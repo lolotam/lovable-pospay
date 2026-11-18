@@ -1,3 +1,4 @@
+import { isAuthNotConfigured } from "@/lib/auth-errors";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -25,11 +26,12 @@ const exceptionKey: Record<string, MessageKey> = {
   outside_geofence: "attend.outside",
 };
 
+
 export function AttendScan({ token }: { token: string }) {
   const scan = useServerFn(scanAttendanceFn);
   const getChallenge = useServerFn(scanChallengeFn);
   const [result, setResult] = useState<ScanResultDto | null>(null);
-  const [error, setError] = useState<"auth" | "other" | null>(null);
+  const [error, setError] = useState<"auth" | "notConfigured" | "other" | null>(null);
   const [location, setLocation] = useState<Location | undefined>(undefined);
 
   const submit = useCallback(
@@ -50,7 +52,13 @@ export function AttendScan({ token }: { token: string }) {
           }),
         );
       } catch (e) {
-        setError(e instanceof Error && e.message.includes("UNAUTHENTICATED") ? "auth" : "other");
+        setError(
+          isAuthNotConfigured(e)
+            ? "notConfigured"
+            : e instanceof Error && e.message.includes("UNAUTHENTICATED")
+              ? "auth"
+              : "other",
+        );
       }
     },
     [scan, token, getChallenge],
@@ -66,6 +74,8 @@ export function AttendScan({ token }: { token: string }) {
         {t("attend.signInFirst")}
       </Link>
     );
+  if (error === "notConfigured")
+    return <p className="text-destructive">{t("auth.notConfigured")}</p>;
   if (error) return <p className="text-destructive">{t("attend.error")}</p>;
   if (!result)
     return (
