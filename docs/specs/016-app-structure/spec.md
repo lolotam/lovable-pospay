@@ -70,7 +70,7 @@ Old paths redirect (HTTP 307 on the server, `redirect()` in the router) to the n
 | New path | Old path | Sidebar group › item | Required |
 |---|---|---|---|
 | `/` | `/` | — (public landing) | — |
-| `/sign-in`, `/reset-password` | same | — | — |
+| `/sign-in`, `/reset-password`, `/invite` | same | — (public; `/invite` is the emailed invitation link) | — |
 | `/workspaces` | — | — | signed in |
 | `/admin` | — | Platform › Dashboard | platform admin |
 | `/admin/connectors` | same | Platform › Connectors | platform admin |
@@ -81,6 +81,7 @@ Old paths redirect (HTTP 307 on the server, `redirect()` in the router) to the n
 | `/app/attendance/questions` | `/attendance-questions` | Attendance › Questions | `reports.view` |
 | `/app/staff/cards` | `/cards` | Staff › Cards | `staff.manage` |
 | `/app/staff/phones` | `/phone` (manager part) | Staff › Phones | `staff.manage` |
+| `/app/staff/team` | `/team` | Staff › Team invites | `staff.manage` |
 | `/app/services` | `/services` | Services › Catalog | `services.manage` |
 | `/app/services/discounts` | `/discounts` | Services › Discounts | `discounts.manage` |
 | `/app/settings` | `/settings` | Settings | `/app` role |
@@ -196,7 +197,7 @@ against the database on every `getSessionContext()`.
 - **016-B (backend):** migration 0018, `permissions` module (domain, use cases, persistence,
   functions), route guards, tests, production migration after approval.
 - **016-C (later):** `/app/permissions` management page, staff passkey sign-in, real dashboard data
-  beyond the cards above, invitation acceptance page.
+  beyond the cards above, invitation acceptance for an existing account (#8).
 
 ## Open questions
 
