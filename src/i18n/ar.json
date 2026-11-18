@@ -389,5 +389,19 @@
   "qr.chooseBranch": "اختاري الفرع",
   "qr.noBranches": "لا توجد فروع متاحة لعرض QR",
   "qr.failed": "تعذّر تحميل الفروع، أعيدي المحاولة",
-  "qr.loadingBranches": "جارٍ تحميل الفروع…"
+  "qr.loadingBranches": "جارٍ تحميل الفروع…",
+  "ws.switchFailed": "تعذّر فتح مساحة العمل. حدّثنا القائمة، حاول تاني.",
+  "meta.corrections.title": "تصحيح الانصراف المنسي — PosPay",
+  "meta.corrections.description": "مراجعة المدير للانصراف المنسي مع حفظ الأصل وسبب التصحيح.",
+  "meta.questions.title": "أسئلة الحضور — PosPay",
+  "meta.questions.description": "أسئلة مدير الصالون عن التأخير والورديات.",
+  "meta.attend.title": "الحضور والانصراف — PosPay",
+  "meta.attend.description": "تسجيل حضور وانصراف الموظفة من تليفونها.",
+  "meta.home.title": "PosPay — الحضور والعمولات للصالون",
+  "meta.home.description": "حضور رقمي للموظفات وعمولات تُحسب تلقائياً من الجلسات المسجّلة.",
+  "meta.resetPassword.title": "استعادة كلمة المرور — PosPay",
+  "meta.resetPassword.description": "تعيين كلمة مرور جديدة بأمان لحساب PosPay.",
+  "meta.signIn.title": "تسجيل الدخول — PosPay",
+  "meta.signIn.description": "دخول آمن إلى PosPay واستعادة الحساب برمز البريد.",
+  "meta.root.description": "PosPay — الحضور والعمولات للصالونات"
 }

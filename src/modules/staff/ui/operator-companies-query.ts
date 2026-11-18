@@ -23,6 +23,10 @@ export const operatorCompaniesQuery = (userId: string) =>
     },
   });
 
+/**
+ * تحميل مسبق غير حاجز: المسارات تستدعيه بـ `void` عمداً حتى لا تنتظر الشبكة قبل عرض الصفحة.
+ * لا يرمي أبداً؛ أي فشل يُبتلع لأن الصفحة نفسها تعيد الطلب عبر useQuery وتعرض خطأه.
+ */
 export async function preloadOperatorCompanies(
   queryClient: QueryClient,
   preloadCompany?: (companyId: string, userId: string) => Promise<unknown>,

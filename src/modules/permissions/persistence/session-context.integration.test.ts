@@ -73,7 +73,7 @@ describe.skipIf(!url)("workspace persistence and SQL/domain parity", () => {
             (await db.query("select public.has_permission($1,$2) as allowed", [company, key]))
               .rows[0]?.allowed,
         );
-        expect(result).toBe(effectivePermissions(role, []).includes(key));
+        expect(result).toBe(effectivePermissions([role], []).includes(key));
       });
   it("allow and deny agree for every key, with deny winning", async () => {
     await admin.query(
@@ -87,8 +87,8 @@ describe.skipIf(!url)("workspace persistence and SQL/domain parity", () => {
         expect(
           (await db.query("select public.has_permission($1,$2) as allowed", [company, key])).rows[0]
             ?.allowed,
-        ).toBe(effectivePermissions("branch_manager", overrides).includes(key));
-      expect(effectivePermissions("branch_manager", overrides)).not.toContain("pos.access");
+        ).toBe(effectivePermissions(["branch_manager"], overrides).includes(key));
+      expect(effectivePermissions(["branch_manager"], overrides)).not.toContain("pos.access");
     });
   });
   it("returns typed branch/business labels and drops unknown permission keys", async () => {

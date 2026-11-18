@@ -35,18 +35,18 @@ export const ROLE_DEFAULTS: Record<CompanyRole, readonly PermissionKey[]> = {
 };
 
 /**
- * يحسب الصلاحيات الفعلية: افتراضيات الدور + السماح − المنع. المنع يغلب دائماً (D-31).
- * المالك لا يتأثر بأي تجاوز.
- * @param role دور العضوية النشطة
+ * يحسب الصلاحيات الفعلية: اتحاد افتراضيات كل أدوار الشخص في الشركة + السماح − المنع.
+ * المنع يغلب دائماً (D-31)، والمالك لا يتأثر بأي تجاوز. يطابق has_permission في 0018.
+ * @param roles كل أدوار هذا الشخص في هذه الشركة
  * @param overrides تجاوزات هذا الشخص في هذه الشركة
  */
 export function effectivePermissions(
-  role: CompanyRole,
+  roles: readonly CompanyRole[],
   overrides: readonly PermissionOverride[],
 ): PermissionKey[] {
-  if (role === "owner") return [...ALL];
+  if (roles.includes("owner")) return [...ALL];
   const denied = new Set(overrides.filter((o) => o.effect === "deny").map((o) => o.permission));
-  const granted = new Set<PermissionKey>(ROLE_DEFAULTS[role]);
+  const granted = new Set<PermissionKey>(roles.flatMap((role) => ROLE_DEFAULTS[role]));
   for (const o of overrides) if (o.effect === "allow") granted.add(o.permission);
   return ALL.filter((p) => granted.has(p) && !denied.has(p));
 }

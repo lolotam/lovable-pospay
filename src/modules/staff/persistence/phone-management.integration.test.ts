@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import pg from "pg";
 import { getPool, withUser } from "@/lib/server/db.server";
-import { readPhoneManagement } from "./phone-management.server";
+import { readPhoneManagement, requireDeviceManager } from "./phone-management.server";
 import { bindPhone, getPhoneDeviceHash } from "./phone.server";
 
 const browser = vi.hoisted(() => ({ token: undefined as string | undefined, omitCookie: false }));
@@ -71,7 +71,8 @@ describe.skipIf(!url)("phone management under company RLS", () => {
     );
     await admin.query(
       `insert into public.permission_overrides (company_id,user_id,permission,effect)
-      values ($1,'selector-denied','attendance.manage_devices','deny'),($1,'selector-staff','attendance.record','deny')`,
+      values ($1,'selector-denied','attendance.manage_devices','deny'),($1,'selector-staff','attendance.record','deny'),
+        ($1,'selector-owner','attendance.manage_devices','deny')`,
       [company],
     );
   });
@@ -83,7 +84,7 @@ describe.skipIf(!url)("phone management under company RLS", () => {
     }
     vi.unstubAllEnvs();
   });
-  it("owner sees linked staff by name without device secrets", async () => {
+  it("owner sees linked staff by name without device secrets, ignoring a device deny (D-31)", async () => {
     expect(
       await withUser("selector-owner", (db) => readPhoneManagement(db, "selector-owner", company)),
     ).toEqual({
@@ -124,6 +125,12 @@ describe.skipIf(!url)("phone management under company RLS", () => {
       canManage: false,
       staff: [],
     });
+    await expect(
+      withUser("selector-denied", (db) => requireDeviceManager(db, company)),
+    ).rejects.toThrow("FORBIDDEN");
+    await expect(
+      withUser("selector-owner", (db) => requireDeviceManager(db, company)),
+    ).resolves.toBeUndefined();
   });
 
   async function addStaffToBothCompanies(userId: string) {

@@ -1,7 +1,8 @@
 import { expect, it, vi } from "vitest";
 import { settleCardScanFn } from "./card.functions";
 
-const { lockAndRead, save, requireUserId } = vi.hoisted(() => ({
+const { lockAndRead, save, requireUserId, access } = vi.hoisted(() => ({
+  access: { allowed: true, member: true },
   lockAndRead: vi.fn(),
   save: vi.fn(),
   requireUserId: vi.fn().mockResolvedValue("reception"),
@@ -21,7 +22,7 @@ vi.mock("@/lib/server/session.server", () => ({
 }));
 vi.mock("@/lib/server/db.server", () => ({
   withUser: async (_userId: string, run: (db: unknown) => unknown) =>
-    run({ query: async () => ({ rows: [{ member: true, allowed: true }] }) }),
+    run({ query: async () => ({ rows: [{ member: access.member, allowed: access.allowed }] }) }),
 }));
 vi.mock("../persistence/card-scan-receipts.server", () => ({
   pgCardScanReceipts: () => ({ lockAndRead, save }),
@@ -89,4 +90,43 @@ it("settles an attempt from a fast workstation without waiting for its old clock
     fingerprint: null,
     result: { status: "clock_invalid" },
   });
+});
+
+it("returns a committed scan receipt after pos.access was revoked", async () => {
+  const result = {
+    status: "recorded",
+    scan: { name: "Employee", result: { outcome: "checked_in" } },
+  };
+  lockAndRead.mockReset().mockResolvedValueOnce({ fingerprint: "original", result });
+  save.mockClear();
+  access.allowed = false;
+  try {
+    const data = {
+      companyId: "30000000-0000-4000-8000-000000000001",
+      expectedUserId: "reception",
+      requestId: "30000000-0000-4000-8000-000000000004",
+      requestedAt: Date.now(),
+    };
+    await expect(settleCardScanFn({ data })).resolves.toEqual(result);
+    expect(save).not.toHaveBeenCalled();
+  } finally {
+    access.allowed = true;
+  }
+});
+
+it("drops the pending attempt of an operator who left the company", async () => {
+  lockAndRead.mockReset();
+  access.member = false;
+  try {
+    const data = {
+      companyId: "30000000-0000-4000-8000-000000000001",
+      expectedUserId: "reception",
+      requestId: "30000000-0000-4000-8000-000000000005",
+      requestedAt: Date.now(),
+    };
+    await expect(settleCardScanFn({ data })).resolves.toEqual({ status: "rejected" });
+    expect(lockAndRead).not.toHaveBeenCalled();
+  } finally {
+    access.member = true;
+  }
 });

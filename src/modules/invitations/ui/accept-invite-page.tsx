@@ -18,7 +18,15 @@ export function AcceptInvitePage({ token }: { token: string }) {
   const [error, setError] = useState("");
   useEffect(() => {
     if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return setInvite(null);
-    preview({ data: { token } }).then(setInvite, () => setInvite(null));
+    let current = true;
+    setInvite(undefined);
+    preview({ data: { token } }).then(
+      (found) => current && setInvite(found),
+      () => current && setInvite(null),
+    );
+    return () => {
+      current = false;
+    };
   }, [token, preview]);
   if (invite === undefined) return <p>{t("invite.loading")}</p>;
   if (!invite) return <p role="alert">{t("invite.INVITE_INVALID")}</p>;

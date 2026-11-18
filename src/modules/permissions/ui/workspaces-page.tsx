@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Building2, ArrowUpLeft, Shield } from "lucide-react";
@@ -17,15 +17,22 @@ export interface WorkspacesPageProps {
 export function WorkspacesPage({ context, redirect }: WorkspacesPageProps) {
   const cache = useQueryClient();
   const navigate = useNavigate();
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   async function select(ws: WorkspaceDto) {
     setBusy(true);
+    setFailed(false);
     try {
       await chooseWorkspace(cache, context, ws);
       const session = redirect ? await cache.fetchQuery(sessionContextQuery) : null;
       const requested = session && allowedDestination(session, redirect);
       if (requested) await navigate({ href: requested });
       else await navigate({ to: `/${areaForWorkspace(ws)}` });
+    } catch {
+      // العضوية قد تكون أُلغيت: نعيد تحميل مساحات العمل ليختفي الخيار القديم.
+      setFailed(true);
+      await router.invalidate();
     } finally {
       setBusy(false);
     }
@@ -36,6 +43,11 @@ export function WorkspacesPage({ context, redirect }: WorkspacesPageProps) {
         {t("app.name")}
       </Link>
       <h1 className="mt-8 text-3xl font-bold">{t("ws.title")}</h1>
+      {failed && (
+        <p role="alert" className="mt-4 text-sm text-destructive">
+          {t("ws.switchFailed")}
+        </p>
+      )}
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         {context.workspaces.map((ws, i) => (
           <Button

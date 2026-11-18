@@ -24,10 +24,10 @@ export const Route = createFileRoute("/sign-in")({
   }),
   head: () => ({
     meta: [
-      { title: "تسجيل الدخول — PosPay" },
-      { name: "description", content: "دخول آمن إلى PosPay واستعادة الحساب برمز البريد." },
-      { property: "og:title", content: "تسجيل الدخول — PosPay" },
-      { property: "og:description", content: "دخول آمن إلى PosPay واستعادة الحساب برمز البريد." },
+      { title: t("meta.signIn.title") },
+      { name: "description", content: t("meta.signIn.description") },
+      { property: "og:title", content: t("meta.signIn.title") },
+      { property: "og:description", content: t("meta.signIn.description") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

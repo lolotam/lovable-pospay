@@ -8,7 +8,7 @@ No public sign-up. Salon owner or branch manager invites by email; the invitee o
 - Link valid 7 days, single use; only a SHA-256 hash is stored.
 - Accept creates a verified Better Auth account with the invited email only; membership role/branch come from the invite.
 - Existing email → `ACCOUNT_EXISTS` (no takeover); failed accept deletes the just-created account.
-- Invite email via Resend; if not sent, the inviter gets the link to share.
+- Invite email via Resend only. The link is never returned to the inviter; if the email is not sent, the invitation is revoked and the inviter sees `INVITE_EMAIL_NOT_SENT` (PR #7 security review).
 - Revoke pending invites; all actions audited; no cross-company leak (`db/tests/isolation.sql`).
 
 ## Plan

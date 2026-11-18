@@ -125,11 +125,14 @@ export const scanCardFn = createServerFn({ method: "POST" })
     withCardRequest(input, cardScanInput, async (data, { db, userId, receipts }) => {
       const { scanCard } = await import("../persistence/card-scan.server");
       const { cardHash } = await import("../persistence/card-repository.server");
+      const { requirePermission } = await import("@/modules/permissions/index.server");
       const promptedRecordId = data.promptedRecordId?.toLowerCase();
       const fingerprint = await cardHash(
         JSON.stringify([data.token, data.intent, promptedRecordId ?? null]),
       );
       return recordCardRequest(receipts, fingerprint, async () => {
+        // الإيصال المسجّل يُسترجع قبل فحص pos.access، فسحب الصلاحية لا يُخفي مسحاً تم فعلاً.
+        await requirePermission(db, data.companyId, "pos.access");
         const window = cardRequestWindow(data.requestedAt, Date.now());
         if (window === "too_early") return { status: "clock_invalid" };
         if (window === "expired") return { status: "rejected" };
@@ -148,13 +151,15 @@ export const scanCardFn = createServerFn({ method: "POST" })
 export const settleCardScanFn = createServerFn({ method: "POST" })
   .inputValidator((v: z.input<typeof cardRequestInput>) => v)
   .handler(({ data: input }) =>
-    withCardRequest(input, cardRequestInput, (data, { receipts }) =>
-      settleCardRequest(receipts, () => {
+    withCardRequest(input, cardRequestInput, async (data, { db, receipts }) => {
+      const { requirePermission } = await import("@/modules/permissions/index.server");
+      return settleCardRequest(receipts, async () => {
+        await requirePermission(db, data.companyId, "pos.access");
         const window = cardRequestWindow(data.requestedAt, Date.now());
         if (window === "too_early") return { status: "clock_invalid" };
         return { status: window === "expired" ? "rejected" : "cancelled" };
-      }),
-    ),
+      });
+    }),
   );
 
 type CardRequestContext = {
@@ -170,19 +175,18 @@ async function withCardRequest<Request extends CardRequest>(
 ): Promise<CardScanResponse> {
   const { requireUserId } = await import("@/lib/server/session.server");
   const { withUser } = await import("@/lib/server/db.server");
-  const { withPermission } = await import("@/modules/permissions/index.server");
   const { pgCardScanReceipts } = await import("../persistence/card-scan-receipts.server");
   try {
     const userId = await requireUserId();
     const data = schema.parse(input);
     if (userId !== data.expectedUserId) return { status: "unverified" };
     return await withUser(userId, async (db) => {
-      await withPermission(db, data.companyId, "pos.access", async () => undefined);
       const { rows } = await db.query<{ member: boolean }>(
         "select public.is_member($1) as member",
         [data.companyId],
       );
-      if (!rows[0]?.member) return { status: "unverified" };
+      // كان pos.access يسبق هذا الفحص فيرفض غير العضو؛ نُبقي "rejected" حتى لا تبقى المحاولة معلّقة.
+      if (!rows[0]?.member) return { status: "rejected" };
       const receipts = pgCardScanReceipts<CardScanResponse>(
         db,
         data.companyId,

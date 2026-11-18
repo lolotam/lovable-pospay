@@ -16,7 +16,10 @@ export async function loadSessionContext(
   const active = found ?? (workspaces.length === 1 ? (workspaces[0] ?? null) : null);
   const permissions =
     active?.kind === "company"
-      ? effectivePermissions(active.role, await repo.listOverrides(active.companyId))
+      ? effectivePermissions(
+          companies.filter((ws) => ws.companyId === active.companyId).map((ws) => ws.role),
+          await repo.listOverrides(active.companyId),
+        )
       : [];
   return { context: { user, workspaces, active, permissions }, staleChoice };
 }

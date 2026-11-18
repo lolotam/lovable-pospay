@@ -11,10 +11,10 @@ export const Route = createFileRoute("/app/attendance/questions")({
   notFoundComponent: RouteNotFound,
   head: () => ({
     meta: [
-      { title: "أسئلة الحضور — PosPay" },
-      { name: "description", content: "أسئلة مدير الصالون عن التأخير والورديات." },
-      { property: "og:title", content: "أسئلة الحضور — PosPay" },
-      { property: "og:description", content: "أسئلة مدير الصالون عن التأخير والورديات." },
+      { title: t("meta.questions.title") },
+      { name: "description", content: t("meta.questions.description") },
+      { property: "og:title", content: t("meta.questions.title") },
+      { property: "og:description", content: t("meta.questions.description") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
