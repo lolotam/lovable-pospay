@@ -51,7 +51,21 @@ export function AppShell({ children }: AppShellProps) {
           ))}
         </nav>
       </aside>
-      <main className="min-w-0 flex-1">{children}</main>
+      <div className="min-w-0 flex-1">
+        <nav className="flex gap-1 overflow-x-auto border-b border-border bg-sidebar px-2 py-2 md:hidden">
+          {sections.flatMap((s) => s.items).map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              activeOptions={{ exact: true }}
+              className="shrink-0 rounded-md px-2 py-1 text-xs text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring data-[status=active]:bg-sidebar-accent data-[status=active]:font-medium data-[status=active]:text-sidebar-foreground"
+            >
+              {t(item.label)}
+            </Link>
+          ))}
+        </nav>
+        <main>{children}</main>
+      </div>
     </div>
   );
 }
