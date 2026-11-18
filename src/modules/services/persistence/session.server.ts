@@ -10,27 +10,57 @@ export function pgSessionRepository(
   return {
     async assignedService(serviceId, staffId) {
       const r = await db.query(
-        `select c.name,c.price_mills::text as price,s.branch_id from public.service_assignments a
+        `select c.name,c.price_mills::text as price,s.branch_id,b.timezone from public.service_assignments a
  join public.service_catalog c on c.company_id=a.company_id and c.id=a.service_id
  join public.staff_members s on s.company_id=a.company_id and s.id=a.staff_id
+ join public.branches b on b.company_id=s.company_id and b.id=s.branch_id
  where a.company_id=$1 and a.service_id=$2 and a.staff_id=$3 and a.active`,
         [companyId, serviceId, staffId],
       );
       const row = r.rows[0];
       return row
-        ? { serviceName: row.name, priceMills: BigInt(row.price), branchId: row.branch_id }
+        ? {
+            serviceName: row.name,
+            priceMills: BigInt(row.price),
+            branchId: row.branch_id,
+            timeZone: row.timezone,
+          }
         : null;
     },
     async canWrite(branchId) {
       const r = await db.query(`select public.session_writer($1,$2) as ok`, [companyId, branchId]);
       return Boolean(r.rows[0]?.ok);
     },
-    async upsertClient(name, phone) {
-      const r = await db.query(
-        `insert into public.clients(company_id,name,phone) values($1,$2,$3)
- on conflict(company_id,phone) do update set name=excluded.name returning id`,
-        [companyId, name, phone],
+    async resolveTime(local, timeZone) {
+      const r = await db.query<{ occurred_at: Date; round_trip: string }>(
+        `select $1::timestamp at time zone $2 as occurred_at,
+          to_char(($1::timestamp at time zone $2) at time zone $2, 'YYYY-MM-DD"T"HH24:MI') as round_trip`,
+        [local, timeZone],
       );
+      const row = r.rows[0];
+      if (!row || row.round_trip !== local) throw new Error("INVALID_SESSION_TIME");
+      return row.occurred_at;
+    },
+    async lockRecordedSession(id) {
+      await db.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [
+        `service-session:${companyId}:${id}`,
+      ]);
+      const r = await db.query<{ recorded_by: string | null }>(
+        "select recorded_by from public.service_sessions where company_id=$1 and id=$2",
+        [companyId, id],
+      );
+      const row = r.rows[0];
+      if (!row) return false;
+      if (row.recorded_by !== userId) throw new Error("FORBIDDEN");
+      return true;
+    },
+    async upsertClient(branchId, name, phone) {
+      const r = await db.query("select public.upsert_session_client($1,$2,$3,$4) as id", [
+        companyId,
+        branchId,
+        name,
+        phone,
+      ]);
       return r.rows[0].id;
     },
     async insertSession(s) {
@@ -74,7 +104,9 @@ export async function readSessionForm(
     [companyId],
   );
   const staff = await db.query(
-    `select id,display_name as name from public.staff_members where company_id=$1 and public.session_writer(company_id,branch_id) order by display_name`,
+    `select s.id,s.display_name as name,b.timezone as "timeZone" from public.staff_members s
+      join public.branches b on b.company_id=s.company_id and b.id=s.branch_id
+      where s.company_id=$1 and public.session_writer(s.company_id,s.branch_id) order by s.display_name`,
     [companyId],
   );
   return { canRecord: true, services: services.rows, staff: staff.rows };

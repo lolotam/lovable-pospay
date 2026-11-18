@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Save } from "lucide-react";
@@ -20,10 +20,6 @@ const formQuery = (companyId: string) =>
     },
   });
 const selectClass = "h-10 w-full rounded-md border border-input bg-background px-3";
-function localNow() {
-  const d = new Date();
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
-}
 export function SessionsPage() {
   return (
     <CompanyScope title="sessions.title">{(id) => <SessionForm companyId={id} />}</CompanyScope>
@@ -37,12 +33,15 @@ function useSessionForm(companyId: string) {
     staffId: "",
     clientName: "",
     clientPhone: "",
-    at: localNow(),
+    at: "",
   });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const set = (k: keyof typeof f) => (v: string) =>
+  const request = useRef<string | null>(null);
+  const set = (k: keyof typeof f) => (v: string) => {
+    request.current = null;
     setF((p) => ({ ...p, [k]: v, ...(k === "serviceId" ? { staffId: "" } : {}) }));
+  };
   async function submit() {
     if (busy) return;
     setBusy(true);
@@ -55,10 +54,12 @@ function useSessionForm(companyId: string) {
           staffId: f.staffId,
           clientName: f.clientName,
           clientPhone: f.clientPhone,
-          occurredAt: new Date(f.at).toISOString(),
+          occurredAt: f.at,
+          requestId: (request.current ??= crypto.randomUUID()),
         },
       });
-      setF((p) => ({ ...p, clientName: "", clientPhone: "", at: localNow() }));
+      request.current = null;
+      setF((p) => ({ ...p, clientName: "", clientPhone: "", at: "" }));
       setMessage(t("sessions.saved"));
     } catch {
       setMessage(t("sessions.error"));
@@ -73,6 +74,7 @@ function SessionForm({ companyId }: { companyId: string }) {
   if (!data?.canRecord) return <p role="alert">{t("ops.forbidden")}</p>;
   const service = data.services.find((s) => s.id === f.serviceId);
   const staff = data.staff.filter((s) => service?.staffIds.includes(s.id));
+  const selectedStaff = staff.find((s) => s.id === f.staffId);
   const price = service
     ? `${BigInt(service.priceMills) / 1000n}.${(BigInt(service.priceMills) % 1000n).toString().padStart(3, "0")}`
     : "";
@@ -139,10 +141,13 @@ function SessionForm({ companyId }: { companyId: string }) {
         />
       </label>
       <label className="block space-y-2">
-        <span>{t("sessions.at")}</span>
+        <span>
+          {t("sessions.at")} {selectedStaff && <bdi>{selectedStaff.timeZone}</bdi>}
+        </span>
         <Input
           dir="ltr"
           type="datetime-local"
+          disabled={!selectedStaff || busy}
           value={f.at}
           onChange={(e) => set("at")(e.target.value)}
           required

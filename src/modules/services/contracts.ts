@@ -2,6 +2,7 @@ import { z } from "zod";
 export const serviceScope = z.object({ companyId: z.string().uuid() });
 export const saveServiceInput = serviceScope.extend({
   id: z.string().uuid().optional(),
+  requestId: z.string().uuid().optional(),
   version: z.number().int().positive().optional(),
   name: z.string().trim().min(1).max(120),
   price: z.string().regex(/^\d{1,12}(\.\d{1,3})?$/),
@@ -26,18 +27,18 @@ export interface SessionReportRow {
   occurredAt: string;
   priceMills: string;
   clientName: string | null;
-  clientPhone: string | null;
   late: boolean;
 }
 export const recordSessionInput = serviceScope.extend({
+  requestId: z.string().uuid(),
   serviceId: z.string().uuid(),
   staffId: z.string().uuid(),
   clientName: z.string().trim().min(1).max(120),
   clientPhone: z.string().trim().min(8).max(24),
-  occurredAt: z.string().datetime({ offset: true }),
+  occurredAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
 });
 export interface SessionFormDto {
   canRecord: boolean;
   services: { id: string; name: string; priceMills: string; staffIds: string[] }[];
-  staff: { id: string; name: string }[];
+  staff: { id: string; name: string; timeZone: string }[];
 }

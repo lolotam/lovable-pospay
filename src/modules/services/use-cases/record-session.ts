@@ -3,11 +3,12 @@ import type { SessionRepository } from "../ports/session-repository";
 
 /** مدخلات تسجيل جلسة خدمة منفذة. */
 export interface RecordSessionInput {
+  requestId: string;
   serviceId: string;
   staffId: string;
   clientName: string;
   clientPhone: string;
-  occurredAt: Date;
+  occurredAt: string;
 }
 /**
  * يسجل جلسة خدمة بسعر الكتالوج الحالي للموظفة المسندة.
@@ -17,20 +18,23 @@ export async function recordSession(
   repo: SessionRepository,
   input: RecordSessionInput,
   now: Date,
-  newId: () => string,
 ): Promise<{ id: string }> {
-  if (input.occurredAt.getTime() > now.getTime() + 5 * 60_000) throw new Error("FUTURE_SESSION");
   const phone = normalizePhone(input.clientPhone);
   const name = input.clientName.trim();
   if (!name) throw new Error("INVALID_CLIENT");
   const service = await repo.assignedService(input.serviceId, input.staffId);
   if (!service) throw new Error("NOT_ASSIGNED");
   if (!(await repo.canWrite(service.branchId))) throw new Error("FORBIDDEN");
-  const clientId = await repo.upsertClient(name, phone);
-  const id = newId();
+  const id = input.requestId;
+  if (await repo.lockRecordedSession(id)) return { id };
+  const occurredAt = await repo.resolveTime(input.occurredAt, service.timeZone);
+  if (occurredAt.getTime() > now.getTime()) throw new Error("FUTURE_SESSION");
+  const clientId = await repo.upsertClient(service.branchId, name, phone);
   await repo.insertSession({
     id,
-    ...input,
+    serviceId: input.serviceId,
+    staffId: input.staffId,
+    occurredAt,
     branchId: service.branchId,
     clientId,
     serviceName: service.serviceName,

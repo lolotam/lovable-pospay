@@ -16,13 +16,11 @@ const input = {
   staffId: staff,
   clientName: "Noura",
   clientPhone: "96555551234",
-  occurredAt: new Date(Date.now() - 3600_000),
+  occurredAt: new Date(Date.now() - 3600_000).toISOString().slice(0, 16),
 };
-const run = (user: string) =>
+const run = (user: string, requestId = crypto.randomUUID()) =>
   withUser(user, (db) =>
-    recordSession(pgSessionRepository(db, user, company), input, new Date(), () =>
-      crypto.randomUUID(),
-    ),
+    recordSession(pgSessionRepository(db, user, company), { ...input, requestId }, new Date()),
   );
 describe.skipIf(!url)("service sessions real RLS", () => {
   let admin: pg.Pool;
@@ -44,10 +42,10 @@ describe.skipIf(!url)("service sessions real RLS", () => {
       ])
         await admin.query(await readFile(`db/migrations/${f}.sql`, "utf8"));
     await admin.query(`insert into companies(id,name) values($1,'Sessions salon')`, [company]);
-    await admin.query(`insert into branches(id,company_id,name) values($1,$2,'S branch')`, [
-      branch,
-      company,
-    ]);
+    await admin.query(
+      `insert into branches(id,company_id,name,timezone) values($1,$2,'S branch','UTC')`,
+      [branch, company],
+    );
     await admin.query(
       `insert into memberships(company_id,user_id,role,branch_id) values($1,'s-reception','reception',$2),($1,'s-staff','staff',$2),($1,'s-owner','owner',null)`,
       [company, branch],
@@ -84,8 +82,13 @@ describe.skipIf(!url)("service sessions real RLS", () => {
   it("employee cannot record a session", async () => {
     await expect(run("s-staff")).rejects.toThrow();
   });
-  it("reception records with catalog price and owner report masks the phone", async () => {
-    await run("s-reception");
+  it("reception records with catalog price and owner report omits the phone", async () => {
+    const requestId = crypto.randomUUID();
+    const duplicates = await Promise.all([
+      run("s-reception", requestId),
+      run("s-reception", requestId),
+    ]);
+    expect(duplicates).toEqual([{ id: requestId }, { id: requestId }]);
     const rows = await withUser("s-owner", (db) =>
       readSessionReport(
         db,
@@ -95,12 +98,25 @@ describe.skipIf(!url)("service sessions real RLS", () => {
       ),
     );
     expect(rows).toHaveLength(1);
+    expect(rows[0]).not.toHaveProperty("clientPhone");
+    await expect(
+      withUser("s-reception", (db) =>
+        db.query("select phone from public.clients where company_id=$1", [company]),
+      ),
+    ).rejects.toMatchObject({ code: "42501" });
+    await expect(
+      withUser(
+        "s-reception",
+        async (db) =>
+          (await db.query("select name from public.clients where company_id=$1", [company])).rows,
+      ),
+    ).resolves.toEqual([]);
+    expect(rows[0]?.occurredAt).toBe(`${input.occurredAt}:00.000Z`);
     expect(rows[0]).toMatchObject({
       name: "Mona",
       service: "Hair",
       priceMills: "12500",
       clientName: "Noura",
-      clientPhone: "•••234",
       late: false,
     });
   });

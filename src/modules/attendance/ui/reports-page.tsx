@@ -143,7 +143,7 @@ function SessionRows({ rows }: { rows: OperationalReport["sessions"] }) {
           </p>
           {r.clientName && (
             <p>
-              {t("reports.client")}: {r.clientName} <span dir="ltr">{r.clientPhone}</span>
+              {t("reports.client")}: {r.clientName}
             </p>
           )}
           <p dir="ltr">

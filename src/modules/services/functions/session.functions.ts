@@ -17,11 +17,6 @@ export const recordSessionFn = createServerFn({ method: "POST" })
     const { recordSession } = await import("../use-cases/record-session");
     const userId = await requireUserId();
     return withUser(userId, (db) =>
-      recordSession(
-        pgSessionRepository(db, userId, data.companyId),
-        { ...data, occurredAt: new Date(data.occurredAt) },
-        new Date(),
-        () => crypto.randomUUID(),
-      ),
+      recordSession(pgSessionRepository(db, userId, data.companyId), data, new Date()),
     );
   });

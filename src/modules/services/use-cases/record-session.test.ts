@@ -6,9 +6,13 @@ function fake(opts: { assigned?: boolean; write?: boolean } = {}) {
   const clients: [string, string][] = [];
   const repo: SessionRepository = {
     assignedService: async () =>
-      opts.assigned === false ? null : { serviceName: "Hair", priceMills: 12500n, branchId: "b1" },
+      opts.assigned === false
+        ? null
+        : { serviceName: "Hair", priceMills: 12500n, branchId: "b1", timeZone: "UTC" },
     canWrite: async () => opts.write !== false,
-    upsertClient: async (n, p) => (clients.push([n, p]), "c1"),
+    resolveTime: async (local) => new Date(`${local}Z`),
+    lockRecordedSession: async (id) => saved.some((row) => row.id === id),
+    upsertClient: async (_branch, n, p) => (clients.push([n, p]), "c1"),
     insertSession: async (s) => void saved.push(s),
     audit: async () => undefined,
   };
@@ -16,16 +20,17 @@ function fake(opts: { assigned?: boolean; write?: boolean } = {}) {
 }
 const now = new Date("2026-11-18T09:00:00Z");
 const input = {
+  requestId: "id1",
   serviceId: "s1",
   staffId: "st1",
   clientName: " Noura ",
   clientPhone: "+965 5555 1234",
-  occurredAt: new Date("2026-11-18T08:00:00Z"),
+  occurredAt: "2026-11-18T08:00",
 };
 describe("recordSession", () => {
   it("records catalog price snapshot with client and staff", async () => {
     const f = fake();
-    await recordSession(f.repo, input, now, () => "id1");
+    await recordSession(f.repo, input, now);
     expect(f.clients).toEqual([["Noura", "96555551234"]]);
     expect(f.saved[0]).toMatchObject({
       id: "id1",
@@ -37,23 +42,18 @@ describe("recordSession", () => {
     });
   });
   it("refuses a service not assigned to the employee", async () => {
-    await expect(
-      recordSession(fake({ assigned: false }).repo, input, now, () => "x"),
-    ).rejects.toThrow("NOT_ASSIGNED");
+    await expect(recordSession(fake({ assigned: false }).repo, input, now)).rejects.toThrow(
+      "NOT_ASSIGNED",
+    );
   });
   it("refuses a user without branch recording permission", async () => {
     const f = fake({ write: false });
-    await expect(recordSession(f.repo, input, now, () => "x")).rejects.toThrow("FORBIDDEN");
+    await expect(recordSession(f.repo, input, now)).rejects.toThrow("FORBIDDEN");
     expect(f.saved).toEqual([]);
   });
   it("refuses a session in the future", async () => {
     await expect(
-      recordSession(
-        fake().repo,
-        { ...input, occurredAt: new Date("2026-11-18T10:00:00Z") },
-        now,
-        () => "x",
-      ),
+      recordSession(fake().repo, { ...input, occurredAt: "2026-11-18T09:01" }, now),
     ).rejects.toThrow("FUTURE_SESSION");
   });
 });

@@ -10,7 +10,9 @@ export const getCatalogFn = createServerFn({ method: "GET" })
     return withUser(await requireUserId(), (db) => readCatalog(db, data.companyId));
   });
 export const saveServiceFn = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => saveServiceInput.parse(v))
+  .inputValidator((v: unknown) =>
+    saveServiceInput.refine((data) => !!(data.id || data.requestId)).parse(v),
+  )
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");

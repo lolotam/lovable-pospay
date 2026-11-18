@@ -8,8 +8,8 @@ language sql stable security definer set search_path=public as $$
 $$;
 create or replace function public.card_operator(_company uuid, _branch uuid) returns boolean
 language sql stable security definer set search_path=public as $$
- select (public.card_manager(_company,_branch) or exists(select 1 from memberships where company_id=_company
- and user_id=public.current_app_user() and role='reception' and (branch_id is null or branch_id=_branch)))
+ select exists(select 1 from memberships where company_id=_company
+ and user_id=public.current_app_user() and role in ('branch_manager','reception') and (branch_id is null or branch_id=_branch))
  and not exists(select 1 from permission_overrides where company_id=_company and user_id=public.current_app_user()
  and permission='attendance.record' and effect='deny')
 $$;

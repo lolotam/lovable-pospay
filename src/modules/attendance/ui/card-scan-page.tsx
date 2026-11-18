@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ScanLine } from "lucide-react";
 import { CompanyScope } from "@/modules/staff";
@@ -42,6 +42,10 @@ function useScanner({ companyId }: { companyId: string }) {
 }
 function Scanner({ companyId }: { companyId: string }) {
   const { token, setToken, busy, prompt, setPrompt, message, run } = useScanner({ companyId });
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!busy && !prompt) input.current?.focus();
+  }, [busy, prompt]);
   return (
     <form
       className="max-w-xl space-y-5"
@@ -53,7 +57,7 @@ function Scanner({ companyId }: { companyId: string }) {
       <label className="block space-y-2">
         <span>{t("cards.scanInput")}</span>
         <Input
-          autoFocus
+          ref={input}
           autoComplete="off"
           value={token}
           disabled={busy || !!prompt}

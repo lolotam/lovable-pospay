@@ -45,9 +45,12 @@ export async function saveService(
         [input.companyId, input.id, input.name, price],
       )
     : await db.query(
-        `insert into public.service_catalog(company_id,name,price_mills) values($1,$2,$3) returning id`,
-        [input.companyId, input.name, price],
+        `insert into public.service_catalog(company_id,name,price_mills,id)
+         values($1,$2,$3,coalesce($4::uuid,gen_random_uuid()))
+         on conflict(company_id,id) do nothing returning id`,
+        [input.companyId, input.name, price, input.requestId ?? null],
       );
+  if (!input.id && input.requestId && !result.rowCount) return { id: input.requestId };
   const id = result.rows[0].id;
   const staffIds = [...new Set(input.staffIds)];
   const selected = await db.query(
@@ -59,11 +62,12 @@ export async function saveService(
     `update public.service_assignments set active=false where company_id=$1 and service_id=$2`,
     [input.companyId, id],
   );
-  for (const staffId of staffIds)
-    await db.query(
-      `insert into public.service_assignments(company_id,service_id,staff_id) values($1,$2,$3) on conflict(company_id,service_id,staff_id) do update set active=true`,
-      [input.companyId, id, staffId],
-    );
+  await db.query(
+    `insert into public.service_assignments(company_id,service_id,staff_id)
+     select $1,$2,staff_id from unnest($3::uuid[]) as assigned(staff_id)
+     on conflict(company_id,service_id,staff_id) do update set active=true`,
+    [input.companyId, id, staffIds],
+  );
   await db.query(
     `insert into public.audit_log(company_id,actor_user_id,action,entity,entity_id,details) values($1,$2,'service.saved','service',$3,$4)`,
     [

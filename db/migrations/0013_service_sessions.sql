@@ -20,14 +20,12 @@ create table if not exists public.clients (
  phone text not null check(phone ~ '^[0-9]{8,15}$'),
  primary key(company_id,id), unique(company_id,phone)
 );
-grant select,insert,update on public.clients to pospay_app;
+revoke select,insert,update on public.clients from pospay_app;
+grant select(company_id,id,name) on public.clients to pospay_app;
 alter table public.clients enable row level security;
 drop policy if exists clients_read on public.clients;
-create policy clients_read on public.clients for select to pospay_app using(public.session_writer_any(company_id) or public.report_reader(company_id));
 drop policy if exists clients_insert on public.clients;
-create policy clients_insert on public.clients for insert to pospay_app with check(public.session_writer_any(company_id));
 drop policy if exists clients_update on public.clients;
-create policy clients_update on public.clients for update to pospay_app using(public.session_writer_any(company_id)) with check(public.session_writer_any(company_id));
 alter table public.service_sessions add column if not exists client_id uuid;
 alter table public.service_sessions add column if not exists recorded_by text;
 do $$ begin
@@ -40,3 +38,29 @@ drop policy if exists sessions_writer_read on public.service_sessions;
 create policy sessions_writer_read on public.service_sessions for select to pospay_app using(public.session_writer(company_id,branch_id));
 drop policy if exists sessions_insert on public.service_sessions;
 create policy sessions_insert on public.service_sessions for insert to pospay_app with check(public.session_writer(company_id,branch_id) and recorded_by=public.current_app_user() and client_id is not null);
+
+create index if not exists service_sessions_client_scope
+ on public.service_sessions(company_id,client_id,branch_id);
+
+create or replace function public.client_visible_in_report(_company uuid, _client uuid) returns boolean
+language sql stable security definer set search_path=pg_catalog as $$
+ select exists(select 1 from public.service_sessions s where s.company_id=_company
+ and s.client_id=_client and public.report_reader(s.company_id,s.branch_id))
+$$;
+revoke all on function public.client_visible_in_report(uuid,uuid) from public;
+grant execute on function public.client_visible_in_report(uuid,uuid) to pospay_app;
+create policy clients_read on public.clients for select to pospay_app
+ using(public.client_visible_in_report(company_id,id));
+
+create or replace function public.upsert_session_client(_company uuid, _branch uuid, _name text, _phone text)
+returns uuid language plpgsql security definer set search_path=pg_catalog as $$
+declare result_id uuid;
+begin
+ if not public.session_writer(_company,_branch) then raise exception 'FORBIDDEN'; end if;
+ insert into public.clients(company_id,name,phone) values(_company,_name,_phone)
+ on conflict(company_id,phone) do update set name=excluded.name returning id into result_id;
+ return result_id;
+end
+$$;
+revoke all on function public.upsert_session_client(uuid,uuid,text,text) from public;
+grant execute on function public.upsert_session_client(uuid,uuid,text,text) to pospay_app;

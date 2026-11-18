@@ -4,20 +4,22 @@ import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 import pg from "pg";
 import { getPool, withUser } from "@/lib/server/db.server";
 import { approveCards, readCards } from "./card-repository.server";
-import { issueCard as persistIssueCard, revokeCard } from "./card-actions.server";
+import { cardTokens, pgCardRepository } from "./card-actions.server";
 import { scanCard as readCardScan } from "./card-scan.server";
 import {
   saveService as persistService,
   readCatalog,
 } from "@/modules/services/persistence/catalog.server";
 import { readAttendanceReport } from "./report.server";
-import { requireCardEligibility } from "../use-cases/card-actions";
+import { issueCardUseCase, revokeCardUseCase } from "../use-cases/card-actions";
 import { recordCard } from "../use-cases/card-scan";
 import { systemClock } from "@/shared/kernel/clock";
 import { cryptoIds } from "@/shared/kernel/ids";
 import { servicePrice } from "@/modules/services/use-cases/service-price";
 const issueCard = (db: pg.PoolClient, user: string, company: string, staff: string) =>
-  persistIssueCard(db, user, company, staff, requireCardEligibility);
+  issueCardUseCase(pgCardRepository(db, user, company), cardTokens, staff);
+const revokeCard = (db: pg.PoolClient, user: string, company: string, card: string) =>
+  revokeCardUseCase(pgCardRepository(db, user, company), card);
 const scanCard = async (
   db: pg.PoolClient,
   user: string,
@@ -126,6 +128,28 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
       [company],
     );
   });
+  it("card-management denial does not revoke scan permission", async () => {
+    await admin.query(
+      "insert into permission_overrides(company_id,user_id,permission,effect) values($1,'cards-manager','attendance.manage_cards','deny')",
+      [company],
+    );
+    try {
+      await expect(
+        withUser("cards-manager", async (db) => {
+          const { rows } = await db.query(
+            "select public.card_operator($1,$2) as operator,public.card_manager($1,$2) as manager",
+            [company, branch],
+          );
+          return rows[0];
+        }),
+      ).resolves.toEqual({ operator: true, manager: false });
+    } finally {
+      await admin.query(
+        "delete from permission_overrides where company_id=$1 and user_id='cards-manager' and permission='attendance.manage_cards'",
+        [company],
+      );
+    }
+  });
   it("manager recording deny does not prevent immediate revocation", async () => {
     await admin.query(
       `insert into permission_overrides(company_id,user_id,permission,effect) values($1,'cards-manager','attendance.record','deny')`,
@@ -222,6 +246,26 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
       priceMills: "25125",
       staffIds: [staff],
     });
+  });
+  it("retries a catalog creation without duplicating the entry or audit", async () => {
+    const requestId = crypto.randomUUID();
+    const input = {
+      companyId: company,
+      requestId,
+      name: "Retry catalog",
+      price: "20",
+      staffIds: [staff],
+    };
+    const run = () => withUser("cards-manager", (db) => saveService(db, "cards-manager", input));
+    await expect(Promise.all([run(), run()])).resolves.toEqual([
+      { id: requestId },
+      { id: requestId },
+    ]);
+    const audit = await admin.query(
+      "select count(*)::int as count from public.audit_log where company_id=$1 and entity_id=$2 and action='service.saved'",
+      [company, requestId],
+    );
+    expect(audit.rows[0]?.count).toBe(1);
   });
   it("staff cannot edit prices", async () => {
     await expect(

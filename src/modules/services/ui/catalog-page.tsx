@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Pencil, Save } from "lucide-react";
@@ -37,7 +37,9 @@ function useCatalog({ companyId }: { companyId: string }) {
   const [staffIds, setStaff] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const createRequest = useRef<string | null>(null);
   function open(s: ServiceDto | null) {
+    createRequest.current = null;
     setEdit(s);
     setName(s?.name ?? "");
     setPrice(s ? kwd(s.priceMills) : "");
@@ -55,12 +57,14 @@ function useCatalog({ companyId }: { companyId: string }) {
           name,
           price,
           staffIds,
-          ...(edit ? { id: edit.id, version: edit.version } : {}),
+          ...(edit
+            ? { id: edit.id, version: edit.version }
+            : { requestId: (createRequest.current ??= crypto.randomUUID()) }),
         },
       });
       await cache.invalidateQueries({ queryKey: ["catalog", companyId] });
       const fresh = await cache.fetchQuery(catalogQuery(companyId));
-      if (!fresh?.services.some((s) => s.id === result.id && s.name === name))
+      if (!fresh?.services.some((s) => s.id === result.id && s.name === name.trim()))
         throw new Error("READBACK_FAILED");
       setForm(false);
       setMessage(t("ops.saved"));
