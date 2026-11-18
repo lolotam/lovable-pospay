@@ -244,7 +244,7 @@
   "reports.client": "العميلة",
   "reports.lateSession": "متأخرة",
   "export.csv": "تصدير CSV",
-  "export.pdf": "تصدير PDF",
+  "export.pdf": "تنزيل PDF",
   "export.employee": "الموظفة",
   "export.branch": "الفرع",
   "export.workDate": "يوم العمل",
@@ -298,5 +298,6 @@
   "sessions.reason": "سبب الخصم",
   "sessions.DISCOUNT_OVER_LIMIT": "الخصم أكبر من الحد المسموح لك",
   "sessions.DISCOUNT_REASON_REQUIRED": "اكتب سبب الخصم",
-  "sessions.PRICE_ABOVE_LIST": "لا يمكن رفع السعر عن سعر الخدمة"
+  "sessions.PRICE_ABOVE_LIST": "لا يمكن رفع السعر عن سعر الخدمة",
+  "export.pdfBusy": "جارٍ تجهيز PDF…"
 }

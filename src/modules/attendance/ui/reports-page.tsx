@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { t } from "@/i18n";
 import { getOperationalReportFn } from "../functions/report.functions";
-import { buildTable, downloadCsv, formatMills, formatReportDate, printPdf } from "./report-export";
+import { buildTable, downloadCsv, formatMills, formatReportDate } from "./report-export";
 export function ReportsPage() {
   return (
     <CompanyScope title="reports.title">
@@ -144,7 +144,8 @@ function ReportExports({
   tab: ReportTab;
   range: ReportRange;
 }) {
-  const [printBlocked, setPrintBlocked] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
   return (
     <>
       <div className="flex flex-wrap gap-2">
@@ -156,19 +157,26 @@ function ReportExports({
         </Button>
         <Button
           variant="outline"
-          onClick={() =>
-            setPrintBlocked(
-              !printPdf(
+          disabled={pdfBusy}
+          onClick={async () => {
+            setPdfBusy(true);
+            setPdfError(false);
+            try {
+              const { downloadPdf } = await import("./report-pdf");
+              await downloadPdf(
                 buildTable(data, tab),
                 `${new Date(range.from).toLocaleString("ar-KW")} — ${new Date(range.until).toLocaleString("ar-KW")}`,
-              ),
-            )
-          }
+                `pospay-${tab}-${range.fromDate}`,
+              );
+            } finally {
+              setPdfBusy(false);
+            }
+          }}
         >
-          {t("export.pdf")}
+          {t(pdfBusy ? "export.pdfBusy" : "export.pdf")}
         </Button>
       </div>
-      {printBlocked && <p role="alert">{t("export.printBlocked")}</p>}
+      {pdfError && <p role="alert">{t("export.pdfFailed")}</p>}
     </>
   );
 }

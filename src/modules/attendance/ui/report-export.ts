@@ -1,7 +1,7 @@
 import type { AttendanceReportRow, OperationalReport, ReportTab } from "../report.contracts";
 import { t } from "@/i18n";
 
-type Table = { title: string; head: string[]; body: string[][] };
+export type Table = { title: string; head: string[]; body: string[][] };
 
 export function formatReportDate(value: string | null, timeZone: string): string {
   if (!value) return "";
@@ -83,25 +83,4 @@ export function downloadCsv(table: Table, name: string) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
-}
-
-const esc = (v: string) => v.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
-
-/** يفتح نسخة قابلة للطباعة كـ PDF من نافذة الطباعة */
-export function printPdf(table: Table, rangeLabel: string) {
-  const w = window.open("", "_blank");
-  if (!w) return false;
-  const rows = table.body
-    .map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`)
-    .join("");
-  w.document
-    .write(`<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${esc(table.title)}</title>
-<style>@page{size:A4 landscape;margin:12mm}body{font-family:"IBM Plex Sans Arabic",sans-serif;font-size:11px}
-table{border-collapse:collapse;inline-size:100%}th,td{border:1px solid #999;padding:4px;text-align:start}
-th{background:#eee;-webkit-print-color-adjust:exact;print-color-adjust:exact}tr{break-inside:avoid}</style></head>
-<body><h1>${esc(table.title)}</h1><p>${esc(rangeLabel)}</p><table><thead><tr>${table.head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></body></html>`);
-  w.document.close();
-  w.focus();
-  w.print();
-  return true;
 }
