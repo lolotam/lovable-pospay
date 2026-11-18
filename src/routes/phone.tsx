@@ -78,6 +78,7 @@ export const Route = createFileRoute("/phone")({
 function PhonePage() {
   const { data } = useSuspenseQuery(companiesQuery);
   const [selected, setSelected] = useState("");
+  const [busy, setBusy] = useState(false);
   const companyId = selected || data.companies[0]?.id || "";
   return (
     <main className="mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-16 space-y-6">
@@ -92,7 +93,7 @@ function PhonePage() {
           <label htmlFor="phone-company" className="block">
             {t("phone.companyName")}
           </label>
-          <Select dir="rtl" value={companyId} onValueChange={setSelected}>
+          <Select dir="rtl" value={companyId} onValueChange={setSelected} disabled={busy}>
             <SelectTrigger id="phone-company">
               <SelectValue placeholder={t("phone.selectCompany")} />
             </SelectTrigger>
@@ -110,7 +111,7 @@ function PhonePage() {
             </SelectContent>
           </Select>
           <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
-            <PhoneActions key={companyId} companyId={companyId} />
+            <PhoneActions key={companyId} companyId={companyId} busy={busy} setBusy={setBusy} />
           </Suspense>
         </>
       )}
@@ -118,12 +119,11 @@ function PhonePage() {
   );
 }
 
-function usePhoneActions(companyId: string) {
+function usePhoneActions(companyId: string, busy: boolean, setBusy: (busy: boolean) => void) {
   const { data, isFetching } = useSuspenseQuery(managementQuery(companyId));
   const queryClient = useQueryClient();
   const [userId, setUser] = useState("");
   const [confirm, setConfirm] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const begin = useServerFn(startBindingFn);
   const finish = useServerFn(finishBindingFn);
@@ -163,9 +163,17 @@ function usePhoneActions(companyId: string) {
   return { data, userId, setUser, confirm, setConfirm, busy, isFetching, message, run };
 }
 
-function PhoneActions({ companyId }: { companyId: string }) {
-  const actions = usePhoneActions(companyId);
-  const { data, busy, isFetching, message, run } = actions;
+function PhoneActions({
+  companyId,
+  busy,
+  setBusy,
+}: {
+  companyId: string;
+  busy: boolean;
+  setBusy: (busy: boolean) => void;
+}) {
+  const actions = usePhoneActions(companyId, busy, setBusy);
+  const { data, isFetching, message, run } = actions;
   const binding = data.browserBinding;
   if (isFetching) return <p role="status">{t("phone.loading")}</p>;
   if (data.error) return <p role="status">{t(data.error)}</p>;

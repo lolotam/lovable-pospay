@@ -5,6 +5,7 @@
 - Better Auth owns identities and passkeys; authentication responses are verified using SimpleWebAuthn, including challenge, expected origin, RP ID, signature and user verification.
 - Each company/user has one binding. The stored device-cookie hash is globally unique, preventing the same browser token from serving another active binding.
 - Waleed confirmed option 1 on 2026-11-18 for Lovable PR #1. A browser token has one active company binding. For a signed-in staff member, `/phone` shows the company linked to that browser after binding and on reopening, explains the rule and removes the bind action while active. The bound company is visible only to the binding's owner under existing company RLS. A manager at that company must unbind it before the browser can be used to bind elsewhere.
+- Concurrent first-bind requests without a device cookie in the same authenticated session derive the same server-keyed device token. The existing unique hash constraint admits at most one. Once set, the cookie supplies the token across subsequent sessions.
 - Attendance verifies the current user's owned credential and matching HttpOnly cookie before reading or writing attendance; the QR branch must match the verified company.
 - A manager/owner can remove a company binding under RLS, unless denied `attendance.manage_devices`; unbinding is audited. Staff cannot unbind themselves. `attendance.record` deny blocks binding and scanning.
 - Missing cookie, another user's credential, expired challenge, removed binding and explicit deny fail closed.

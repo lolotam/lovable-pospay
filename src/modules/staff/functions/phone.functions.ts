@@ -27,13 +27,14 @@ export const startBindingFn = createServerFn({ method: "POST" })
 export const finishBindingFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => phoneProofSchema.parse(v))
   .handler(async ({ data }) => {
-    const { requireUserId } = await import("@/lib/server/session.server");
+    const { requireSession } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { prove, bindPhone } = await import("../persistence/phone.server");
-    const userId = await requireUserId();
+    const { user, session } = await requireSession();
+    const userId = user.id;
     return withUser(userId, async (db) => {
       const id = await prove(db, userId, data, "bind");
-      await bindPhone(db, userId, data.companyId, id);
+      await bindPhone(db, userId, data.companyId, id, session.id);
       return { ok: true };
     });
   });

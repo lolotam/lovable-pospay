@@ -16,6 +16,25 @@ export async function getPhoneDeviceHash(): Promise<string | null> {
   const token = getCookie(cookieName);
   return token ? hash(token) : null;
 }
+
+async function firstDeviceToken(sessionId: string): Promise<string> {
+  const secret = process.env["BETTER_AUTH_SECRET"];
+  if (!secret) throw new Error("AUTH_NOT_CONFIGURED");
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const token = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(`pospay-phone-v1:${sessionId}`),
+  );
+  return Buffer.from(token).toString("hex");
+}
 function origin() {
   const value = process.env["BETTER_AUTH_URL"];
   if (!value) throw new Error("AUTH_NOT_CONFIGURED");
@@ -94,9 +113,11 @@ export async function bindPhone(
   userId: string,
   companyId: string,
   credentialId: string,
+  sessionId: string,
 ) {
   const existing = getCookie(cookieName);
-  const token = existing ?? crypto.randomUUID() + crypto.randomUUID();
+  // Concurrent first binds in one signed-in session must hit the same unique hash.
+  const token = existing ?? (await firstDeviceToken(sessionId));
   await db.query(
     `insert into public.phone_bindings (company_id,user_id,credential_id,device_hash) values ($1,$2,$3,$4)`,
     [companyId, userId, credentialId, await hash(token)],

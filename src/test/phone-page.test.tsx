@@ -79,9 +79,14 @@ it("offers two companies before binding and shows the linked company after bindi
   begin.mockResolvedValue({ options: {}, challengeId: "challenge" });
   addPasskey.mockResolvedValue({});
   authenticate.mockResolvedValue({ id: "owned-passkey" });
+  let complete: () => void = () => {};
+  const waitForBind = new Promise<void>((resolve) => {
+    complete = resolve;
+  });
   finish.mockImplementation(async ({ data }: { data: { companyId: string } }) => {
     const company = companies.find(({ id }) => id === data.companyId);
     if (!company) throw new Error("Unknown test company");
+    await waitForBind;
     linked = { companyId: company.id, companyName: company.name };
   });
   const bindName = t("phone.bind");
@@ -91,6 +96,10 @@ it("offers two companies before binding and shows the linked company after bindi
   await selectCompany("Salon B");
   await waitFor(() => expect(screen.getByRole("button", { name: bindName })).toBeEnabled());
   fireEvent.click(screen.getByRole("button", { name: bindName }));
+
+  await waitFor(() => expect(finish).toHaveBeenCalledTimes(1));
+  expect(screen.getByRole("combobox", { name: t("phone.companyName") })).toBeDisabled();
+  complete();
 
   expect(await screen.findByText(linkedMessage)).toBeInTheDocument();
   expect(finish).toHaveBeenCalledWith({ data: expect.objectContaining({ companyId: "b" }) });
