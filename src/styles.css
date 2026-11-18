@@ -202,3 +202,9 @@
     font-size: 16px;
   }
 }
+
+@media print {
+ body * { visibility: hidden; }
+ .print-card, .print-card * { visibility: visible; }
+ .print-card { position: absolute; inset-inline-start: 0; inset-block-start: 0; }
+}

@@ -7,3 +7,6 @@ export {
   unbindPhoneFn,
 } from "./functions/phone.functions";
 export type { PhoneManagementDto, PhoneStaffOption } from "./phone.contracts";
+
+export { CompanyScope } from "./ui/company-scope";
+export { preloadOperatorCompanies } from "./ui/operator-companies-query";

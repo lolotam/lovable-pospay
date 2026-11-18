@@ -1,5 +1,13 @@
 # Roadmap
 
+## Approved request (2026-11-18, 11:47 Kuwait)
+- [x] 003 barcode fallback implementation: manager-only issue, immediate manager revocation, one active method per employee; company policy approval screen, printable cards and reception scanning. Decisions approved by Waleed.
+- [x] Services catalog implementation: create/edit prices in bigint mills and employee assignments.
+- [x] Operational reports implementation: date-range attendance, corrected checkouts and recorded service sessions; tenant/role isolation.
+- [x] 003 final review closure (12:33 Kuwait): card issue/revoke orchestration moved to use-cases behind ports/card-repository.ts; persistence only implements the port. 5 new use-case tests; full suite 180/180 on local pospay_test; lint 0 errors on attendance; tsgo OK. Self-review at that revision. Independent review of the current release head is tracked separately in PR #5.
+- [ ] Authenticated UI/physical scanner acceptance blocked by preview AUTH_NOT_CONFIGURED; production migrations/deployment and exact-head PR/CI remain external gates. Services session writer added in 011 (see below).
+- [x] Local migrations 0011/0012 double-applied, tenant negative SQL and card/catalog/report integration verified. See docs/specs/003-barcode/verification.md for check evidence.
+
 ## Continuation (2026-11-18)
 - [x] 010 / remaining 001 reception QR safety — spec → plan → expiry/search/branch-return RED → GREEN. Single-flight polling hides expired/previous-branch images; malformed search no longer enters error boundary. 102/102 serial tests pass, lint 0 errors/6 existing warnings, harness build OK; 18 browser size/theme/input states pass. Independent Standards/Spec review addressed import/export and evidence gaps; authenticated acceptance and external PR/CI remain open.
 - [x] 009 / 008 local default-check blockers — spec → plan → RED → config/formatting; ordinary bun run test passes 85/85 twice (and post-commit), no skipped DB tests; full lint exits 0 with 0 errors/6 existing warnings. Generated caches excluded; authored coverage and intentional concurrency preserved. Commit 7e2891b; no shared DB/env/server/deploy writes.
@@ -70,3 +78,11 @@
 - [x] Redeploy zod fix from synchronized GitHub commit 51fdab3
 - [ ] /api/auth/sign-in/email acceptance — zod crash resolved; pooler ENOIDENTIFIER returns 500
 - [ ] After auth works: Waleed registers dr.vet.waleedtam@gmail.com, then run db/seeds/super-admin.sql
+
+## 011 Service session recording (12:40 Kuwait)
+- [x] Migration 0013 prepares client and session storage. Public session recording is deferred pending D-44. Operational reports exclude client phone fields under the slice 003 acceptance rule.
+- [ ] TODO(spec) ق-1: price override and discount limit (D-44) — sessions use the catalog price snapshot until approved.
+- [ ] Before enabling session recording, bind reused request IDs to the original normalized client, service, staff and occurrence data. Verify identical retries return the existing session and changed requests return a conflict.
+- [ ] Production apply of 0011–0013 — needs Waleed approval. Authenticated UI acceptance unverified (preview auth not configured).
+- [x] 012 تصدير تقارير الحضور/المصححة/الجلسات CSV وPDF
+- [ ] ق-1 قرار تعديل السعر وحد الخصم (D-44) — مستني وليد

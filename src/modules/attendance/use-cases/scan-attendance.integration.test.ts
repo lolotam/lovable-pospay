@@ -30,7 +30,10 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
       for (const file of [
         "0001_tenancy_foundation.sql",
         "0002_attendance.sql",
+        "0003_phone_binding.sql",
         "0009_attendance_branch_company.sql",
+        "0011_barcode.sql",
+        "0012_service_catalog.sql",
       ]) {
         await admin.query(await readFile(`db/migrations/${file}`, "utf8"));
       }
@@ -123,6 +126,10 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
     const prompt = await scan(at("2026-11-18T20:00"));
     expect(prompt.outcome).toBe("needs_intent");
     if (prompt.outcome !== "needs_intent") throw new Error("Expected an attendance prompt");
+    expect(await scan(at("2026-11-18T22:01"), "new_shift", true, prompt.recordId)).toEqual({
+      outcome: "rejected",
+      reason: "stale_intent",
+    });
     expect(await scan(at("2026-11-18T20:00"), "new_shift", true, prompt.recordId)).toEqual({
       outcome: "checked_in",
       lateMinutes: 0,
