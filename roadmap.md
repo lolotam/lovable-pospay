@@ -1,5 +1,13 @@
 # Roadmap
 
+## Current request (2026-11-18)
+- [x] Redeploy synchronized zod fix (51fdab3) — deployment done
+- [ ] Production email sign-in — fails with ENOIDENTIFIER (pooler tenant identifier missing); environment correction needs approval
+- [ ] Provision Waleed account and run super-admin seed — account creation decision needed; public signup is disabled
+- [ ] Slice 003 barcode fallback — TODO(spec): operator authorization, card issuance/revocation and no-phone eligibility decisions
+- [x] Password recovery UI + Better Auth policy: expiry/reuse protection, session revocation, origin validation; 6 API tests pass
+- [ ] Enable password-recovery delivery — needs verified sender domain and Dokploy mail configuration
+
 - [x] Phase 1 foundation (DB + RLS, Better Auth, server functions, Dokploy)
 - [x] AGENTS.md rules + app-architecture.md
 - [x] Project files referenced by the rules (pipeline doc, ADRs, kernel, i18n, module skeleton)
@@ -17,7 +25,7 @@
 - [x] Super-admin-only connectors page `/admin/connectors` (Codex, Kimi, MiniMax, Z.ai sign-in; OpenAI, Google AI, OpenRouter, MiniMax, Resend keys)
 - [x] Apply 0004 on the real DB
 - [ ] Run `db/seeds/super-admin.sql` after Better Auth tables + Waleed sign-up
-- [ ] Set `PLATFORM_SECRETS_KEY` in Dokploy — waits on Waleed
+- [x] Set `PLATFORM_SECRETS_KEY` in Dokploy (previous deployment setup)
 - [ ] Wire attendance questions to the default connector instead of AI Gateway
 
 ## Tools setup
@@ -36,5 +44,6 @@
 - [x] Domain `pospay-app-7dcc5d-82-29-164-194.sslip.io` created; env saved (DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, PLATFORM_SECRETS_KEY)
 - [x] First build succeeded; site serves HTTP 200
 - [x] Fixed runtime crash: better-auth needs zod v4 (`(void 0) is not a function`) — upgraded zod to 4.6.5, 34 tests pass, typecheck clean, committed 369b843
-- [ ] Redeploy pospay-app after the zod fix reaches GitHub (platform push), then re-test /api/auth/sign-in/email
+- [x] Redeploy zod fix from synchronized GitHub commit 51fdab3
+- [ ] /api/auth/sign-in/email acceptance — zod crash resolved; pooler ENOIDENTIFIER returns 500
 - [ ] After auth works: Waleed registers dr.vet.waleedtam@gmail.com, then run db/seeds/super-admin.sql

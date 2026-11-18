@@ -6,6 +6,7 @@ import { passkey } from "@better-auth/passkey";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getPool } from "./db.server";
 import { sendWhatsAppOtp } from "./whatsapp.server";
+import { passwordRecoveryOptions } from "./password-recovery.server";
 
 function createAuth() {
   const baseURL = process.env["BETTER_AUTH_URL"];
@@ -14,7 +15,14 @@ function createAuth() {
     baseURL,
     secret: process.env["BETTER_AUTH_SECRET"],
     database: getPool(),
-    emailAndPassword: { enabled: true, disableSignUp: true },
+    emailAndPassword: passwordRecoveryOptions(),
+    rateLimit: {
+      enabled: true,
+      customRules: {
+        "/request-password-reset": { window: 60, max: 3 },
+        "/reset-password": { window: 60, max: 5 },
+      },
+    },
     plugins: [
       twoFactor({ issuer: "PosPay" }),
       phoneNumber({
