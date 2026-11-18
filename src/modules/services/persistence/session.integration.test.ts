@@ -172,11 +172,11 @@ describe.skipIf(!url)("service sessions real RLS", () => {
       withUser("s-reception", (db) =>
         db.query(
           `insert into service_sessions(company_id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,price_mills,list_price_mills,discount_reason,recorded_by)
-           select $1,$2,$3,$4,id,now(),'Hair',1,12500,'x','s-reception' from clients where company_id=$1 limit 1`,
+           values($1,$2,$3,$4,public.upsert_session_client($1,$4,'Test client','96512345678'),now(),'Hair',1,12500,'x','s-reception')`,
           [company, service, staff, branch],
         ),
       ),
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({ code: "42501" });
     await expect(
       withUser("s-reception", (db) =>
         saveDiscountGrant(db, "s-reception", company, { kind: "role", role: "reception" }, 50),
