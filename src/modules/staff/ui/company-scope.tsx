@@ -10,7 +10,9 @@ export interface CompanyScopeProps {
 export function CompanyScope({ title, children, switchLocked = false }: CompanyScopeProps) {
   const { data } = useSuspenseQuery(operatorCompaniesQuery);
   const [selected, setSelected] = useState("");
-  const companyId = selected || data.companies[0]?.id || "";
+  const companyId = data.companies.some(({ id }) => id === selected)
+    ? selected
+    : (data.companies[0]?.id ?? "");
   return (
     <section className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold">{t(title)}</h1>

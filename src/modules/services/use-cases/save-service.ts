@@ -1,5 +1,4 @@
-import type { z } from "zod";
-import type { saveServiceInput, ServiceCatalogDto } from "../contracts";
+import type { SaveServiceInput, ServiceCatalogDto } from "../contracts";
 import type { CatalogReader, CatalogWriter } from "../ports/catalog-repository";
 import { servicePrice } from "./service-price";
 
@@ -20,13 +19,13 @@ export async function loadCatalog(repo: CatalogReader): Promise<ServiceCatalogDt
   };
 }
 
-export async function saveService(repo: CatalogWriter, input: z.infer<typeof saveServiceInput>) {
+export async function saveService(repo: CatalogWriter, input: SaveServiceInput) {
   if (!(await repo.canManage())) throw new Error("FORBIDDEN");
 
   const details = {
     name: input.name,
     priceMills: servicePrice(input.price),
-    staffIds: [...new Set(input.staffIds)],
+    staffIds: [...new Set(input.staffIds.map((id) => id.toLowerCase()))],
   };
   const previous = input.id ? await repo.lock(input.id) : undefined;
   if (input.id && (!previous || previous.version !== input.version))
@@ -40,7 +39,7 @@ export async function saveService(repo: CatalogWriter, input: z.infer<typeof sav
     if (!id) {
       if (!input.requestId || !(await repo.matchesCreation(input.requestId, details)))
         throw new Error("SERVICE_REQUEST_CONFLICT");
-      return { id: input.requestId };
+      return { id: input.requestId.toLowerCase() };
     }
   }
 

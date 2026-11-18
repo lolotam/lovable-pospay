@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Pencil, Save } from "lucide-react";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
 import { getCatalogFn, saveServiceFn } from "../functions/catalog.functions";
-import type { ServiceDto } from "../contracts";
+import { saveServiceInput, type SaveServiceInput, type ServiceDto } from "../contracts";
 function kwd(value: string) {
   const n = BigInt(value);
   return `${n / 1000n}.${(n % 1000n).toString().padStart(3, "0")}`;
@@ -24,7 +24,12 @@ const catalogQuery = (companyId: string) =>
     },
   });
 export function CatalogPage() {
-  return <CompanyScope title="services.title">{(id) => <Catalog companyId={id} />}</CompanyScope>;
+  const [switchLocked, setSwitchLocked] = useState(false);
+  return (
+    <CompanyScope title="services.title" switchLocked={switchLocked}>
+      {(id) => <Catalog companyId={id} onSwitchLockChange={setSwitchLocked} />}
+    </CompanyScope>
+  );
 }
 function useCatalog({ companyId }: { companyId: string }) {
   const { data, isFetching } = useSuspenseQuery(catalogQuery(companyId));
@@ -37,9 +42,9 @@ function useCatalog({ companyId }: { companyId: string }) {
   const [staffIds, setStaff] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const createRequest = useRef<string | null>(null);
+  const [pendingCreate, setPendingCreate] = useState<SaveServiceInput | null>(null);
   function open(s: ServiceDto | null) {
-    createRequest.current = null;
+    setPendingCreate(null);
     setEdit(s);
     setName(s?.name ?? "");
     setPrice(s ? kwd(s.priceMills) : "");
@@ -49,47 +54,76 @@ function useCatalog({ companyId }: { companyId: string }) {
   }
   async function submit() {
     if (busy || isFetching) return;
+    const recovering = !!pendingCreate;
+    const parsed = saveServiceInput.safeParse(
+      pendingCreate ?? {
+        companyId,
+        name,
+        price,
+        staffIds,
+        ...(edit ? { id: edit.id, version: edit.version } : { requestId: crypto.randomUUID() }),
+      },
+    );
+    if (!parsed.success) {
+      setMessage(t("services.error"));
+      return;
+    }
+    const data = parsed.data;
+    if (!data.id) setPendingCreate(data);
     setBusy(true);
     try {
-      const result = await save({
-        data: {
-          companyId,
-          name,
-          price,
-          staffIds,
-          ...(edit
-            ? { id: edit.id, version: edit.version }
-            : { requestId: (createRequest.current ??= crypto.randomUUID()) }),
-        },
-      });
+      const result = await save({ data });
+      setPendingCreate(null);
+      if (result.status === "rejected") {
+        setMessage(t("services.error"));
+        return;
+      }
+      if (result.status === "stale") {
+        setForm(false);
+        await cache.invalidateQueries({ queryKey: ["catalog", companyId] });
+        setMessage(t("services.staleEdit"));
+        return;
+      }
       setForm(false);
       setMessage(t("ops.saved"));
       try {
         await cache.invalidateQueries({ queryKey: ["catalog", companyId] });
         const fresh = await cache.fetchQuery(catalogQuery(companyId));
-        if (!fresh?.services.some((s) => s.id === result.id && s.name === name.trim())) {
+        const saved = fresh?.services.find((s) => s.id === result.id);
+        if (recovering && saved) open(saved);
+        if (!saved || (!recovering && saved.name !== data.name)) {
           setMessage(t("services.savedRefreshFailed"));
         }
       } catch {
         setMessage(t("services.savedRefreshFailed"));
       }
     } catch {
-      setMessage(t("services.error"));
+      setMessage(t(data.id ? "services.error" : "services.createUnconfirmed"));
     } finally {
       setBusy(false);
     }
   }
   const fields = { name, setName, price, setPrice, staffIds, setStaff };
-  return { data, edit, form, ...fields, busy, message, open, submit, setForm };
+  return { data, edit, form, ...fields, busy, message, open, submit, setForm, pendingCreate };
 }
-function Catalog({ companyId }: { companyId: string }) {
+function Catalog({
+  companyId,
+  onSwitchLockChange,
+}: {
+  companyId: string;
+  onSwitchLockChange: (locked: boolean) => void;
+}) {
   const state = useCatalog({ companyId });
-  const { data, busy, open, message } = state;
+  const { data, busy, open, message, pendingCreate } = state;
+  useEffect(() => {
+    onSwitchLockChange(busy || !!pendingCreate);
+    return () => onSwitchLockChange(false);
+  }, [busy, pendingCreate, onSwitchLockChange]);
   if (!data) return <p role="alert">{t("ops.forbidden")}</p>;
   return (
     <div className="space-y-6">
       {data.canManage && (
-        <Button onClick={() => open(null)} disabled={busy}>
+        <Button onClick={() => open(null)} disabled={busy || !!pendingCreate}>
           <Plus />
           {t("services.add")}
         </Button>
@@ -103,7 +137,8 @@ function Catalog({ companyId }: { companyId: string }) {
 }
 type CatalogState = ReturnType<typeof useCatalog>;
 function CatalogForm({ state }: { state: CatalogState }) {
-  const { data, form, name, setName, price, setPrice, busy, submit, setForm } = state;
+  const { data, form, name, setName, price, setPrice, busy, submit, setForm, pendingCreate } =
+    state;
   if (!data) return null;
   return (
     <>
@@ -118,6 +153,7 @@ function CatalogForm({ state }: { state: CatalogState }) {
           <label className="block space-y-2">
             <span>{t("services.name")}</span>
             <Input
+              disabled={busy || !!pendingCreate}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -127,6 +163,7 @@ function CatalogForm({ state }: { state: CatalogState }) {
           <label className="block space-y-2">
             <span>{t("services.price")}</span>
             <Input
+              disabled={busy || !!pendingCreate}
               dir="ltr"
               inputMode="decimal"
               value={price}
@@ -139,9 +176,14 @@ function CatalogForm({ state }: { state: CatalogState }) {
           <div className="flex gap-3">
             <Button disabled={busy}>
               <Save />
-              {t("services.save")}
+              {t(pendingCreate ? "services.retryCreate" : "services.save")}
             </Button>
-            <Button type="button" variant="outline" disabled={busy} onClick={() => setForm(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy || !!pendingCreate}
+              onClick={() => setForm(false)}
+            >
               {t("phone.cancel")}
             </Button>
           </div>
@@ -151,7 +193,7 @@ function CatalogForm({ state }: { state: CatalogState }) {
   );
 }
 function CatalogItems({ state }: { state: CatalogState }) {
-  const { data, busy, open } = state;
+  const { data, busy, open, pendingCreate } = state;
   if (!data) return null;
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -168,7 +210,7 @@ function CatalogItems({ state }: { state: CatalogState }) {
               .join(" · ") || t("services.unassigned")}
           </p>
           {data.canManage && (
-            <Button variant="outline" disabled={busy} onClick={() => open(s)}>
+            <Button variant="outline" disabled={busy || !!pendingCreate} onClick={() => open(s)}>
               <Pencil />
               {t("services.edit")}
             </Button>
@@ -180,10 +222,10 @@ function CatalogItems({ state }: { state: CatalogState }) {
 }
 
 function AssignmentFields({ state }: { state: CatalogState }) {
-  const { data, staffIds, setStaff } = state;
+  const { data, staffIds, setStaff, busy, pendingCreate } = state;
   if (!data) return null;
   return (
-    <fieldset className="space-y-2">
+    <fieldset disabled={busy || !!pendingCreate} className="space-y-2">
       <legend>{t("services.assign")}</legend>
       {data.staff.map((s) => (
         <label key={s.id} className="flex min-h-11 items-center gap-3">

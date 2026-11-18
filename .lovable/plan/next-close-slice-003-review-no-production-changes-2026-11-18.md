@@ -14,6 +14,6 @@ Finish the one open item that does not wait on Waleed: the 003 standards review 
 
 ## Out of scope (waits on external gates)
 - Authenticated/scanner acceptance (preview auth not configured).
-- Production migrations 0011/0012, deploy, Dokploy env (needs Waleed approval).
+- Production migrations 0011?0013, deployment, and Dokploy environment changes are separate from review closure and follow their own approval gates.
 - Service session recording (workflow and discount rule ق-1 not approved).
 - Google login (postponed).

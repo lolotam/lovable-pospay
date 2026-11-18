@@ -62,10 +62,11 @@ export function pgCatalogWriter(
       return row && { ...row, priceMills: BigInt(row.priceMills) };
     },
     async update(id, details) {
-      await db.query(
+      const result = await db.query(
         "update public.service_catalog set name=$3,price_mills=$4,version=version+1 where company_id=$1 and id=$2",
         [companyId, id, details.name, details.priceMills.toString()],
       );
+      if (result.rowCount !== 1) throw new Error("SERVICE_CONFLICT");
     },
     async create(details, requestId) {
       const { rows } = await db.query<{ id: string }>(

@@ -20,5 +20,21 @@ export const saveServiceFn = createServerFn({ method: "POST" })
     const { withUser } = await import("@/lib/server/db.server");
     const { pgCatalogWriter } = await import("../persistence/catalog.server");
     const userId = await requireUserId();
-    return withUser(userId, (db) => saveService(pgCatalogWriter(db, userId, data.companyId), data));
+    try {
+      return {
+        status: "saved" as const,
+        ...(await withUser(userId, (db) =>
+          saveService(pgCatalogWriter(db, userId, data.companyId), data),
+        )),
+      };
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        ["FORBIDDEN", "SERVICE_REQUEST_CONFLICT"].includes(error.message)
+      )
+        return { status: "rejected" as const };
+      if (error instanceof Error && error.message === "SERVICE_CONFLICT")
+        return { status: "stale" as const };
+      throw error;
+    }
   });

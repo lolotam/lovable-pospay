@@ -90,6 +90,14 @@ describe.skipIf(!url)("service sessions real RLS", () => {
       run("s-reception", requestId),
     ]);
     expect(duplicates).toEqual([{ id: requestId }, { id: requestId }]);
+    const rowsVisibleToWriter = await withUser("s-reception", async (db) => {
+      const { rowCount } = await db.query(
+        "select id from public.service_sessions where company_id=$1",
+        [company],
+      );
+      return rowCount;
+    });
+    expect(rowsVisibleToWriter).toBe(0);
     const rows = await withUser("s-owner", (db) =>
       loadSessionReport(() =>
         readSessionReport(
@@ -125,6 +133,7 @@ describe.skipIf(!url)("service sessions real RLS", () => {
     });
   });
   it("same phone reuses one client per company (D-30)", async () => {
+    await run("s-reception");
     await run("s-reception");
     const c = await admin.query(`select count(*)::int as n from clients where company_id=$1`, [
       company,

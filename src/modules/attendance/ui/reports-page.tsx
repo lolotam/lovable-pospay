@@ -1,18 +1,26 @@
 import type { AttendanceReportRow, OperationalReport, ReportTab } from "../report.contracts";
 import { Suspense, useState } from "react";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { authClient } from "@/lib/auth-client";
 import { CompanyScope } from "@/modules/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { t } from "@/i18n";
 import { getOperationalReportFn } from "../functions/report.functions";
-import { buildTable, downloadCsv, formatReportDate, printPdf } from "./report-export";
+import { buildTable, downloadCsv, formatMills, formatReportDate, printPdf } from "./report-export";
 export function ReportsPage() {
+  const { data: session, isPending } = authClient.useSession();
+  if (isPending) return <p role="status">{t("phone.loading")}</p>;
+  const userId = session?.user.id;
+  if (!userId) return <p role="status">{t("attend.signInFirst")}</p>;
   return (
-    <CompanyScope title="reports.title">{(id) => <ReportFilters companyId={id} />}</CompanyScope>
+    <CompanyScope title="reports.title" key={userId}>
+      {(id) => <ReportFilters companyId={id} userId={userId} />}
+    </CompanyScope>
   );
 }
-function ReportFilters({ companyId }: { companyId: string }) {
+function ReportFilters({ companyId, userId }: { companyId: string; userId: string }) {
   const [from, setFrom] = useState("");
   const [until, setUntil] = useState("");
   const [range, setRange] = useState<{ from: string; until: string; fromDate: string } | null>(
@@ -58,7 +66,7 @@ function ReportFilters({ companyId }: { companyId: string }) {
       {error && <p role="alert">{t("reports.invalid")}</p>}
       {range && (
         <Suspense fallback={<p>{t("phone.loading")}</p>}>
-          <ReportRows companyId={companyId} range={range} />
+          <ReportRows companyId={companyId} range={range} userId={userId} />
         </Suspense>
       )}
     </div>
@@ -66,52 +74,42 @@ function ReportFilters({ companyId }: { companyId: string }) {
 }
 type ReportRange = { from: string; until: string; fromDate: string };
 
-function ReportRows({ companyId, range }: { companyId: string; range: ReportRange }) {
-  const [tab, setTab] = useState<ReportTab>("attendance");
+type ReportScope = { companyId: string; range: ReportRange; userId: string };
+
+function ReportRows({ companyId, range, userId }: ReportScope) {
+  const tabs = [
+    { value: "attendance", label: "reports.attendance" },
+    { value: "corrected", label: "reports.corrected" },
+    { value: "services", label: "reports.services" },
+  ] as const;
   return (
-    <section className="space-y-4">
-      <div role="tablist" className="flex flex-wrap gap-2">
-        {(["attendance", "corrected", "services"] as const).map((v) => (
-          <Button
-            key={v}
-            role="tab"
-            aria-selected={tab === v}
-            variant={tab === v ? "default" : "outline"}
-            onClick={() => setTab(v)}
-          >
-            {t(
-              v === "attendance"
-                ? "reports.attendance"
-                : v === "corrected"
-                  ? "reports.corrected"
-                  : "reports.services",
-            )}
-          </Button>
+    <Tabs defaultValue="attendance" dir="rtl" activationMode="manual" className="space-y-4">
+      <TabsList className="h-auto flex-wrap">
+        {tabs.map(({ value, label }) => (
+          <TabsTrigger key={value} value={value}>
+            {t(label)}
+          </TabsTrigger>
         ))}
-      </div>
-      <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
-        <ReportTabRows companyId={companyId} range={range} tab={tab} />
-      </Suspense>
-    </section>
+      </TabsList>
+      {tabs.map(({ value }) => (
+        <TabsContent key={value} value={value}>
+          <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
+            <ReportTabRows companyId={companyId} range={range} tab={value} userId={userId} />
+          </Suspense>
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }
 
-function ReportTabRows({
-  companyId,
-  range,
-  tab,
-}: {
-  companyId: string;
-  range: ReportRange;
-  tab: ReportTab;
-}) {
+function ReportTabRows({ companyId, range, tab, userId }: ReportScope & { tab: ReportTab }) {
   const { data } = useSuspenseQuery(
     queryOptions({
-      queryKey: ["reports", companyId, range, tab],
+      queryKey: ["reports", userId, companyId, range, tab],
       queryFn: async () => {
         try {
           return await getOperationalReportFn({
-            data: { companyId, from: range.from, until: range.until, tab },
+            data: { companyId, expectedUserId: userId, from: range.from, until: range.until, tab },
           });
         } catch {
           return null;
@@ -189,8 +187,7 @@ function SessionRows({ rows }: { rows: OperationalReport["sessions"] }) {
             </p>
           )}
           <p dir="ltr">
-            {`${BigInt(r.priceMills) / 1000n}.${(BigInt(r.priceMills) % 1000n).toString().padStart(3, "0")}`}{" "}
-            {t("ops.kwd")}
+            {formatMills(r.priceMills)} {t("ops.kwd")}
           </p>
         </article>
       ))}

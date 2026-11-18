@@ -6,6 +6,7 @@ export type ReportTab = z.infer<typeof reportTabSchema>;
 export const reportInput = z
   .object({
     companyId: z.string().uuid(),
+    expectedUserId: z.string().min(1),
     tab: reportTabSchema,
     from: z.string().datetime({ offset: true }),
     until: z.string().datetime({ offset: true }),

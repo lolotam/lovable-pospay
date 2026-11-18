@@ -112,6 +112,8 @@ describe.skipIf(!url)("service catalog under PostgreSQL RLS", () => {
       withUser("catalog-staff", (db) =>
         saveService(db, "catalog-staff", {
           companyId: company,
+          id: crypto.randomUUID(),
+          version: 1,
           name: "Forbidden",
           price: "1.000",
           staffIds: [],

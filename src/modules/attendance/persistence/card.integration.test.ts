@@ -13,7 +13,7 @@ import {
   loadCardManagement,
   revokeCardUseCase,
 } from "../use-cases/card-actions";
-import { recordCard } from "../use-cases/card-scan";
+import { readCardStatus, recordCard } from "../use-cases/card-scan";
 import { cryptoIds } from "@/shared/kernel/ids";
 const issueCard = (db: pg.PoolClient, user: string, company: string, staff: string) =>
   issueCardUseCase(pgCardRepository(db, user, company), cardTokens, staff);
@@ -190,6 +190,11 @@ describe.skipIf(!url)("card/report real RLS", () => {
       ).result.outcome,
     ).toBe("checked_in");
     await expect(
+      withUser("cards-reception", async (db) =>
+        readCardStatus(await readCardScan(db, "cards-reception", { companyId: company, token })),
+      ),
+    ).resolves.toEqual({ name: "Mona", checkedIn: true });
+    await expect(
       withUser("cards-reception", (db) =>
         db.query(
           "update public.attendance_records set late_minutes=99 where company_id=$1 and status='open'",
@@ -204,6 +209,11 @@ describe.skipIf(!url)("card/report real RLS", () => {
         )
       ).result.outcome,
     ).toBe("checked_out");
+    await expect(
+      withUser("cards-reception", async (db) =>
+        readCardStatus(await readCardScan(db, "cards-reception", { companyId: company, token })),
+      ),
+    ).resolves.toEqual({ name: "Mona", checkedIn: false });
     await expect(
       withUser(
         "cards-reception",

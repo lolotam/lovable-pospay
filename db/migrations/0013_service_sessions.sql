@@ -29,13 +29,21 @@ drop policy if exists clients_update on public.clients;
 alter table public.service_sessions add column if not exists client_id uuid;
 alter table public.service_sessions add column if not exists recorded_by text;
 do $$ begin
- if not exists(select 1 from pg_constraint where conname='service_sessions_client_fk') then
+ if not exists(select 1 from pg_constraint where conname='service_sessions_client_fk' and conrelid='public.service_sessions'::regclass) then
   alter table public.service_sessions add constraint service_sessions_client_fk foreign key(company_id,client_id) references public.clients(company_id,id);
  end if;
 end $$;
 grant insert on public.service_sessions to pospay_app;
 drop policy if exists sessions_writer_read on public.service_sessions;
-create policy sessions_writer_read on public.service_sessions for select to pospay_app using(public.session_writer(company_id,branch_id));
+-- A writer can confirm their own request without gaining access to report rows.
+create or replace function public.owns_recorded_session(_company uuid, _id uuid) returns boolean
+language sql stable security definer set search_path=pg_catalog as $$
+ select exists(select 1 from public.service_sessions s where s.company_id=_company
+  and s.id=_id and s.recorded_by=public.current_app_user()
+  and public.session_writer(s.company_id,s.branch_id))
+$$;
+revoke all on function public.owns_recorded_session(uuid,uuid) from public;
+grant execute on function public.owns_recorded_session(uuid,uuid) to pospay_app;
 drop policy if exists sessions_insert on public.service_sessions;
 create policy sessions_insert on public.service_sessions for insert to pospay_app with check(public.session_writer(company_id,branch_id) and recorded_by=public.current_app_user() and client_id is not null);
 

@@ -51,6 +51,10 @@ create policy sessions_report on public.service_sessions for select to pospay_ap
 drop policy if exists attendance_report on public.attendance_records;
 create policy attendance_report on public.attendance_records for select to pospay_app using(public.report_reader(company_id,branch_id));
 
+-- Run at the end of the migration and fail atomically if acquiring the write lock
+-- or building the index exceeds the release budget. Check production table size first.
+set local lock_timeout = '2s';
+set local statement_timeout = '5s';
 create index if not exists attendance_report_company_time
  on public.attendance_records(company_id,check_in_at desc);
 create index if not exists service_report_company_time

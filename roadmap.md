@@ -4,7 +4,7 @@
 - [x] 003 barcode fallback implementation: manager-only issue, immediate manager revocation, one active method per employee; company policy approval screen, printable cards and reception scanning. Decisions approved by Waleed.
 - [x] Services catalog implementation: create/edit prices in bigint mills and employee assignments.
 - [x] Operational reports implementation: date-range attendance, corrected checkouts and recorded service sessions; tenant/role isolation.
-- [x] 003 final review closure (12:33 Kuwait): card issue/revoke orchestration moved to use-cases behind ports/card-repository.ts; persistence only implements the port. 5 new use-case tests; full suite 180/180 on local pospay_test; lint 0 errors on attendance; tsgo OK. Self-review only (no independent reviewer).
+- [x] 003 final review closure (12:33 Kuwait): card issue/revoke orchestration moved to use-cases behind ports/card-repository.ts; persistence only implements the port. 5 new use-case tests; full suite 180/180 on local pospay_test; lint 0 errors on attendance; tsgo OK. Self-review at that revision. Independent review of the current release head is tracked separately in PR #5.
 - [ ] Authenticated UI/physical scanner acceptance blocked by preview AUTH_NOT_CONFIGURED; production migrations/deployment and exact-head PR/CI remain external gates. Services session writer added in 011 (see below).
 - [x] Local migrations 0011/0012 double-applied, tenant negative SQL and card/catalog/report integration verified. See docs/specs/003-barcode/verification.md for check evidence.
 

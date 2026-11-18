@@ -42,16 +42,13 @@ export function pgSessionRepository(
     },
     async lockRecordedSession(id) {
       await db.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [
-        `service-session:${companyId}:${id}`,
+        `service-session:${companyId.toLowerCase()}:${id.toLowerCase()}`,
       ]);
-      const r = await db.query<{ recorded_by: string | null }>(
-        "select recorded_by from public.service_sessions where company_id=$1 and id=$2",
+      const { rows } = await db.query<{ owned: boolean }>(
+        "select public.owns_recorded_session($1,$2) as owned",
         [companyId, id],
       );
-      const row = r.rows[0];
-      if (!row) return false;
-      if (row.recorded_by !== userId) throw new Error("FORBIDDEN");
-      return true;
+      return rows[0]?.owned === true;
     },
     async upsertClient(branchId, name, phone) {
       const r = await db.query("select public.upsert_session_client($1,$2,$3,$4) as id", [

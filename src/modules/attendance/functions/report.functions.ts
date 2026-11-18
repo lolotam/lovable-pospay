@@ -9,7 +9,9 @@ export const getOperationalReportFn = createServerFn({ method: "GET" })
     const { readAttendanceReport } = await import("../persistence/report.server");
     const { loadSessionReport, readSessionReport } =
       await import("@/modules/services/index.server");
-    return withUser(await requireUserId(), (db) =>
+    const userId = await requireUserId();
+    if (userId !== data.expectedUserId) throw new Error("FORBIDDEN");
+    return withUser(userId, (db) =>
       readOperationalReport(data.tab, {
         attendance: (limit, correctedOnly) =>
           readAttendanceReport(db, data.companyId, data.from, data.until, limit, correctedOnly),

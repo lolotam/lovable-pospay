@@ -8,6 +8,7 @@ export const saveServiceInput = serviceScope.extend({
   price: z.string().regex(/^\d{1,12}(\.\d{1,3})?$/),
   staffIds: z.array(z.string().uuid()).max(500),
 });
+export type SaveServiceInput = z.infer<typeof saveServiceInput>;
 export interface ServiceDto {
   id: string;
   name: string;

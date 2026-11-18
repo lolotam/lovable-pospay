@@ -3,6 +3,11 @@ import type { AttendanceRepository, BranchInfo } from "../ports/attendance-repos
 import type { Clock } from "@/shared/kernel/clock";
 import type { IdGenerator } from "@/shared/kernel/ids";
 import { recordAttendance } from "./record-attendance";
+export async function readCardStatus(context: CardScanContext) {
+  const open = await context.repo.openRecord(context.branch.companyId, context.staffId);
+  return { name: context.name, checkedIn: !!open };
+}
+
 export interface CardScanContext {
   name: string;
   branch: BranchInfo;

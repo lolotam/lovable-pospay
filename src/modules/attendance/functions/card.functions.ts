@@ -4,11 +4,17 @@ import {
   loadCardManagement,
   revokeCardUseCase,
 } from "../use-cases/card-actions";
-import { recordCard } from "../use-cases/card-scan";
+import { readCardStatus, recordCard } from "../use-cases/card-scan";
 import { systemClock } from "@/shared/kernel/clock";
 import { cryptoIds } from "@/shared/kernel/ids";
 import { createServerFn } from "@tanstack/react-start";
-import { cardScope, cardStaffInput, revokeCardInput, cardScanInput } from "../card.contracts";
+import {
+  cardScope,
+  cardStaffInput,
+  revokeCardInput,
+  cardScanInput,
+  cardStatusInput,
+} from "../card.contracts";
 export const getCardsFn = createServerFn({ method: "GET" })
   .inputValidator((v: unknown) => cardScope.parse(v))
   .handler(async ({ data }) => {
@@ -58,6 +64,16 @@ export const revokeCardFn = createServerFn({ method: "POST" })
       revokeCardUseCase(pgCardRepository(db, id, data.companyId), data.cardId),
     );
   });
+export const getCardStatusFn = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => cardStatusInput.parse(v))
+  .handler(async ({ data }) => {
+    const { requireUserId } = await import("@/lib/server/session.server");
+    const { withUser } = await import("@/lib/server/db.server");
+    const { scanCard } = await import("../persistence/card-scan.server");
+    const id = await requireUserId();
+    return withUser(id, async (db) => readCardStatus(await scanCard(db, id, data)));
+  });
+
 export const scanCardFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => cardScanInput.parse(v))
   .handler(async ({ data }) => {
@@ -65,7 +81,21 @@ export const scanCardFn = createServerFn({ method: "POST" })
     const { withUser } = await import("@/lib/server/db.server");
     const { scanCard } = await import("../persistence/card-scan.server");
     const id = await requireUserId();
-    return withUser(id, async (db) =>
-      recordCard({ ...data, location: null }, await scanCard(db, id, data), systemClock, cryptoIds),
-    );
+    try {
+      return {
+        status: "recorded" as const,
+        scan: await withUser(id, async (db) =>
+          recordCard(
+            { ...data, location: null },
+            await scanCard(db, id, data),
+            systemClock,
+            cryptoIds,
+          ),
+        ),
+      };
+    } catch (error) {
+      if (error instanceof Error && ["CARD_REVOKED", "FORBIDDEN"].includes(error.message))
+        return { status: "rejected" as const };
+      throw error;
+    }
   });
