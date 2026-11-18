@@ -58,7 +58,8 @@ export function CardsPage() {
 type CardActionScope = Pick<CardActionsProps, "companyId" | "userId" | "issued" | "onIssuedChange">;
 
 function useCards({ companyId, userId, issued, onIssuedChange }: CardActionScope) {
-  const { data, isFetching, refetch } = useSuspenseQuery(cardQuery(companyId, userId));
+  const { data, fetchStatus, refetch } = useSuspenseQuery(cardQuery(companyId, userId));
+  const isFetching = fetchStatus !== "idle";
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [message, setMessage] = useState("");

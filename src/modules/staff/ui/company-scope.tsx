@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { CatchBoundary } from "@tanstack/react-router";
+import { QueryErrorResetBoundary, useSuspenseQuery } from "@tanstack/react-query";
 import { isAuthNotConfigured } from "@/lib/auth-errors";
 import {
   clearAccountVerificationFailure,
@@ -41,14 +42,12 @@ export function CompanyScope(props: CompanyScopeProps) {
   const userId = data?.user.id;
   if (!userId) return <p role="status">{t("attend.signInFirst")}</p>;
   return (
-    <Suspense key={userId} fallback={<p role="status">{t("phone.loading")}</p>}>
-      <SignedInCompanyScope
-        {...props}
-        userId={userId}
-        selected={selection?.userId === userId ? selection.companyId : ""}
-        setSelected={(companyId) => setSelection({ userId, companyId })}
-      />
-    </Suspense>
+    <AuthenticatedCompanies
+      {...props}
+      userId={userId}
+      selected={selection?.userId === userId ? selection.companyId : ""}
+      setSelected={(companyId) => setSelection({ userId, companyId })}
+    />
   );
 }
 
@@ -63,6 +62,47 @@ function SessionVerificationError({ retry }: { retry: () => void }) {
   );
 }
 
+type SignedInProps = CompanyScopeProps & {
+  userId: string;
+  selected: string;
+  setSelected: (companyId: string) => void;
+};
+
+function AuthenticatedCompanies(props: SignedInProps) {
+  return (
+    <QueryErrorResetBoundary>
+      {({ reset }) => (
+        <CatchBoundary
+          getResetKey={() => props.userId}
+          errorComponent={({ reset: resetView }) => (
+            <CompanyLookupError
+              retry={() => {
+                reset();
+                resetView();
+              }}
+            />
+          )}
+        >
+          <Suspense key={props.userId} fallback={<p role="status">{t("phone.loading")}</p>}>
+            <SignedInCompanyScope {...props} />
+          </Suspense>
+        </CatchBoundary>
+      )}
+    </QueryErrorResetBoundary>
+  );
+}
+
+function CompanyLookupError({ retry }: { retry: () => void }) {
+  return (
+    <div className="space-y-2">
+      <p role="alert">{t("ops.forbidden")}</p>
+      <Button type="button" onClick={retry}>
+        {t("ops.retryLoad")}
+      </Button>
+    </div>
+  );
+}
+
 function SignedInCompanyScope({
   title,
   children,
@@ -70,12 +110,8 @@ function SignedInCompanyScope({
   userId,
   selected,
   setSelected,
-}: CompanyScopeProps & {
-  userId: string;
-  selected: string;
-  setSelected: (companyId: string) => void;
-}) {
-  const { data } = useSuspenseQuery(operatorCompaniesQuery(userId));
+}: SignedInProps) {
+  const { data, isError, refetch } = useSuspenseQuery(operatorCompaniesQuery(userId));
   const companyId = data.companies.some(({ id }) => id === selected)
     ? selected
     : (data.companies[0]?.id ?? "");
@@ -85,7 +121,9 @@ function SignedInCompanyScope({
   return (
     <section className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold">{t(title)}</h1>
-      {data.error ? (
+      {isError ? (
+        <CompanyLookupError retry={() => void refetch()} />
+      ) : data.error ? (
         <p role="status">{t(data.error)}</p>
       ) : !companyId ? (
         <p>{t("phone.noCompanies")}</p>

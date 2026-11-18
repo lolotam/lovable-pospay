@@ -151,10 +151,16 @@ async function replaceAssignments(
     [companyId, staffIds],
   );
   if (selected.rowCount !== staffIds.length) return false;
-  await db.query(
-    "update public.service_assignments set active=false where company_id=$1 and service_id=$2",
+  const cleared = await db.query<{ complete: boolean }>(
+    `with existing as materialized (
+       select 1 from public.service_assignments where company_id=$1 and service_id=$2 and active
+     ), updated as (
+       update public.service_assignments set active=false where company_id=$1 and service_id=$2 and active returning 1
+     )
+     select (select count(*) from existing)=(select count(*) from updated) as complete`,
     [companyId, id],
   );
+  if (!cleared.rows[0]?.complete) return false;
   await db.query(
     `insert into public.service_assignments(company_id,service_id,staff_id)
        select $1,$2,staff_id from unnest($3::uuid[]) as assigned(staff_id)

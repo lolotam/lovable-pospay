@@ -106,13 +106,14 @@ export const scanCardFn = createServerFn({ method: "POST" })
     withCardRequest(data, async ({ db, userId, receipts }) => {
       const { scanCard } = await import("../persistence/card-scan.server");
       const { cardHash } = await import("../persistence/card-repository.server");
+      const promptedRecordId = data.promptedRecordId?.toLowerCase();
       const fingerprint = await cardHash(
-        JSON.stringify([data.token, data.intent, data.promptedRecordId?.toLowerCase() ?? null]),
+        JSON.stringify([data.token, data.intent, promptedRecordId ?? null]),
       );
       return recordCardRequest(receipts, fingerprint, () =>
         executeCardScan(async () =>
           recordCard(
-            { ...data, location: null },
+            { ...data, ...(promptedRecordId ? { promptedRecordId } : {}), location: null },
             await scanCard(db, userId, data),
             systemClock,
             cryptoIds,

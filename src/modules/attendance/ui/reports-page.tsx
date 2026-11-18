@@ -84,7 +84,13 @@ function ReportRows({ companyId, range, userId }: ReportScope) {
       </TabsList>
       {tabs.map(({ value }) => (
         <TabsContent key={value} value={value}>
-          <ReportTabRows companyId={companyId} range={range} tab={value} userId={userId} />
+          <ReportTabRows
+            key={JSON.stringify(range)}
+            companyId={companyId}
+            range={range}
+            tab={value}
+            userId={userId}
+          />
         </TabsContent>
       ))}
     </Tabs>
@@ -92,15 +98,17 @@ function ReportRows({ companyId, range, userId }: ReportScope) {
 }
 
 function ReportTabRows({ companyId, range, tab, userId }: ReportScope & { tab: ReportTab }) {
-  const { data, isError, isPending, isFetching, refetch } = useQuery({
+  const { data, isError, isPending, isFetching, isFetchedAfterMount, refetch } = useQuery({
     queryKey: ["reports", userId, companyId, range, tab],
     queryFn: () =>
       getOperationalReportFn({
         data: { companyId, expectedUserId: userId, from: range.from, until: range.until, tab },
       }),
     retry: 1,
+    refetchOnMount: "always",
   });
-  if (isPending) return <p role="status">{t("phone.loading")}</p>;
+  if (isPending || (!isError && (!isFetchedAfterMount || isFetching)))
+    return <p role="status">{t("phone.loading")}</p>;
   if (isError) {
     return (
       <div className="space-y-2">

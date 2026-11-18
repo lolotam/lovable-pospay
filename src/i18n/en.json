@@ -197,6 +197,7 @@
   "cards.scanError": "Card revoked, invalid or outside your permissions.",
   "ops.saved": "Saved and verified",
   "ops.forbidden": "Could not load data; check connection and permissions.",
+  "ops.retryLoad": "Retry loading",
   "ops.empty": "No records",
   "ops.kwd": "KWD",
   "services.title": "Services and prices",

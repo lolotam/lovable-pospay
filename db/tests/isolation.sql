@@ -15,7 +15,7 @@ insert into public.attendance_records (company_id, id, staff_id, branch_id, work
   select s.company_id, gen_random_uuid(), s.id, s.branch_id, current_date, now() from public.staff_members s;
 
 insert into public.card_scan_requests(company_id,actor_user_id,id,fingerprint,result)
- values ('00000000-0000-0000-0000-00000000000b','user-b',gen_random_uuid(),repeat('b',64),'{}');
+ values ('00000000-0000-0000-0000-00000000000b','user-a',gen_random_uuid(),repeat('b',64),'{}');
 insert into public.card_policies(company_id,approved_by) values ('00000000-0000-0000-0000-00000000000b','user-b');
 insert into public.attendance_cards(company_id,staff_id,token_hash,issued_by)
  select company_id,id,repeat('b',64),'user-b' from public.staff_members where user_id='user-b';

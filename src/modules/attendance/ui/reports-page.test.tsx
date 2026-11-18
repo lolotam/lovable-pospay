@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { expect, it, vi } from "vitest";
 import { t } from "@/i18n";
@@ -44,4 +44,37 @@ it("retries a failed report with the original account, company, range and tab", 
   });
   expect(second).toEqual(first);
   expect(manual).toEqual(first);
+});
+
+it("holds cached exports until report access is freshly verified", async () => {
+  let deny!: (result: string) => void;
+  getReport.mockReset().mockReturnValueOnce(
+    new Promise((resolve) => {
+      deny = resolve;
+    }),
+  );
+  const cache = new QueryClient();
+  const from = "2026-11-01T09:00",
+    until = "2026-11-02T09:00";
+  const range = {
+    from: new Date(from).toISOString(),
+    until: new Date(until).toISOString(),
+    fromDate: "2026-11-01",
+  };
+  cache.setQueryData(["reports", "report-user", "company", range, "attendance"], {
+    attendance: [],
+    sessions: [],
+  });
+  render(
+    <QueryClientProvider client={cache}>
+      <ReportsPage />
+    </QueryClientProvider>,
+  );
+  fireEvent.change(screen.getByLabelText(t("reports.from")), { target: { value: from } });
+  fireEvent.change(screen.getByLabelText(t("reports.until")), { target: { value: until } });
+  fireEvent.click(screen.getByRole("button", { name: t("reports.show") }));
+  expect(screen.queryByRole("button", { name: t("export.csv") })).not.toBeInTheDocument();
+  await act(async () => deny("FORBIDDEN"));
+  expect(await screen.findByRole("alert")).toHaveTextContent(t("ops.denied"));
+  expect(screen.queryByRole("button", { name: t("export.pdf") })).not.toBeInTheDocument();
 });

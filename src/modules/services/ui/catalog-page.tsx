@@ -1,10 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import {
-  queryOptions,
-  useSuspenseQuery,
-  useQueryClient,
-  type QueryClient,
-} from "@tanstack/react-query";
+import { queryOptions, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Pencil, Save } from "lucide-react";
 import { CompanyScope } from "@/modules/staff";
@@ -20,15 +15,11 @@ function kwd(value: string) {
 const catalogQuery = (companyId: string, userId: string) =>
   queryOptions({
     queryKey: ["catalog", userId, companyId],
-    queryFn: async () => {
-      try {
-        return await getCatalogFn({ data: { companyId, expectedUserId: userId } });
-      } catch {
-        return null;
-      }
-    },
+    queryFn: () => getCatalogFn({ data: { companyId, expectedUserId: userId } }),
+    retry: 1,
   });
-type PendingCreates = Map<string, SaveServiceInput>;
+type PendingCreate = SaveServiceInput & { confirmedId?: string };
+type PendingCreates = Map<string, PendingCreate>;
 
 export function CatalogPage() {
   const pendingCreates = useRef<PendingCreates>(new Map());
@@ -63,12 +54,18 @@ function usePendingCreate(drafts: PendingCreates, companyId: string, userId: str
     setPending(data);
     return true;
   }
+  function confirm(request: SaveServiceInput, confirmedId: string) {
+    if (drafts.get(key)?.requestId !== request.requestId) return;
+    const confirmed = { ...request, confirmedId };
+    drafts.set(key, confirmed);
+    if (mounted.current) setPending(confirmed);
+  }
   function complete(requestId: string | undefined) {
     if (!requestId || !mounted.current || drafts.get(key)?.requestId !== requestId) return;
     drafts.delete(key);
     setPending(undefined);
   }
-  return { pendingCreate, remember, complete };
+  return { pendingCreate, remember, complete, confirm };
 }
 
 function useCatalogForm(pendingCreate: SaveServiceInput | undefined) {
@@ -111,16 +108,13 @@ async function refreshSavedService(
   userId: string,
   id: string,
   name: string,
-  recovering: boolean,
-  open: (service: ServiceDto) => void,
 ) {
   const options = catalogQuery(companyId, userId);
   try {
     await cache.invalidateQueries({ queryKey: options.queryKey });
     const refreshed = await cache.fetchQuery(options);
     const saved = refreshed?.services.find((service) => service.id === id);
-    if (recovering && saved) open(saved);
-    if (saved && (recovering || saved.name === name)) return;
+    if (saved?.name === name) return;
   } catch {
     // The mutation already succeeded. Report only the refresh failure.
   }
@@ -128,14 +122,18 @@ async function refreshSavedService(
 }
 
 function useCatalog(companyId: string, userId: string, drafts: PendingCreates) {
-  const { data, isFetching } = useSuspenseQuery(catalogQuery(companyId, userId));
+  const query = useQuery(catalogQuery(companyId, userId));
   const cache = useQueryClient();
   const save = useServerFn(saveServiceFn);
-  const { pendingCreate, remember, complete } = usePendingCreate(drafts, companyId, userId);
+  const { pendingCreate, remember, complete, confirm } = usePendingCreate(
+    drafts,
+    companyId,
+    userId,
+  );
   const state = useCatalogForm(pendingCreate);
-  const { edit, name, price, staffIds, busy, setBusy, setForm, setMessage, open } = state;
+  const { edit, name, price, staffIds, busy, setBusy, setForm, setMessage } = state;
   async function submit() {
-    if (busy || isFetching) return;
+    if (busy || query.isFetching || pendingCreate?.confirmedId) return;
     const recovering = !!pendingCreate;
     const parsed = saveServiceInput.safeParse(
       pendingCreate ?? {
@@ -156,6 +154,11 @@ function useCatalog(companyId: string, userId: string, drafts: PendingCreates) {
     try {
       const result = await save({ data: { ...data, expectedUserId: userId } });
       if (result.status === "unverified") throw new Error("Account changed during save");
+      if (result.status === "saved" && recovering) {
+        confirm(data, result.id);
+        await query.refetch();
+        return;
+      }
       complete(data.requestId);
       if (result.status === "rejected") {
         setMessage(t("services.error"));
@@ -169,15 +172,7 @@ function useCatalog(companyId: string, userId: string, drafts: PendingCreates) {
       }
       setForm(false);
       setMessage(t("ops.saved"));
-      const message = await refreshSavedService(
-        cache,
-        companyId,
-        userId,
-        result.id,
-        data.name,
-        recovering,
-        open,
-      );
+      const message = await refreshSavedService(cache, companyId, userId, result.id, data.name);
       if (message) setMessage(t(message));
     } catch {
       setMessage(t(data.id ? "services.error" : "services.createUnconfirmed"));
@@ -185,7 +180,7 @@ function useCatalog(companyId: string, userId: string, drafts: PendingCreates) {
       setBusy(false);
     }
   }
-  return { ...state, data, pendingCreate, submit };
+  return { ...state, query, data: query.data, pendingCreate, complete, submit };
 }
 function Catalog({
   companyId,
@@ -199,12 +194,21 @@ function Catalog({
   onSwitchLockChange: (locked: boolean) => void;
 }) {
   const state = useCatalog(companyId, userId, pendingCreates);
-  const { data, busy, open, message, pendingCreate } = state;
+  const { data, busy, open, message, pendingCreate, complete, query } = state;
+  const confirmed = data?.services.find((service) => service.id === pendingCreate?.confirmedId);
+  useEffect(() => {
+    if (!confirmed || query.isError) return;
+    complete(pendingCreate?.requestId);
+    open(confirmed);
+  }, [complete, confirmed, open, pendingCreate?.requestId, query.isError]);
   useEffect(() => {
     onSwitchLockChange(busy || !!pendingCreate);
     return () => onSwitchLockChange(false);
   }, [busy, pendingCreate, onSwitchLockChange]);
-  if (!data) return <p role="alert">{t("ops.forbidden")}</p>;
+  if (query.isPending || data === null || query.isError || pendingCreate?.confirmedId) {
+    return <CatalogReadStatus query={query} confirmed={!!pendingCreate?.confirmedId} />;
+  }
+  if (!data) return null;
   return (
     <div className="space-y-6">
       {data.canManage && (
@@ -221,9 +225,29 @@ function Catalog({
   );
 }
 type CatalogState = ReturnType<typeof useCatalog>;
+
+function CatalogReadStatus({
+  query,
+  confirmed,
+}: {
+  query: CatalogState["query"];
+  confirmed: boolean;
+}) {
+  if (query.isFetching) return <p role="status">{t("phone.loading")}</p>;
+  if (!query.isError && query.data === null) return <p role="alert">{t("ops.denied")}</p>;
+  return (
+    <div className="space-y-2">
+      <p role="alert">{t(confirmed ? "services.savedRefreshFailed" : "ops.forbidden")}</p>
+      <Button type="button" onClick={() => void query.refetch()}>
+        {t("ops.retryLoad")}
+      </Button>
+    </div>
+  );
+}
+
 function CatalogForm({ state }: { state: CatalogState }) {
-  const { data, form, name, setName, price, setPrice, busy, submit, setForm, pendingCreate } =
-    state;
+  const { data, form, name, setName, price, setPrice, submit, setForm, pendingCreate } = state;
+  const busy = state.busy || state.query.isFetching;
   if (!data) return null;
   return (
     <>
@@ -278,7 +302,8 @@ function CatalogForm({ state }: { state: CatalogState }) {
   );
 }
 function CatalogItems({ state }: { state: CatalogState }) {
-  const { data, busy, open, pendingCreate } = state;
+  const { data, open, pendingCreate } = state;
+  const busy = state.busy || state.query.isFetching;
   if (!data) return null;
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

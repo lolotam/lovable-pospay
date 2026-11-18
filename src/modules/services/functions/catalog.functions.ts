@@ -10,9 +10,15 @@ export const getCatalogFn = createServerFn({ method: "GET" })
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { pgCatalogReader } = await import("../persistence/catalog.server");
-    const userId = await requireUserId();
-    if (userId !== data.expectedUserId) throw new Error("FORBIDDEN");
-    return withUser(userId, (db) => loadCatalog(pgCatalogReader(db, data.companyId)));
+    try {
+      const userId = await requireUserId();
+      if (userId !== data.expectedUserId) return null;
+      return await withUser(userId, (db) => loadCatalog(pgCatalogReader(db, data.companyId)));
+    } catch (error) {
+      if (error instanceof Error && ["FORBIDDEN", "UNAUTHENTICATED"].includes(error.message))
+        return null;
+      throw error;
+    }
   });
 export const saveServiceFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) =>
