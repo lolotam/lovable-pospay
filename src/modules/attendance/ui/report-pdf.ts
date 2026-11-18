@@ -13,7 +13,7 @@ function pageNode(table: Table, rows: string[][], rangeLabel: string, page: stri
   const root = document.createElement("div");
   root.dir = "rtl";
   root.style.cssText =
-    "position:fixed;inset-inline-start:-10000px;inset-block-start:0;inline-size:1120px;padding:24px;background:#fff;color:#111;font-family:'IBM Plex Sans Arabic',sans-serif;font-size:13px";
+    "position:fixed;inset-inline-start:-10000px;inset-block-start:0;inline-size:1120px;padding:24px;background:#fff;color:#111;font-family:'Readex Pro',sans-serif;font-size:13px";
   const h = document.createElement("h1");
   h.textContent = table.title;
   h.style.cssText = "font-size:20px;margin:0 0 4px";

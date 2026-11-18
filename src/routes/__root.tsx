@@ -85,6 +85,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: t("meta.root.description") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      // Browser chrome matches --background of each theme in src/styles.css. It follows the
+      // system setting, so it can differ from a theme the user picked by hand.
+      { name: "theme-color", content: "#EEF4F2", media: "(prefers-color-scheme: light)" },
+      { name: "theme-color", content: "#0A1719", media: "(prefers-color-scheme: dark)" },
+      { name: "apple-mobile-web-app-title", content: "PosPay" },
+      { name: "msapplication-config", content: "/browserconfig.xml" },
     ],
     links: [
       {
@@ -92,11 +98,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500..800&family=Readex+Pro:wght@300..700&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.ico", sizes: "48x48" },
+      { rel: "icon", href: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+      { rel: "icon", href: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { rel: "icon", href: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
+      { rel: "manifest", href: "/site.webmanifest" },
     ],
   }),
   shellComponent: RootShell,

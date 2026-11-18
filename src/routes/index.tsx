@@ -61,7 +61,7 @@ function Landing() {
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-5 py-10 sm:grid-cols-3 sm:px-8">
           {modules.map(([label, Icon]) => (
             <div key={label} className="flex items-center gap-3">
-              <Icon aria-hidden className="size-5 shrink-0 text-accent" />
+              <Icon aria-hidden className="size-5 shrink-0 text-primary" />
               <span className="text-sm font-medium">{t(label as MessageKey)}</span>
             </div>
           ))}

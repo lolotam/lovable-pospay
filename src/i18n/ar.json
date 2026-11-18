@@ -366,6 +366,7 @@
   "landing.openDashboard": "فتح لوحة التحكم",
   "nav.menu": "فتح القائمة",
   "nav.close": "إغلاق القائمة",
+  "nav.primary": "التنقل الرئيسي",
   "page.notFound": "الصفحة غير موجودة",
   "page.notFoundBody": "الصفحة غير موجودة أو تم نقلها.",
   "page.home": "الرئيسية",

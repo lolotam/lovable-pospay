@@ -366,6 +366,7 @@
   "landing.openDashboard": "Open dashboard",
   "nav.menu": "Open navigation",
   "nav.close": "Close navigation",
+  "nav.primary": "Main navigation",
   "page.notFound": "Page not found",
   "page.notFoundBody": "This page does not exist or has been moved.",
   "page.home": "Go home",

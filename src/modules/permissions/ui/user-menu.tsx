@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
+import { SignOut } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { t } from "@/i18n";
@@ -55,7 +55,7 @@ export function UserMenu({ user, compact = false }: UserMenuProps) {
         aria-label={t("auth.signOut")}
         className={compact ? "size-11 shrink-0" : "min-h-11 w-full justify-start"}
       >
-        <LogOut className="size-4" />
+        <SignOut aria-hidden className="size-4" />
         {!compact && t("auth.signOut")}
       </Button>
       {failed && (

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouter } from "@tanstack/react-router";
-import { ChevronsUpDown } from "lucide-react";
+import { CaretUpDown } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import type { SessionContextDto, WorkspaceDto } from "../contracts";
@@ -52,7 +52,7 @@ export function WorkspaceSwitcher({ context }: WorkspaceSwitcherProps) {
         onClick={() => setOpen(!open)}
       >
         <span className="min-w-0 break-words">{label}</span>
-        <ChevronsUpDown className="shrink-0 size-4" />
+        <CaretUpDown aria-hidden className="shrink-0 size-4" />
       </Button>
       {failed && (
         <p role="alert" className="px-2 text-sm text-destructive">
