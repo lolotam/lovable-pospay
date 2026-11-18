@@ -1,0 +1,499 @@
+{
+  "meta": {
+    "name": "lovable-pospay-systems",
+    "package": "@ws-adcee88d2daedf822faa/8383791a-56f2-45cc-994a-2694653e6172",
+    "version": "1.0.0",
+    "framework": "react",
+    "css_framework": "tailwind",
+    "starter_template": "custom_design_system_tailwind",
+    "theme_files": [
+      "src/styles.css"
+    ],
+    "source_type": "local",
+    "source_manifest": {
+      "#enrichment": "a7048b14ce150192dde684c7e9d83c15c144e033515a37c7481e4e71b2780999",
+      ".dockerignore": "b798758c22a9bb95c268bcad1935f114",
+      ".gitignore": "3e773e59c5c076f7fa95f89647747642",
+      ".lovable/north-star/north-star.md": "04b273cfad19201ee4e71603115ee3a6",
+      ".lovable/plan/الخطوة-الجاية-أول-slice-تسجيل-الحضور-والانصراف-بالـ-qr-001-2026-11-17.md": "079931b2a7dad653245d435a014f5190",
+      ".lovable/plan/تطبيق-ستايل-fibery-من-refero-على-pospay-2026-11-18.md": "0700fab0cd8d138a533298898a97d3bb",
+      ".lovable/plan/ربط-أدوات-supabase-pospay-و-ssh-و-dokploy-وتوثيقها-في-agents-2026-11-18.md": "5b78c78a8a4cafe5c062d3b0d5b8c913",
+      ".lovable/project.json": "012e093558ea19258237b36b6562d895",
+      ".prettierignore": "7279a476f196a2da5f7edd18db568dc6",
+      ".prettierrc": "185ef0234746ab738ac1ab6cec5e2bd9",
+      "AGENTS.md": "ee29e260d89040a9f18dc05250462df2",
+      "Dockerfile": "b9e59cd4338aeec721bf006ca7338070",
+      "README.md": "1604b75479ec069959b3c3d1a5204a89",
+      "app-architecture.md": "b779d5613348584fae223659c7350ebd",
+      "bunfig.toml": "339ad03b7b60255ad7a150b6f3aa9804",
+      "components.json": "30d3d035361ce807021f5c54620962e9",
+      "db/migrations/0001_tenancy_foundation.sql": "f5a7c5d3ad7d8a1ecf1c3fc8e7e0fa99",
+      "db/migrations/0002_attendance.sql": "10ff4b0001c0442d020160288b717e36",
+      "db/migrations/0003_phone_binding.sql": "295d5a6a6a73f1bd1457369590e54746",
+      "db/migrations/0004_platform_connectors.sql": "65dea7d6b92841cc0684047c090dec67",
+      "db/migrations/0005_lock_rest_api.sql": "4949df422512a2e558ef41ed99373136",
+      "db/migrations/0006_better_auth.sql": "4983f8c2cc2b8494a0877ee379c8a88e",
+      "db/seeds/super-admin.sql": "bb16c95865de40031ba814e58ce3d55e",
+      "db/tests/isolation.sql": "319839e5ce8c2b8509496eb74dd40a5f",
+      "db/tests/phone-isolation.sql": "f4b8c61d5997a1164d6befc098976a51",
+      "db/tests/platform-isolation.sql": "b88015dcc4ee9f732b17b6de742ba88e",
+      "docs/DEPLOY.md": "48e8e45574d87c5dab620dc78a5a4c19",
+      "docs/PRD-phase1.ar.md": "a806c1fb8ee6f45efd3f19959b144d0a",
+      "docs/adr/0001-single-app-self-hosted-supabase.md": "dba717e2b09fc0b5d36895364602292f",
+      "docs/agent-delivery-pipeline.md": "b358df9dedf924461e36df402b092c71",
+      "docs/specs/001-attendance-check-in/owner-questions.ar.md": "3d4097cbc8113c3a780e62fe6fd73993",
+      "docs/specs/001-attendance-check-in/spec.md": "f7f925c409e67c2826d792db97276ba1",
+      "docs/specs/001-attendance-check-in/verification.md": "d42e3a5182f5201becb3b1ea3ce3e487",
+      "docs/specs/002-phone-binding/spec.md": "e43dccfd057348685bdd8d7f614ebd9c",
+      "docs/specs/_template.md": "f1c4e45b80f16b915ff6d6c55133c67f",
+      "eslint.config.js": "345bdd57e188e0e4525edcd00e5003f5",
+      "package.json": "c8649c13c44c27961aad007d93ddb820",
+      "public/favicon.ico": "9f504444f85a5af2eef9264b02ae40be",
+      "public/robots.txt": "f9dff89adf98833e676de2205921996a",
+      "roadmap.md": "075d974bd6054de6555704489d818f48",
+      "src/components/app-shell.tsx": "c22368c761859c33b8ffbb1c54e468e9",
+      "src/components/ui/accordion.tsx": "55f9dda62b4e3913c9b23e5015a86aef",
+      "src/components/ui/alert-dialog.tsx": "96350e949e9b7b674545430a410ab89c",
+      "src/components/ui/alert.tsx": "f993d7e96b1e25ce50e68ed97e11d2a8",
+      "src/components/ui/aspect-ratio.tsx": "c5c364545e1b25a94e9e752cd67ad048",
+      "src/components/ui/avatar.tsx": "72989cd32f72c4122802540ef32525a5",
+      "src/components/ui/badge.tsx": "81cade001fc4260f9943e18dcd79449b",
+      "src/components/ui/breadcrumb.tsx": "bb9ac254f12662b20d5d50b84308bf3a",
+      "src/components/ui/button.tsx": "7d07d520f486b12bd47373d694ecd2ee",
+      "src/components/ui/calendar.tsx": "d849cc610e2683271f3f1c47d093cf30",
+      "src/components/ui/card.tsx": "d6c48ea36221b9cdc3576d305d12d5d5",
+      "src/components/ui/carousel.tsx": "e324c68ae00cd5aed49317638abd429a",
+      "src/components/ui/chart.tsx": "6a3baf94f2e89f1f97d4d7a28f3622d2",
+      "src/components/ui/checkbox.tsx": "f78aac270ca482c8c2cb907ef6260462",
+      "src/components/ui/collapsible.tsx": "767631bbc344945c236f185f4078d71d",
+      "src/components/ui/command.tsx": "014782599cc838b021ec68b07ad4ea02",
+      "src/components/ui/context-menu.tsx": "3ba8244ea23df34a1dba92f3a1230dad",
+      "src/components/ui/dialog.tsx": "ef4fe8e7de8675730afe3d633b260e09",
+      "src/components/ui/drawer.tsx": "8be333e8fd8e42576b1b5f72f07f4337",
+      "src/components/ui/dropdown-menu.tsx": "28d6e98d3c7811fc0514bfa69416f087",
+      "src/components/ui/form.tsx": "1b0aa6302b9017ea2a1307c22a1d2983",
+      "src/components/ui/hover-card.tsx": "1442794c5ca2a78d69e4e613b315ed3d",
+      "src/components/ui/input-otp.tsx": "65625f2f1c4d731a760aeed7b54459d1",
+      "src/components/ui/input.tsx": "1d4cc52a4cd8afb3e18e45bda942bb8a",
+      "src/components/ui/label.tsx": "7e35df4ca8edd0835efd97ca7937ef92",
+      "src/components/ui/menubar.tsx": "3c4121a1e78d3f424a7295381a8997d3",
+      "src/components/ui/navigation-menu.tsx": "e85351147a02b29577ff83d188b63c24",
+      "src/components/ui/pagination.tsx": "fac6cdbb4bbf78b273d85cd36d6cbb49",
+      "src/components/ui/popover.tsx": "f18aa1da2144f25ee60795c539c51bcd",
+      "src/components/ui/progress.tsx": "55c462e5c9dd678dcf2c0c510b014ac4",
+      "src/components/ui/radio-group.tsx": "0e1ace237a5da3197e3eb1e6683faba9",
+      "src/components/ui/resizable.tsx": "d9fcb9203c749fcab4e125a99bb12a86",
+      "src/components/ui/scroll-area.tsx": "87b65d3eb26f2b02ff35a7acea585ba5",
+      "src/components/ui/select.tsx": "31ea1bbd6671833b010b2e852c8a55d0",
+      "src/components/ui/separator.tsx": "433d163c4ffa00b59398a0c293198b5e",
+      "src/components/ui/sheet.tsx": "0221fbf97b69611b47fcbc10bb27669a",
+      "src/components/ui/sidebar.tsx": "83c1623eb50ebc370d7b1b84a542e369",
+      "src/components/ui/skeleton.tsx": "41b182e6e2fc3805960d41e767d4a972",
+      "src/components/ui/slider.tsx": "4752f1bfa26426988d325599e01c335b",
+      "src/components/ui/sonner.tsx": "97f59f60be3413196d095fcbf7383216",
+      "src/components/ui/switch.tsx": "82f5d8b0c59bb7ff305caa9f502e79ff",
+      "src/components/ui/table.tsx": "7cc889989d53894b659903c73aded96e",
+      "src/components/ui/tabs.tsx": "56e725558c2ce72c18243bf51717f385",
+      "src/components/ui/textarea.tsx": "c7aad96fb9545210d53135a96c76ed6b",
+      "src/components/ui/toggle-group.tsx": "ac26383acf721d116ca8e3ab5c5355d5",
+      "src/components/ui/toggle.tsx": "ee8c5adac74e7242b85b544db1a8fbad",
+      "src/components/ui/tooltip.tsx": "67d71db5a1ab935695d1def497f5b8a6",
+      "src/hooks/use-mobile.tsx": "c0a0bdd4638c391a1dd06ac82074e60b",
+      "src/i18n/ar.json": "83c77a5fe24b8f178b0760e1694abb61",
+      "src/i18n/en.json": "593e352b0f4ea6aa33e4aa5d94c0d524",
+      "src/i18n/index.ts": "7990fa207e033d6a6f28e11de8a8f489",
+      "src/lib/auth-client.ts": "bd80d163adc42138738084c01175cdba",
+      "src/lib/auth-errors.ts": "83d6f3e87dfc583851b0ee58cf60f873",
+      "src/lib/error-capture.ts": "f630d9686a9a989170f22eff4de7b30d",
+      "src/lib/error-page.ts": "8da0ddd7569bac2676b9a5c8edff8a36",
+      "src/lib/lovable-error-reporting.ts": "920280997099588d609de792663bcbf0",
+      "src/lib/server/auth.server.ts": "d230c7cfb0a3a56dae0ddfddf3ce27e1",
+      "src/lib/server/db.server.ts": "65d4c1d9d3e093974263626a7557f639",
+      "src/lib/server/session.server.ts": "7c81f36681b79913b26e079bc6d2541d",
+      "src/lib/server/whatsapp.server.ts": "cae357f3000c62eedd508e57a669d209",
+      "src/lib/tenancy.functions.ts": "b7c0af5bc8046c1edb039874ed65553c",
+      "src/lib/utils.ts": "d9837f38cc05303254571985e3164050",
+      "src/modules/attendance/contracts.ts": "2efb5a62e95bfd68d5f631dfc6019083",
+      "src/modules/attendance/domain/attendance.test.ts": "589c5ca28c3e316110166f7b2165804a",
+      "src/modules/attendance/domain/geofence.ts": "9e665b7da5a4434115f501d0af7e96ed",
+      "src/modules/attendance/domain/qr-token.ts": "bce7a78b5f7bd829442da5665785e3a3",
+      "src/modules/attendance/domain/scan-decision.ts": "3f43b01ac8135b9c4c8daeb08c98e3ce",
+      "src/modules/attendance/functions/attendance.functions.ts": "331e82e5a564b67add5e569595c5e858",
+      "src/modules/attendance/index.ts": "a9ee43c8d900d04dd808ff6ebb37d8d2",
+      "src/modules/attendance/persistence/attendance-repository.server.ts": "916eaec853786fed6b0cc0c6aca8cb49",
+      "src/modules/attendance/persistence/qr-signer.server.ts": "94a9548796da1448dfe28aa0369e3e75",
+      "src/modules/attendance/ports/attendance-repository.ts": "721755c09d831053e509f26d170ebc3b",
+      "src/modules/attendance/ui/attend-scan.tsx": "39f9793b202674db7d4e81f5c27e0528",
+      "src/modules/attendance/ui/reception-qr.tsx": "f6db6230f1b992a463e0749ff6f49c6d",
+      "src/modules/attendance/use-cases/scan-attendance.integration.test.ts": "7a34abc5e25e7af16dcab562b287ab11",
+      "src/modules/attendance/use-cases/scan-attendance.ts": "de4974fe54e990fb0316e309a243e128",
+      "src/modules/commissions/index.ts": "8a6f06cf7fac65ecf3f1e698dcc1340f",
+      "src/modules/imports/index.ts": "a05c9555d761d9d0a127fa076b28edc1",
+      "src/modules/notifications/index.ts": "3402c344389941f1269dea638420ec87",
+      "src/modules/permissions/index.ts": "e63d78eb3825b5a4389e3bd7991094c0",
+      "src/modules/platform/contracts.ts": "e4612dfa70332391e56f6c4c0b18910a",
+      "src/modules/platform/domain/providers.test.ts": "48add486988704136d6559cb37a21cb5",
+      "src/modules/platform/domain/providers.ts": "34cd28312064d3951575860a0794e38f",
+      "src/modules/platform/functions/connectors.functions.ts": "05a2d5dd254e31f7466355717c159017",
+      "src/modules/platform/index.ts": "625a50d222ccd631156c70d2415a04c4",
+      "src/modules/platform/persistence/ai-call.server.ts": "5b8cb361bfd09444a761bf9228eca2de",
+      "src/modules/platform/persistence/oauth-flows.server.ts": "86b6206a59d6ad07578aea34179cca6b",
+      "src/modules/platform/persistence/vault.server.ts": "80496f4e605daa88d757cd6b1f4f67e5",
+      "src/modules/platform/ui/connector-row.tsx": "acecacdb695d34e0b9dddea17d0a5641",
+      "src/modules/platform/ui/connectors-page.tsx": "4234234a01e4919047e12228c9c617b2",
+      "src/modules/ratings/index.ts": "4cf1f89c94e90408b472260c65e35f49",
+      "src/modules/services/index.ts": "49c1ec22de415cceaf73ea6fcc25815e",
+      "src/modules/staff/functions/phone.functions.ts": "f5e11c8a30ee5b98e8e276c42dd64e63",
+      "src/modules/staff/index.server.ts": "b51e10e4016beeed7d4434213a2b1b63",
+      "src/modules/staff/index.ts": "0f6602819a6ede5a01e579abe53d7cfd",
+      "src/modules/staff/persistence/phone.server.ts": "2e64545c71a04ede45110e822dd44115",
+      "src/modules/staff/persistence/phone.test.ts": "bc2849ea995676ac324ed0d0574c2887",
+      "src/modules/staff/phone.contracts.ts": "b4619596859fa9d360880d71d9218de1",
+      "src/routeTree.gen.ts": "85d173b5d55ac8b0773d9ac4f268c1a4",
+      "src/router.tsx": "d448cb947dcf9afe7d0cf849cd6ad7f0",
+      "src/routes/README.md": "b3a2f259b66fd1a11f54b6d5ac83bf57",
+      "src/routes/__root.tsx": "61450c1552d38024ae8af61fe36d13e6",
+      "src/routes/admin/connectors.tsx": "9ebb83d6001531f1e18b5f4172292b36",
+      "src/routes/api/auth/$.ts": "7f21f97a555e18a3bdc5266e207784d9",
+      "src/routes/attend.tsx": "ffa17a22a6ef5a0a81e1fff893a517d8",
+      "src/routes/attendance-questions.tsx": "40e8a75873d39b7b1c2e4964e657a11b",
+      "src/routes/index.tsx": "e4479457744ae786a95e3c153280a5e9",
+      "src/routes/phone.tsx": "fdeb1a6100f90bb5c430a6c26605fc1e",
+      "src/routes/reception/qr.tsx": "0baa16bfd723a7f648c1cc7384ea8872",
+      "src/routes/sign-in.tsx": "867220bc113b71575e1e82665f8689c3",
+      "src/server.ts": "91c9b724fb9ad417dc7702ca0fb39157",
+      "src/shared/kernel/clock.ts": "d9fdb6defee940df9df6a6bad309dee8",
+      "src/shared/kernel/ids.ts": "a5d2ae262b731db46a442ba059fa72ae",
+      "src/shared/kernel/money.test.ts": "b4b0af084244acd8990936c4b1e9e02d",
+      "src/shared/kernel/money.ts": "87aa95a413ddd1444f73127e04687975",
+      "src/start.ts": "9030f90d3c25adb1524fe659ea1eb42b",
+      "src/styles.css": "a712fe0dc180de524d40ebd71560ce29",
+      "src/test/app-routing.test.tsx": "dda0393c89450a1e5b7874b424dca80d",
+      "src/test/setup.ts": "7817a0207f353e52a19bc3fd6599c1d3",
+      "tsconfig.json": "3d34aff71739a382bec105bad1c6948f",
+      "vite.config.ts": "180b60beec140d99f0bb7ed91fbaa4b4",
+      "vitest.config.ts": "cdf9aff9538e6bc3eb92842264b030a9"
+    },
+    "pipeline_version": 8
+  },
+  "tokens": {
+    "color": [
+      {
+        "name": "--background",
+        "raw": "oklch(0.97 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--foreground",
+        "raw": "oklch(0.235 0.006 60)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--card",
+        "raw": "oklch(0.985 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--card-foreground",
+        "raw": "oklch(0.235 0.006 60)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--popover",
+        "raw": "oklch(1 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--popover-foreground",
+        "raw": "oklch(0.235 0.006 60)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--primary",
+        "raw": "oklch(0.235 0.006 60)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--primary-foreground",
+        "raw": "oklch(0.97 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--secondary",
+        "raw": "oklch(1 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--secondary-foreground",
+        "raw": "oklch(0.235 0.006 60)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--muted",
+        "raw": "oklch(0.94 0.002 80)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--muted-foreground",
+        "raw": "oklch(0.55 0.017 80)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--accent",
+        "raw": "oklch(0.63 0.13 255)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--accent-foreground",
+        "raw": "oklch(1 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--destructive",
+        "raw": "oklch(0.68 0.16 25)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--destructive-foreground",
+        "raw": "oklch(1 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--success",
+        "raw": "oklch(0.62 0.1 190)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--success-soft",
+        "raw": "oklch(0.94 0.035 190)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--warning-soft",
+        "raw": "oklch(0.94 0.04 65)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--border",
+        "raw": "oklch(0.91 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--input",
+        "raw": "oklch(0.88 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--ring",
+        "raw": "oklch(0.63 0.13 255)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--chart-1",
+        "raw": "oklch(0.71 0.11 190)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--chart-2",
+        "raw": "oklch(0.68 0.16 25)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--chart-3",
+        "raw": "oklch(0.76 0.12 65)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--chart-4",
+        "raw": "oklch(0.63 0.13 255)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--chart-5",
+        "raw": "oklch(0.7 0.11 320)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar",
+        "raw": "oklch(0.985 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-foreground",
+        "raw": "oklch(0.235 0.006 60)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-primary",
+        "raw": "oklch(0.235 0.006 60)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-primary-foreground",
+        "raw": "oklch(0.97 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-accent",
+        "raw": "oklch(0.94 0.002 80)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-accent-foreground",
+        "raw": "oklch(0.235 0.006 60)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-border",
+        "raw": "oklch(0.91 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-ring",
+        "raw": "oklch(0.63 0.13 255)",
+        "source": "src/styles.css"
+      }
+    ],
+    "typography": [
+      {
+        "name": "--font-sans",
+        "raw": "\"IBM Plex Sans Arabic\", system-ui, sans-serif",
+        "source": "src/styles.css"
+      }
+    ],
+    "radius": [
+      {
+        "name": "--radius-sm",
+        "raw": "calc(var(--radius) - 4px)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--radius-md",
+        "raw": "calc(var(--radius) - 2px)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--radius-xl",
+        "raw": "calc(var(--radius) + 4px)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--radius-2xl",
+        "raw": "calc(var(--radius) + 8px)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--radius-3xl",
+        "raw": "calc(var(--radius) + 12px)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--radius-4xl",
+        "raw": "calc(var(--radius) + 16px)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--radius",
+        "raw": "0.625rem",
+        "source": "src/styles.css"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "AppShell",
+      "file": "src/components/app-shell",
+      "import_path": "",
+      "props": [
+        {
+          "name": "children",
+          "type": "any",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "Button",
+      "file": "src/components/ui/button",
+      "import_path": "",
+      "props": [
+        {
+          "name": "variant",
+          "type": "enum",
+          "values": [
+            "default",
+            "destructive",
+            "outline",
+            "secondary",
+            "ghost",
+            "link"
+          ],
+          "default": "default"
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": [
+            "default",
+            "sm",
+            "lg",
+            "icon"
+          ],
+          "default": "default"
+        },
+        {
+          "name": "asChild",
+          "type": "boolean",
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "Input",
+      "file": "src/components/ui/input",
+      "import_path": ""
+    },
+    {
+      "name": "AttendScan",
+      "file": "src/modules/attendance/ui/attend-scan",
+      "import_path": ""
+    },
+    {
+      "name": "ReceptionQr",
+      "file": "src/modules/attendance/ui/reception-qr",
+      "import_path": ""
+    },
+    {
+      "name": "AuthRejected",
+      "file": "src/modules/platform/persistence/oauth-flows.server",
+      "import_path": ""
+    },
+    {
+      "name": "ConnectorRow",
+      "file": "src/modules/platform/ui/connector-row",
+      "import_path": "",
+      "props": [
+        {
+          "name": "def",
+          "type": "any",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "any",
+          "required": true
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "ConnectorsPage",
+      "file": "src/modules/platform/ui/connectors-page",
+      "import_path": ""
+    }
+  ]
+}
