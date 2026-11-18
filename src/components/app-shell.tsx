@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
+import type { FileRoutesByTo } from "@/routeTree.gen";
 import type { ReactNode } from "react";
 import { t, type MessageKey } from "@/i18n";
 
 interface NavItem {
-  to: "/" | "/reception/qr" | "/phone" | "/attendance-questions" | "/sign-in" | "/admin/connectors";
+  to: keyof FileRoutesByTo;
   label: MessageKey;
   icon: string;
 }
