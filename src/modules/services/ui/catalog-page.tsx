@@ -187,6 +187,7 @@ function Catalog({
   const state = useCatalog(companyId, userId, pendingCreates);
   const { data, busy, open, setForm, message, pendingCreate, complete, query } = state;
   const checking = !query.isFetchedAfterMount || query.fetchStatus !== "idle";
+  const readOnly = !checking && !query.isError && data?.canManage === false;
   const confirmed = data?.services.find((service) => service.id === pendingCreate?.confirmedId);
   useEffect(() => {
     if (!confirmed || checking || query.isError) return;
@@ -204,9 +205,9 @@ function Catalog({
     setForm,
   ]);
   useEffect(() => {
-    onSwitchLockChange(busy || !!pendingCreate);
+    onSwitchLockChange(busy || (!!pendingCreate && !readOnly));
     return () => onSwitchLockChange(false);
-  }, [busy, pendingCreate, onSwitchLockChange]);
+  }, [busy, pendingCreate, readOnly, onSwitchLockChange]);
   if (checking || data === null || query.isError || pendingCreate?.confirmedId) {
     return <CatalogReadStatus query={query} confirmed={!!pendingCreate?.confirmedId} />;
   }
@@ -220,6 +221,7 @@ function Catalog({
         </Button>
       )}
       {data.canManage && <CatalogForm state={state} />}
+      {readOnly && pendingCreate && <CatalogRecoveryAccess retry={() => void query.refetch()} />}
       <CatalogItems state={state} />
       {!data.services.length && <p>{t("ops.empty")}</p>}
       <p role="status">{message}</p>
@@ -227,6 +229,17 @@ function Catalog({
   );
 }
 type CatalogState = ReturnType<typeof useCatalog>;
+
+function CatalogRecoveryAccess({ retry }: { retry: () => void }) {
+  return (
+    <div className="space-y-2">
+      <p role="status">{t("services.createManageAccessNeeded")}</p>
+      <Button type="button" onClick={retry}>
+        {t("ops.retryLoad")}
+      </Button>
+    </div>
+  );
+}
 
 function CatalogReadStatus({
   query,

@@ -12,16 +12,30 @@ const { getCatalog, save, scope } = vi.hoisted(() => ({
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (handler: unknown) => handler }));
 vi.mock("@/modules/staff", () => ({
-  CompanyScope: ({ children }: { children: (id: string, userId: string) => ReactNode }) =>
-    scope.unavailable ? null : children("30000000-0000-4000-8000-000000000001", "manager"),
+  CompanyScope: ({
+    children,
+    switchLocked,
+  }: {
+    children: (id: string, userId: string) => ReactNode;
+    switchLocked: boolean;
+  }) =>
+    scope.unavailable ? null : (
+      <>
+        <button type="button" disabled={switchLocked}>
+          Switch company
+        </button>
+        {children("30000000-0000-4000-8000-000000000001", "manager")}
+      </>
+    ),
 }));
 vi.mock("../functions/catalog.functions", () => ({
   getCatalogFn: getCatalog,
   saveServiceFn: save,
 }));
 
-it("preserves the exact account-bound create across a company scope refresh failure", async () => {
-  getCatalog.mockResolvedValue({ canManage: true, services: [], staff: [] });
+it("preserves the exact create across company refresh and a temporary permission downgrade", async () => {
+  const catalog = { canManage: true, services: [], staff: [] };
+  getCatalog.mockResolvedValue(catalog);
   save
     .mockRejectedValueOnce(new Error("Response lost"))
     .mockResolvedValueOnce({ status: "rejected" });
@@ -40,10 +54,17 @@ it("preserves the exact account-bound create across a company scope refresh fail
 
   scope.unavailable = true;
   view.rerender(page());
+  getCatalog.mockResolvedValue({ ...catalog, canManage: false });
   scope.unavailable = false;
   view.rerender(page());
+  expect(await screen.findByText(t("services.createManageAccessNeeded"))).toBeVisible();
+  expect(screen.getByRole("button", { name: "Switch company" })).toBeEnabled();
+  expect(screen.queryByRole("button", { name: t("services.retryCreate") })).toBeNull();
+  getCatalog.mockResolvedValue(catalog);
+  fireEvent.click(screen.getByRole("button", { name: t("ops.retryLoad") }));
   const retry = await screen.findByRole("button", { name: t("services.retryCreate") });
   await waitFor(() => expect(retry).toBeEnabled());
+  expect(save).toHaveBeenCalledTimes(1);
   expect(screen.getByLabelText(t("services.name"))).toHaveValue("New service");
   fireEvent.click(retry);
   await screen.findByText(t("services.error"));
