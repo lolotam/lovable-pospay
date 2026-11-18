@@ -29,7 +29,20 @@ do $$ begin
     insert into public.attendance_records (company_id, id, staff_id, branch_id, work_date, check_in_at)
       values ('00000000-0000-0000-0000-00000000000b', gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), current_date, now());
     raise exception 'LEAK: A inserted attendance into B';
-  exception when insufficient_privilege or foreign_key_violation or check_violation then null;
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.staff_members (company_id, branch_id, display_name)
+      values ('00000000-0000-0000-0000-00000000000a', current_setting('test.b_branch')::uuid, 'Wrong branch');
+    raise exception 'Staff record accepted another company branch';
+  exception when foreign_key_violation then null;
+  end;
+  begin
+    insert into public.attendance_records (company_id, id, staff_id, branch_id, work_date, check_in_at, check_out_at, status)
+      select company_id, gen_random_uuid(), id, current_setting('test.b_branch')::uuid, current_date, now(), now(), 'ok'
+        from public.staff_members where user_id='user-a';
+    raise exception 'Attendance record accepted another company branch';
+  exception when foreign_key_violation then null;
   end;
   if (select count(*) from public.companies) <> 1 then raise exception 'A should see exactly its company'; end if;
   update public.branches set name='hacked' where name='B-1';

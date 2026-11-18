@@ -23,5 +23,6 @@
 - Google needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for this app's own Web OAuth client. No workspace Gmail connector can replace this end-user login client.
 - Authorized callback: `https://pospay-app-7dcc5d-82-29-164-194.sslip.io/api/auth/callback/google`; authorized JavaScript origin is the same origin without the path.
 - Public signup remains disabled. Existing email accounts must be verified before implicit Google linking; Google does not grant company membership or platform administration.
-- Production pooler reports tenant identifier `your-tenant-id`; correct the existing database username to `pospay_server.your-tenant-id` without changing password or using a privileged DB role. Preserve all existing environment and build secrets.
+- Migration 0007 creates `pospay_server` with `NOLOGIN`. Before switching the application username, the database administrator must enable `LOGIN` and verify the role has an approved password provisioned through the secrets channel. This is a production change and requires Waleed's approval.
+- Once the administrator verifies the role can connect through the production pooler, switch the application username to `pospay_server.<tenant-id>` using the actual tenant identifier. Preserve existing environment and build secrets.
 - On 2026-11-18 the SSH env inspection was refused with `APPROVAL_UNAVAILABLE`; Dokploy returns environment values redacted. No production environment was overwritten.

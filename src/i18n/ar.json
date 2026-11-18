@@ -112,6 +112,7 @@
   "attend.notStaff": "حسابك غير مربوط بملف موظفة في هذه الشركة.",
   "attend.signInFirst": "سجّلي الدخول أولاً",
   "attend.error": "حدث خطأ. حاولي مرة أخرى.",
+  "attend.staleIntent": "تغيّر سجل حضورك المفتوح. امسحي رمز QR الحالي للمتابعة.",
   "nav.home": "الرئيسية",
   "nav.section.attendance": "الحضور",
   "nav.reception": "رمز الاستقبال",

@@ -27,7 +27,11 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
     vi.stubEnv("DATABASE_URL", databaseUrl);
     admin = new pg.Pool({ connectionString: databaseUrl });
     for (let pass = 0; pass < 2; pass++) {
-      for (const file of ["0001_tenancy_foundation.sql", "0002_attendance.sql"]) {
+      for (const file of [
+        "0001_tenancy_foundation.sql",
+        "0002_attendance.sql",
+        "0009_attendance_branch_company.sql",
+      ]) {
         await admin.query(await readFile(`db/migrations/${file}`, "utf8"));
       }
     }
@@ -57,7 +61,12 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
     vi.unstubAllEnvs();
   });
 
-  async function scan(time: Date, intent: "new_shift" | "check_out" | null = null, valid = true) {
+  async function scan(
+    time: Date,
+    intent: "new_shift" | "check_out" | null = null,
+    valid = true,
+    promptedRecordId?: string,
+  ) {
     return withUser(user, async (db) => {
       const sign = await branchSigner(db, branch);
       if (!sign) throw new Error("Missing test branch signer");
@@ -67,7 +76,7 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
         sign,
       );
       return scanAttendance(
-        { token, location: { latitude: 29.3759, longitude: 47.9774 }, intent },
+        { token, location: { latitude: 29.3759, longitude: 47.9774 }, intent, promptedRecordId },
         {
           repo: pgAttendanceRepository(db, user),
           clock: { now: () => time },
@@ -111,8 +120,10 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
       lateMinutes: 0,
       exception: null,
     });
-    expect(await scan(at("2026-11-18T20:00"))).toEqual({ outcome: "needs_intent" });
-    expect(await scan(at("2026-11-18T20:00"), "new_shift")).toEqual({
+    const prompt = await scan(at("2026-11-18T20:00"));
+    expect(prompt.outcome).toBe("needs_intent");
+    if (prompt.outcome !== "needs_intent") throw new Error("Expected an attendance prompt");
+    expect(await scan(at("2026-11-18T20:00"), "new_shift", true, prompt.recordId)).toEqual({
       outcome: "checked_in",
       lateMinutes: 0,
       exception: null,
@@ -125,7 +136,11 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
       { status: "forgotten", check_out_at: null, work_date: "2026-11-18" },
       { status: "open", check_out_at: null, work_date: "2026-11-18" },
     ]);
-    expect(await scan(at("2026-11-19T06:01"), "check_out")).toEqual({
+    expect(await scan(at("2026-11-19T06:01"), "check_out", true, prompt.recordId)).toEqual({
+      outcome: "rejected",
+      reason: "stale_intent",
+    });
+    expect(await scan(at("2026-11-19T06:01"))).toEqual({
       outcome: "checked_out",
       status: "closed_late",
       exception: null,

@@ -107,6 +107,7 @@ describe.skipIf(!databaseUrl)("attendance transition integrity under real RLS", 
           token: await issueQrToken(branch, Math.floor(time.getTime() / 1000), signer),
           location: null,
           intent,
+          promptedRecordId: record,
         },
         {
           repo: decorate(pgAttendanceRepository(db, user)),

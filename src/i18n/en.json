@@ -112,6 +112,7 @@
   "attend.notStaff": "Your account is not linked to a staff profile in this company.",
   "attend.signInFirst": "Sign in first",
   "attend.error": "Something went wrong. Try again.",
+  "attend.staleIntent": "Your open attendance record changed. Scan the current QR code to continue.",
   "nav.home": "Home",
   "nav.section.attendance": "Attendance",
   "nav.reception": "Reception QR",

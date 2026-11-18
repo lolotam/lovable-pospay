@@ -12,6 +12,7 @@ export const DIAGNOSIS_SYSTEM_PROMPT = [
 ].join("\n");
 
 const SECRET_PATTERNS: RegExp[] = [
+  /(\bauthorization["']?[^\S\r\n]*[:=][^\S\r\n]*)[^\r\n]+/gi,
   /(bearer\s+)[a-z0-9._~+/=-]{8,}/gi,
   /\b(sk|rk|pk)-[a-z0-9_-]{8,}/gi,
   /\b(eyJ[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\.[a-z0-9_-]{8,})/gi,

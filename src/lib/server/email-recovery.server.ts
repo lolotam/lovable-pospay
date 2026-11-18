@@ -27,9 +27,19 @@ export function recoveryPlugins(sender: OtpSender) {
       const original = ctx.path;
       ctx.path = "/sign-in/email";
       try {
-        const result: unknown = await hook.handler(ctx);
+        const result: unknown = await hook.handler({ ...ctx, returnHeaders: true });
         const response =
           result && typeof result === "object" && "response" in result ? result.response : result;
+        if (
+          result &&
+          typeof result === "object" &&
+          "headers" in result &&
+          result.headers instanceof Headers
+        ) {
+          for (const cookie of result.headers.getSetCookie()) {
+            ctx.responseHeaders.append("set-cookie", cookie);
+          }
+        }
         if (
           original?.startsWith("/callback/") &&
           response &&

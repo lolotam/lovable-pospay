@@ -2,10 +2,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { betterAuth } from "better-auth";
 import { memoryAdapter } from "better-auth/adapters/memory";
+import { symmetricEncrypt } from "better-auth/crypto";
 import { passwordRecoveryOptions } from "./password-recovery.server";
 import { recoveryPlugins } from "./email-recovery.server";
 
-async function fixture(twoFactorEnabled = false) {
+async function fixture(totpSecret?: string) {
   const mail: string[] = [];
   const auth = betterAuth({
     baseURL: "http://localhost:8080",
@@ -27,10 +28,19 @@ async function fixture(twoFactorEnabled = false) {
   const account = await auth.api.signUpEmail({
     body: { email: "recovery@example.com", name: "Recovery", password: "old-password-123" },
   });
-  if (twoFactorEnabled)
-    await (
-      await auth.$context
-    ).internalAdapter.updateUser(account.user.id, { twoFactorEnabled: true });
+  if (totpSecret) {
+    const ctx = await auth.$context;
+    await ctx.internalAdapter.updateUser(account.user.id, { twoFactorEnabled: true });
+    await ctx.adapter.create({
+      model: "twoFactor",
+      data: {
+        userId: account.user.id,
+        secret: await symmetricEncrypt({ key: ctx.secretConfig, data: totpSecret }),
+        backupCodes: await symmetricEncrypt({ key: ctx.secretConfig, data: "[]" }),
+        verified: true,
+      },
+    });
+  }
   return { auth, mail };
 }
 
@@ -107,8 +117,9 @@ describe("Email recovery choice", () => {
       vi.useRealTimers();
     }
   });
-  it("does not grant a session to a TOTP-enabled user before the second factor", async () => {
-    const { auth, mail } = await fixture(true);
+  it("requires and completes an authenticator challenge after email recovery", async () => {
+    const secret = "test-only-authenticator-fixture";
+    const { auth, mail } = await fixture(secret);
     await auth.api.sendVerificationOTP({
       body: { email: "recovery@example.com", type: "forget-password" },
     });
@@ -126,6 +137,9 @@ describe("Email recovery choice", () => {
         .join("; "),
     });
     expect(await auth.api.getSession({ headers })).toBeNull();
+    const { code } = await auth.api.generateTOTP({ body: { secret } });
+    const verified = await auth.api.verifyTOTP({ headers, body: { code } });
+    expect(verified.user.email).toBe("recovery@example.com");
   });
   it("allows only one concurrent recovery action", async () => {
     const { auth, mail } = await fixture();

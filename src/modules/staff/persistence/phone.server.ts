@@ -2,10 +2,10 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
-import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import type pg from "pg";
 import { getCookie, setCookie } from "@tanstack/react-start/server";
 import { getAuth } from "@/lib/server/auth.server";
+import type { PhoneProofInput } from "../phone.contracts";
 
 const cookieName = "pospay-phone";
 async function hash(value: string) {
@@ -39,11 +39,7 @@ export async function challenge(
 export async function prove(
   db: pg.PoolClient,
   userId: string,
-  data: {
-    companyId: string;
-    challengeId: string;
-    response: AuthenticationResponseJSON;
-  },
+  data: PhoneProofInput,
   purpose: "bind" | "scan",
 ) {
   const taken = await db.query(
@@ -63,8 +59,14 @@ export async function prove(
     where: [{ field: "credentialID", value: data.response.id }],
   });
   if (!key || key.userId !== userId) throw new Error("FORBIDDEN");
+  const { authenticatorAttachment, response, ...credentialResponse } = data.response;
+  const { userHandle, ...assertion } = response;
   const result = await verifyAuthenticationResponse({
-    response: data.response,
+    response: {
+      ...credentialResponse,
+      response: { ...assertion, ...(userHandle === undefined ? {} : { userHandle }) },
+      ...(authenticatorAttachment === undefined ? {} : { authenticatorAttachment }),
+    },
     expectedChallenge: taken.rows[0].challenge,
     expectedOrigin: origin(),
     expectedRPID: new URL(origin()).hostname,

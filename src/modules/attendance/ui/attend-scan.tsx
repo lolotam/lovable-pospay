@@ -1,5 +1,5 @@
 import { isAuthNotConfigured } from "@/lib/auth-errors";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { scanAttendanceFn, scanChallengeFn } from "../functions/attendance.functions";
@@ -32,9 +32,15 @@ export function AttendScan({ token }: { token: string }) {
   const [result, setResult] = useState<ScanResultDto | null>(null);
   const [error, setError] = useState<"auth" | "notConfigured" | "other" | null>(null);
   const [location, setLocation] = useState<Location | undefined>(undefined);
+  const [pending, setPending] = useState(false);
+  const submitting = useRef(false);
 
   const submit = useCallback(
-    async (intent: "new_shift" | "check_out" | null, loc: Location) => {
+    async (intent: "new_shift" | "check_out" | null, loc: Location, promptedRecordId?: string) => {
+      if (submitting.current) return;
+      submitting.current = true;
+      setPending(true);
+      setError(null);
       try {
         const proof = await getChallenge({ data: { branchId: token.split(".")[0] ?? "" } });
         const response = await startAuthentication({ optionsJSON: proof.options });
@@ -44,6 +50,7 @@ export function AttendScan({ token }: { token: string }) {
               token,
               location: loc,
               intent,
+              promptedRecordId,
               companyId: proof.companyId,
               challengeId: proof.challengeId,
               response,
@@ -58,6 +65,9 @@ export function AttendScan({ token }: { token: string }) {
               ? "auth"
               : "other",
         );
+      } finally {
+        submitting.current = false;
+        setPending(false);
       }
     },
     [scan, token, getChallenge],
@@ -75,24 +85,43 @@ export function AttendScan({ token }: { token: string }) {
     );
   if (error === "notConfigured")
     return <p className="text-destructive">{t("auth.notConfigured")}</p>;
-  if (error) return <p className="text-destructive">{t("attend.error")}</p>;
   if (!result)
     return (
-      <Button disabled={location === undefined} onClick={() => submit(null, location ?? null)}>
-        {t("phone.verify")}
-      </Button>
+      <div className="space-y-4">
+        {error && (
+          <p role="alert" className="text-destructive">
+            {t("attend.error")}
+          </p>
+        )}
+        <Button
+          disabled={pending || location === undefined}
+          onClick={() => submit(null, location ?? null)}
+        >
+          {t("phone.verify")}
+        </Button>
+      </div>
     );
 
   if (result.outcome === "needs_intent") {
     return (
       <div className="space-y-4">
         <p>{t("attend.chooseIntent")}</p>
-        <Button onClick={() => submit("new_shift", location ?? null)} className="w-full">
+        {error && (
+          <p role="alert" className="text-destructive">
+            {t("attend.error")}
+          </p>
+        )}
+        <Button
+          disabled={pending}
+          onClick={() => submit("new_shift", location ?? null, result.recordId)}
+          className="w-full"
+        >
           {t("attend.newShift")}
         </Button>
         <Button
           variant="outline"
-          onClick={() => submit("check_out", location ?? null)}
+          disabled={pending}
+          onClick={() => submit("check_out", location ?? null, result.recordId)}
           className="w-full"
         >
           {t("attend.checkOut")}
@@ -101,6 +130,13 @@ export function AttendScan({ token }: { token: string }) {
     );
   }
   if (result.outcome === "rejected") {
+    if (result.reason === "stale_intent") {
+      return (
+        <p role="alert" className="text-destructive">
+          {t("attend.staleIntent")}
+        </p>
+      );
+    }
     return (
       <p className="text-destructive">
         {t(result.reason === "invalid_qr" ? "attend.invalidQr" : "attend.notStaff")}

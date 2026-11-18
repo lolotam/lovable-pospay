@@ -11,12 +11,13 @@ export const phoneProofSchema = phoneScopeSchema.extend({
       clientDataJSON: z.string().max(16384),
       authenticatorData: z.string().max(16384),
       signature: z.string().max(16384),
-      userHandle: z.string().max(2048),
+      userHandle: z.string().max(2048).optional(),
     }),
     clientExtensionResults: z.record(z.string(), z.unknown()),
-    authenticatorAttachment: z.enum(["platform", "cross-platform"]),
+    authenticatorAttachment: z.enum(["platform", "cross-platform"]).optional(),
   }),
 });
+export type PhoneProofInput = z.infer<typeof phoneProofSchema>;
 export const unbindSchema = phoneScopeSchema.extend({ userId: z.string().min(1).max(200) });
 
 export interface PhoneStaffOption {

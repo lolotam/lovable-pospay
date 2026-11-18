@@ -28,12 +28,21 @@ export async function scanAttendance(input: ScanInputDto, deps: ScanDeps): Promi
 
   const exception = locationException(input.location, branch.location, branch.geofenceMeters);
   const open = await deps.repo.openRecord(branch.companyId, staffId);
+  if (input.intent !== null && (!open || input.promptedRecordId !== open.id)) {
+    return { outcome: "rejected", reason: "stale_intent" };
+  }
   const nextShift = await deps.repo.nextShift(branch.companyId, staffId, now);
   const decision = decideScan({ now, open, nextShift, intent: input.intent });
+  if (
+    (input.intent === "check_out" && decision.kind !== "check_out") ||
+    (input.intent === "new_shift" && decision.kind !== "forgotten_then_check_in")
+  ) {
+    return { outcome: "rejected", reason: "stale_intent" };
+  }
 
   switch (decision.kind) {
     case "needs_intent":
-      return { outcome: "needs_intent" };
+      return { outcome: "needs_intent", recordId: decision.recordId };
     case "check_out":
       await deps.repo.close(branch.companyId, decision.recordId, now, decision.status, exception);
       await deps.repo.audit(branch.companyId, "attendance.check_out", decision.recordId, {
