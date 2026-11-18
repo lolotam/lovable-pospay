@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import type { WorkspaceDto } from "@/modules/permissions";
 import { PendingScanRecovery } from "./pending-scan-recovery";
@@ -37,7 +37,8 @@ it("recovers the committed result of a pending scan and forgets the attempt", as
   fireEvent.click(await screen.findByRole("button"));
   expect(await screen.findByText(/^Mona · /)).toBeInTheDocument();
   expect(settleCardScanFn).toHaveBeenCalledWith({ data: attempt });
-  expect(sessionStorage.getItem("pospay:card-scan")).toBeNull();
+  // الحذف يتم في effect بعد عرض النتيجة، فننتظره بدل افتراض توقيت التنفيذ.
+  await waitFor(() => expect(sessionStorage.getItem("pospay:card-scan")).toBeNull());
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
@@ -49,4 +50,32 @@ it.each([
   const { container } = render(<PendingScanRecovery workspace={workspace} userId="reception" />);
   expect(container).toBeEmptyDOMElement();
   expect(sessionStorage.getItem("pospay:card-scan")).not.toBeNull();
+});
+
+it("keeps the attempt when the view closes before the result arrives", async () => {
+  store(attempt);
+  let answer!: (response: unknown) => void;
+  settleCardScanFn.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+  const { unmount } = render(<PendingScanRecovery workspace={workspace} userId="reception" />);
+  fireEvent.click(await screen.findByRole("button"));
+  unmount();
+  await act(async () =>
+    answer({ status: "recorded", scan: { name: "Mona", result: { outcome: "checked_in" } } }),
+  );
+  expect(sessionStorage.getItem("pospay:card-scan")).not.toBeNull();
+});
+
+it("does not carry a result into another workspace", async () => {
+  store(attempt);
+  settleCardScanFn.mockResolvedValueOnce({ status: "rejected" });
+  const { rerender } = render(<PendingScanRecovery workspace={workspace} userId="reception" />);
+  fireEvent.click(await screen.findByRole("button"));
+  expect(await screen.findByRole("status")).not.toBeEmptyDOMElement();
+  rerender(
+    <PendingScanRecovery
+      workspace={{ ...workspace, companyId: "30000000-0000-4000-8000-000000000009" }}
+      userId="reception"
+    />,
+  );
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
 });

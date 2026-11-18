@@ -7,6 +7,8 @@ import type { CardRequest } from "../card.contracts";
 import { settleCardScanFn } from "../functions/card.functions";
 import { clearPendingScan, readPendingScan, tallyScanMessage } from "./card-scan-storage";
 
+type ShownResult = { scope: string; requestId: string | null; text: string };
+
 export interface PendingScanRecoveryProps {
   workspace: WorkspaceDto | null;
   userId: string;
@@ -18,10 +20,12 @@ export interface PendingScanRecoveryProps {
  */
 export function PendingScanRecovery({ workspace, userId }: PendingScanRecoveryProps) {
   const companyId = workspace?.kind === "company" ? workspace.companyId : null;
+  const scope = `${companyId ?? ""}|${userId}`;
   const settle = useServerFn(settleCardScanFn);
   const [attempt, setAttempt] = useState<CardRequest | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [shown, setShown] = useState<ShownResult | null>(null);
+  const message = shown?.scope === scope ? shown.text : "";
   useEffect(() => {
     try {
       const stored = readPendingScan();
@@ -31,17 +35,29 @@ export function PendingScanRecovery({ workspace, userId }: PendingScanRecoveryPr
       setAttempt(null);
     }
   }, [companyId, userId]);
+  // المحاولة تُحذف بعد عرض نتيجتها لنفس الشركة والمشغّل فقط؛ لو اتشال المكوّن أو اتغيّر النطاق تفضل محفوظة.
+  useEffect(() => {
+    if (shown?.scope !== scope || !shown.requestId) return;
+    clearPendingScan(shown.requestId);
+    setAttempt(null);
+  }, [shown, scope]);
   async function check(pending: CardRequest) {
+    const requestScope = scope;
     setBusy(true);
-    setMessage("");
+    setShown(null);
     try {
       const response = await settle({ data: pending });
-      if (response.status === "unverified") return setMessage(t("cards.scanSessionUnverified"));
-      clearPendingScan(pending.requestId);
-      setAttempt(null);
-      setMessage(tallyScanMessage(response, true));
+      setShown(
+        response.status === "unverified"
+          ? { scope: requestScope, requestId: null, text: t("cards.scanSessionUnverified") }
+          : {
+              scope: requestScope,
+              requestId: pending.requestId,
+              text: tallyScanMessage(response, true),
+            },
+      );
     } catch {
-      setMessage(t("cards.statusUnavailable"));
+      setShown({ scope: requestScope, requestId: null, text: t("cards.statusUnavailable") });
     } finally {
       setBusy(false);
     }
