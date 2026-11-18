@@ -28,6 +28,7 @@ insert into public.service_sessions(company_id,service_id,staff_id,branch_id,cli
  from public.staff_members s join public.service_catalog c using(company_id)
  join public.clients b using(company_id) where s.user_id='user-b';
 insert into public.discount_grants(company_id,role,max_percent,granted_by) values ('00000000-0000-0000-0000-00000000000b','reception',10,'seed');
+insert into public.discount_grants(company_id,user_id,max_percent,granted_by) values ('00000000-0000-0000-0000-00000000000b','user-former',50,'seed');
 insert into public.invitations(company_id,email,role,token_hash,expires_at,invited_by)
  values ('00000000-0000-0000-0000-00000000000b','invite-b@example.test','staff',repeat('b',64),now()+interval '1 day','user-b');
 select set_config('test.b_branch' , (select id::text from public.branches where name='B-1'), true);
@@ -40,6 +41,20 @@ do $$ begin
     select 1 from public.service_sessions s join public.clients c
       on c.company_id=s.company_id and c.id=s.client_id where c.name='B client'
   ) then raise exception 'B cannot read its linked client'; end if;
+end $$;
+do $$ begin
+  begin
+    insert into public.discount_grants(company_id,user_id,max_percent,granted_by)
+      values ('00000000-0000-0000-0000-00000000000b','user-outsider',20,'user-b');
+    raise exception 'Discount grant accepted a non-member';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+select set_config('app.user_id','user-former',true);
+do $$ begin
+  if exists(select 1 from public.discount_grants) then raise exception 'LEAK discount grant to former member'; end if;
+  if public.discount_cap('00000000-0000-0000-0000-00000000000b') <> 0
+    then raise exception 'Former member keeps a discount cap'; end if;
 end $$;
 select set_config('app.user_id','user-a',true);
 do $$ begin

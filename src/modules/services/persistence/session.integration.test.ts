@@ -42,6 +42,7 @@ describe.skipIf(!url)("service sessions real RLS", () => {
         "0012_service_catalog",
         "0013_service_sessions",
         "0014_discount_grants",
+        "0016_discount_grant_membership",
       ])
         await admin.query(await readFile(`db/migrations/${f}.sql`, "utf8"));
     await admin.query(`insert into companies(id,name) values($1,'Sessions salon')`, [company]);

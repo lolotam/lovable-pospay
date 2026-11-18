@@ -21,22 +21,27 @@ export const createInviteFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
-    const { insertInvite } = await import("../persistence/invitation.server");
+    const { insertInvite, revokeInvite } = await import("../persistence/invitation.server");
     const { sendInvitationEmail } = await import("@/lib/server/resend.server");
+    const { issueInvite } = await import("../use-cases/issue-invite");
     const { newInviteToken, hashInviteToken, inviteExpiry } =
       await import("../domain/invite-token");
     const userId = await requireUserId();
     const token = newInviteToken();
     const tokenHash = await hashInviteToken(token);
-    const saved = await withUser(userId, (db) =>
-      insertInvite(db, { ...data, tokenHash, expiresAt: inviteExpiry(new Date()), userId }),
-    );
     const base = process.env["BETTER_AUTH_URL"] ?? "";
     const url = `${new URL(base).origin}/invite?t=${token}`;
-    const emailed = await sendInvitationEmail(data.email, url, saved.companyName).catch(
-      () => false,
+    return issueInvite(
+      {
+        save: () =>
+          withUser(userId, (db) =>
+            insertInvite(db, { ...data, tokenHash, expiresAt: inviteExpiry(new Date()), userId }),
+          ),
+        revoke: (id) => withUser(userId, (db) => revokeInvite(db, data.companyId, id, userId)),
+        send: (link, companyName) => sendInvitationEmail(data.email, link, companyName),
+      },
+      url,
     );
-    return { url, emailed };
   });
 
 export const revokeInviteFn = createServerFn({ method: "POST" })
