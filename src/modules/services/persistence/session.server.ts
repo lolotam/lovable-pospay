@@ -1,6 +1,5 @@
 import type pg from "pg";
-import type { SessionFormDto } from "../contracts";
-import type { SessionRepository } from "../ports/session-repository";
+import type { SessionFormRecord, SessionRepository } from "../ports/session-repository";
 
 export function pgSessionRepository(
   db: pg.PoolClient,
@@ -90,24 +89,34 @@ export function pgSessionRepository(
   };
 }
 
+/** يقرأ خيارات تسجيل الجلسة المصرح بها للمستخدم. */
 export async function readSessionForm(
   db: pg.PoolClient,
   companyId: string,
-): Promise<SessionFormDto> {
+): Promise<SessionFormRecord> {
   const access = await db.query(`select public.session_writer_any($1) as ok`, [companyId]);
   if (!access.rows[0]?.ok) return { canRecord: false, services: [], staff: [] };
-  const services = await db.query(
+  const services = await db.query<
+    Omit<SessionFormRecord["services"][number], "priceMills"> & { priceMills: string }
+  >(
     `select c.id,c.name,c.price_mills::text as "priceMills",
  coalesce((select json_agg(a.staff_id) from public.service_assignments a join public.staff_members s on s.company_id=a.company_id and s.id=a.staff_id
   where a.company_id=c.company_id and a.service_id=c.id and a.active and public.session_writer(s.company_id,s.branch_id)),'[]') as "staffIds"
  from public.service_catalog c where c.company_id=$1 order by c.name`,
     [companyId],
   );
-  const staff = await db.query(
+  const staff = await db.query<SessionFormRecord["staff"][number]>(
     `select s.id,s.display_name as name,b.timezone as "timeZone" from public.staff_members s
       join public.branches b on b.company_id=s.company_id and b.id=s.branch_id
       where s.company_id=$1 and public.session_writer(s.company_id,s.branch_id) order by s.display_name`,
     [companyId],
   );
-  return { canRecord: true, services: services.rows, staff: staff.rows };
+  return {
+    canRecord: true,
+    services: services.rows.map((service) => ({
+      ...service,
+      priceMills: BigInt(service.priceMills),
+    })),
+    staff: staff.rows,
+  };
 }

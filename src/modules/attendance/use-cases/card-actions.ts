@@ -1,5 +1,5 @@
 import { canIssueCard, type CardEligibility } from "../domain/card-policy";
-import type { CardRepository } from "../ports/card-repository";
+import type { CardManagementRecord, CardRepository } from "../ports/card-repository";
 import type { CardManagement, IssuedCard } from "../card.contracts";
 
 /** يتحقق من أهلية الإصدار بعد قفل الموظفة وقراءة حالتها الحالية. */
@@ -40,13 +40,15 @@ export async function revokeCardUseCase(repo: CardRepository, cardId: string): P
   await repo.audit("cards.revoked", cardId, {});
 }
 
+/** يجهز حالة البطاقات وسياسة الشركة لواجهة الإدارة. */
 export async function loadCardManagement(repo: {
   access(): Promise<{ member: boolean; manager: boolean } | undefined>;
-  read(): Promise<Omit<CardManagement, "canApprove">>;
+  read(): Promise<CardManagementRecord>;
 }): Promise<CardManagement> {
   const access = await repo.access();
   if (!access?.member) throw new Error("FORBIDDEN");
-  return { ...(await repo.read()), canApprove: access.manager };
+  const { approvedAt, staff } = await repo.read();
+  return { approvedAt: approvedAt?.toISOString() ?? null, staff, canApprove: access.manager };
 }
 
 export async function approveCardPolicy(repo: {

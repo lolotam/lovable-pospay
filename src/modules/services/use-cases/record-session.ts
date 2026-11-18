@@ -1,7 +1,7 @@
 import type { SessionFormDto } from "../contracts";
 import { serviceSessionRecordingAvailable } from "../domain/session-availability";
 import { normalizePhone } from "../domain/client-phone";
-import type { SessionRepository } from "../ports/session-repository";
+import type { SessionFormRecord, SessionRepository } from "../ports/session-repository";
 
 /** مدخلات تسجيل جلسة خدمة منفذة. */
 export interface RecordSessionInput {
@@ -50,10 +50,20 @@ export async function recordSession(
   return { id };
 }
 
-export function loadSessionForm(read: () => Promise<SessionFormDto>): Promise<SessionFormDto> {
-  return serviceSessionRecordingAvailable
-    ? read()
-    : Promise.resolve({ canRecord: false, services: [], staff: [] });
+/** يجهز خيارات نموذج الجلسة عند إتاحة التسجيل. */
+export async function loadSessionForm(
+  read: () => Promise<SessionFormRecord>,
+): Promise<SessionFormDto> {
+  if (!serviceSessionRecordingAvailable) return { canRecord: false, services: [], staff: [] };
+  const { canRecord, services, staff } = await read();
+  return {
+    canRecord,
+    services: services.map((service) => ({
+      ...service,
+      priceMills: service.priceMills.toString(),
+    })),
+    staff,
+  };
 }
 
 export async function recordAvailableSession(record: () => Promise<{ id: string }>) {

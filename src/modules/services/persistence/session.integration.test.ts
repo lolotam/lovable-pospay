@@ -4,6 +4,7 @@ import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 import pg from "pg";
 import { getPool, withUser } from "@/lib/server/db.server";
 import { pgSessionRepository, readSessionForm } from "./session.server";
+import { loadSessionReport } from "../use-cases/read-session-report";
 import { readSessionReport } from "./session-report.server";
 import { recordSession } from "../use-cases/record-session";
 const url = process.env["POSPAY_TEST_DATABASE_URL"];
@@ -90,12 +91,14 @@ describe.skipIf(!url)("service sessions real RLS", () => {
     ]);
     expect(duplicates).toEqual([{ id: requestId }, { id: requestId }]);
     const rows = await withUser("s-owner", (db) =>
-      readSessionReport(
-        db,
-        company,
-        new Date(Date.now() - 86400_000).toISOString(),
-        new Date(Date.now() + 60_000).toISOString(),
-        20,
+      loadSessionReport(() =>
+        readSessionReport(
+          db,
+          company,
+          new Date(Date.now() - 86400_000).toISOString(),
+          new Date(Date.now() + 60_000).toISOString(),
+          20,
+        ),
       ),
     );
     expect(rows).toHaveLength(1);

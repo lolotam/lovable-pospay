@@ -17,3 +17,17 @@ export interface CardRepository {
   markRevoked(cardId: string): Promise<boolean>;
   audit(action: string, entityId: string, details: unknown): Promise<void>;
 }
+
+/** سياسة البطاقات وحالة كل موظفة تحت صلاحيات الشركة. */
+export interface CardManagementRecord {
+  approvedAt: Date | null;
+  staff: {
+    id: string;
+    name: string;
+    branchId: string;
+    branchName: string;
+    phone: boolean;
+    cardId: string | null;
+    canIssue: boolean;
+  }[];
+}

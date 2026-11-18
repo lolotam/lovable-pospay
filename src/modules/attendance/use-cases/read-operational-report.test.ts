@@ -1,14 +1,14 @@
 import { expect, it, vi } from "vitest";
 import { readOperationalReport } from "./read-operational-report";
-import type { AttendanceReportRow } from "../report.contracts";
+import type { AttendanceReportRecord } from "../ports/report-repository";
 
-const row: AttendanceReportRow = {
+const row: AttendanceReportRecord = {
   id: "attendance",
   name: "Fixture",
   branch: "A",
   timeZone: "UTC",
   workDate: "2026-11-18",
-  checkIn: "2026-11-18T10:00:00Z",
+  checkIn: new Date("2026-11-18T10:00:00Z"),
   checkOut: null,
   corrected: null,
   reason: null,
@@ -35,7 +35,7 @@ it("bounds corrected records independently from total attendance", async () => {
   const attendance = vi.fn(async () => [row]);
   const sessions = vi.fn(async () => []);
   await expect(readOperationalReport("corrected", { attendance, sessions })).resolves.toEqual({
-    attendance: [row],
+    attendance: [{ ...row, checkIn: "2026-11-18T10:00:00.000Z" }],
     sessions: [],
   });
   expect(attendance).toHaveBeenCalledWith(2001, true);

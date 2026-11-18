@@ -22,7 +22,7 @@ const revokeCard = (db: pg.PoolClient, user: string, company: string, card: stri
 const scanCard = async (
   db: pg.PoolClient,
   user: string,
-  input: Parameters<typeof readCardScan>[2],
+  input: Omit<Parameters<typeof recordCard>[0], "location"> & { companyId: string },
 ) =>
   recordCard(
     { ...input, location: null },

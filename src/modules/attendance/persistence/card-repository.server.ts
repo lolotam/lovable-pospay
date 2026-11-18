@@ -1,5 +1,5 @@
 import type pg from "pg";
-import type { CardManagement } from "../card.contracts";
+import type { CardManagementRecord } from "../ports/card-repository";
 export async function cardHash(token: string): Promise<string> {
   const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
   return Buffer.from(hash).toString("hex");
@@ -12,15 +12,16 @@ export async function readCardAccess(db: pg.PoolClient, companyId: string) {
   return access.rows[0];
 }
 
+/** يقرأ سياسة البطاقات وحالة الموظفات المصرح بعرضها. */
 export async function readCards(
   db: pg.PoolClient,
   companyId: string,
-): Promise<Omit<CardManagement, "canApprove">> {
+): Promise<CardManagementRecord> {
   const policy = await db.query(
     `select approved_at from public.card_policies where company_id=$1`,
     [companyId],
   );
-  const staff = await db.query(
+  const staff = await db.query<CardManagementRecord["staff"][number]>(
     `select s.id,s.display_name as name,s.branch_id as "branchId",b.name as "branchName",
  exists(select 1 from public.phone_bindings p where p.company_id=s.company_id and p.user_id=s.user_id) as phone,
  c.id as "cardId",public.card_manager(s.company_id,s.branch_id) as "canIssue"
@@ -30,7 +31,7 @@ export async function readCards(
     [companyId],
   );
   return {
-    approvedAt: policy.rows[0]?.approved_at?.toISOString() ?? null,
+    approvedAt: policy.rows[0]?.approved_at ?? null,
     staff: staff.rows,
   };
 }

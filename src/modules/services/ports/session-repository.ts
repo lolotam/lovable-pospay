@@ -26,3 +26,22 @@ export interface SessionRepository {
   insertSession(session: NewSession): Promise<void>;
   audit(sessionId: string, details: unknown): Promise<void>;
 }
+
+/** خيارات نموذج الجلسات مع الأسعار بالفلس. */
+export interface SessionFormRecord {
+  canRecord: boolean;
+  services: { id: string; name: string; priceMills: bigint; staffIds: string[] }[];
+  staff: { id: string; name: string; timeZone: string }[];
+}
+
+/** سجل جلسة للتقرير، بوقت التنفيذ ووقت التسجيل وسعر الخدمة بالفلس. */
+export interface SessionReportRecord {
+  id: string;
+  name: string;
+  service: string;
+  priceMills: bigint;
+  occurredAt: Date;
+  recordedAt: Date;
+  timeZone: string;
+  clientName: string | null;
+}
