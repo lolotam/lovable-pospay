@@ -1,13 +1,16 @@
 # Roadmap
 
 ## Continuation (2026-11-18)
-- [ ] 002 phone management selectors — replace manual company/user IDs with authorized company and staff choices; verify repository through disposable PostgreSQL and UI.
+- [x] 002 phone management selector implementation — company/staff names replace manual IDs; 4 repository permission tests pass on disposable PostgreSQL; authenticated browser acceptance remains open.
+- [ ] 002 selector authenticated acceptance — preview has no configured Better Auth; only unavailable state checked at 390/820/1280, no horizontal overflow.
+- [x] Continuation checks — 61 tests pass, 0 skipped (11 files); migrations 0001–0003 applied twice locally; changed-file ESLint passes; latest preview build OK. Full lint terminated after 180 seconds (SIGTERM), not a pass.
+- [x] Code-review against 015dd57 — Standards: no confirmed violation; Spec: read error state improved. Permissions mirror existing D-40 RLS; unbinding already writes phone.unbound audit. Physical-device acceptance stays open; no PR/CI gate run from this sandbox.
 - [ ] Production connection remains blocked: latest Dokploy logs show ENOIDENTIFIER; SSH read refused (`read-command only accepts read-only commands, got: safe`). No production settings changed.
 
 ## Approved authentication update (2026-11-18)
 - [ ] Correct production pooler configuration and configure Resend in Dokploy — approved; blocked by redacted Dokploy env and SSH APPROVAL_UNAVAILABLE; no environment overwritten; production sign-in still HTTP 500
 - [x] Six-digit email OTP recovery with a choice to continue sign-in or change password; hashed, single-use, expiry/attempt/concurrency/session tests pass; existing TOTP gate preserved
-- [ ] Google sign-in for existing accounts only — UI/configuration added; OAuth credentials and callback/TOTP acceptance tests required
+- [ ] Google sign-in for existing accounts only — postponed by Waleed until the end of Phase 1; UI/configuration added, credentials and callback/TOTP acceptance remain required
 - [x] Recovery API and public phone/tablet UI checked; 54 tests passed, 3 integration tests skipped (no disposable DB configured); real email/Google acceptance remains open
 - [ ] Clarify barcode rules before slice 003; Waleed accepted proceeding, not evidence of implementation or real-device checks
 

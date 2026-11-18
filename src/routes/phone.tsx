@@ -40,7 +40,21 @@ const companiesQuery = queryOptions({
 const managementQuery = (companyId: string) =>
   queryOptions({
     queryKey: ["phone-management", companyId],
-    queryFn: () => getPhoneManagementFn({ data: { companyId } }),
+    queryFn: async () => {
+      try {
+        return { ...(await getPhoneManagementFn({ data: { companyId } })), error: null };
+      } catch (error) {
+        return {
+          canBind: false,
+          isBound: false,
+          canManage: false,
+          staff: [],
+          error: isAuthNotConfigured(error)
+            ? ("auth.notConfigured" as const)
+            : ("phone.error" as const),
+        };
+      }
+    },
   });
 
 export const Route = createFileRoute("/phone")({
@@ -80,11 +94,16 @@ function PhonePage() {
               <SelectValue placeholder={t("phone.selectCompany")} />
             </SelectTrigger>
             <SelectContent>
-              {data.companies.map((company) => (
-                <SelectItem key={company.id} value={company.id}>
-                  {company.name}
-                </SelectItem>
-              ))}
+              {data.companies
+                .filter(
+                  (company, index, all) =>
+                    all.findIndex((item) => item.id === company.id) === index,
+                )
+                .map((company) => (
+                  <SelectItem key={company.id} value={company.id}>
+                    {company.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
           <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
@@ -142,6 +161,7 @@ function usePhoneActions(companyId: string) {
 function PhoneActions({ companyId }: { companyId: string }) {
   const actions = usePhoneActions(companyId);
   const { data, busy, message, run } = actions;
+  if (data.error) return <p role="status">{t(data.error)}</p>;
   return (
     <section className="space-y-6">
       <p>{t(data.isBound ? "phone.bound" : "phone.notBound")}</p>

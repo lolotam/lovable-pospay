@@ -15,4 +15,8 @@ Finish the missing operator selector noted in `spec.md`, using existing D-40 per
 Reuse established database boundary: public phone-management read repository under withUser() with real PostgreSQL/RLS. Tests cover own company, foreign company and explicit deny. Browser acceptance requires configured Better Auth; signed-out screenshots alone do not complete it.
 
 ## Status
-In progress. Production phone exclusivity and authenticated browser acceptance remain separate open gates.
+Implementation complete; 4 management repository tests pass on disposable PostgreSQL. Full suite: 61 tests passed, 0 skipped across 11 files, including attendance/RLS acceptance. Migrations 0001–0003 applied twice locally. Changed-file ESLint passes and preview build OK; full lint terminated after 180 seconds with SIGTERM.
+
+Browser check at 390/820/1280 confirms the unavailable-auth state renders without overflow. Authenticated company/staff selection and real-device exclusivity remain unverified and open; no production environment or shared database changed.
+
+Review against 015dd57: Standards found no confirmed breach. Spec review raised read error handling (fixed) and asked about attendance.record semantics: this read mirrors the existing D-40 RLS (staff profile plus absence of deny), not a new permission rule. Existing unbindPhoneFn writes phone.unbound with actor in the same withUser transaction. Revalidation at mutation time remains authoritative.
