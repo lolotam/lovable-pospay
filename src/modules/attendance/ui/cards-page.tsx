@@ -1,32 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Printer, CreditCard, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { CompanyScope } from "@/modules/staff";
-import { getCardsFn, approveCardsFn, issueCardFn, revokeCardFn } from "../functions/card.functions";
+import { approveCardsFn, issueCardFn, revokeCardFn } from "../functions/card.functions";
+import { cardQuery } from "./cards-query";
 import type { IssuedCard } from "../card.contracts";
-const cardQuery = (companyId: string, userId: string) =>
-  queryOptions({
-    queryKey: ["cards", userId, companyId],
-    queryFn: async () => {
-      try {
-        return {
-          value: await getCardsFn({ data: { companyId, expectedUserId: userId } }),
-          error: null,
-        };
-      } catch (error) {
-        return {
-          value: null,
-          error:
-            error instanceof Error && error.message === "FORBIDDEN"
-              ? ("ops.denied" as const)
-              : ("ops.forbidden" as const),
-        };
-      }
-    },
-  });
 export function CardsPage() {
   const [switchLocked, setSwitchLocked] = useState(false);
   const [issuedByScope, setIssuedByScope] = useState(() => new Map<string, IssuedCard>());

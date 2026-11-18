@@ -1,23 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { queryOptions, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Pencil, Save } from "lucide-react";
 import { CompanyScope } from "@/modules/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
-import { getCatalogFn, saveServiceFn } from "../functions/catalog.functions";
+import { saveServiceFn } from "../functions/catalog.functions";
+import { catalogQuery } from "./catalog-query";
 import { saveServiceInput, type SaveServiceInput, type ServiceDto } from "../contracts";
 function kwd(value: string) {
   const n = BigInt(value);
   return `${n / 1000n}.${(n % 1000n).toString().padStart(3, "0")}`;
 }
-const catalogQuery = (companyId: string, userId: string) =>
-  queryOptions({
-    queryKey: ["catalog", userId, companyId],
-    queryFn: () => getCatalogFn({ data: { companyId, expectedUserId: userId } }),
-    retry: 1,
-  });
 type PendingCreate = SaveServiceInput & { confirmedId?: string };
 type PendingCreates = Map<string, PendingCreate>;
 

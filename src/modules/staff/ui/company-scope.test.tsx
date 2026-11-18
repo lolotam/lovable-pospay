@@ -93,15 +93,24 @@ it("uses the new account's companies when the query client survives an account s
 
 it("preloads only the authenticated account's scope", async () => {
   const cache = new QueryClient();
+  const companies = [
+    { id: "default-company", name: "Default", role: "owner" },
+    { id: "other-company", name: "Other", role: "owner" },
+  ];
+  const preloadCompany = vi.fn().mockResolvedValue(undefined);
   requireUserId.mockResolvedValueOnce("loader-account");
-  getMyCompanies.mockResolvedValueOnce([]);
-  await preloadOperatorCompanies(cache);
+  getMyCompanies.mockResolvedValueOnce(companies);
+  await preloadOperatorCompanies(cache, preloadCompany);
   expect(cache.getQueryData(["operator-companies", "loader-account"])).toEqual({
-    companies: [],
+    companies,
     error: null,
   });
   expect(cache.getQueryData(["operator-companies"])).toBeUndefined();
   expect(getMyCompanies).toHaveBeenLastCalledWith({ data: { expectedUserId: "loader-account" } });
+  expect(preloadCompany).toHaveBeenCalledExactlyOnceWith("default-company", "loader-account");
+  requireUserId.mockRejectedValueOnce(new Error("Session lookup failed"));
+  await preloadOperatorCompanies(cache, preloadCompany);
+  expect(preloadCompany).toHaveBeenCalledTimes(1);
 });
 
 it("keeps the default company selected when the refreshed list is reordered", async () => {

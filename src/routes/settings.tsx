@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useEffect, useState } from "react";
 import { CompanyScope, preloadOperatorCompanies } from "@/modules/staff";
 import { CardActions } from "@/modules/attendance/ui/cards-page";
+import { cardQuery } from "@/modules/attendance/ui/cards-query";
 import { t } from "@/i18n";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme/theme";
 
@@ -16,10 +17,10 @@ export const Route = createFileRoute("/settings")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  loader: ({ context }) =>
-    preloadOperatorCompanies(context.queryClient).catch(() => {
-      // A session lookup failure must leave the public theme controls available.
-    }),
+  loader: ({ context: { queryClient } }) =>
+    preloadOperatorCompanies(queryClient, (companyId, userId) =>
+      queryClient.ensureQueryData(cardQuery(companyId, userId)),
+    ),
   component: SettingsPage,
 });
 

@@ -22,11 +22,17 @@ export const operatorCompaniesQuery = (userId: string) =>
     },
   });
 
-export async function preloadOperatorCompanies(queryClient: QueryClient): Promise<void> {
+export async function preloadOperatorCompanies(
+  queryClient: QueryClient,
+  preloadCompany?: (companyId: string, userId: string) => Promise<unknown>,
+): Promise<void> {
   try {
     const userId = await getOperatorUserId();
-    if (userId) await queryClient.ensureQueryData(operatorCompaniesQuery(userId));
+    if (!userId) return;
+    const { companies, error } = await queryClient.ensureQueryData(operatorCompaniesQuery(userId));
+    const firstCompany = companies[0];
+    if (!error && firstCompany && preloadCompany) await preloadCompany(firstCompany.id, userId);
   } catch {
-    // The page can retry a failed initial lookup.
+    // The page can retry a failed preload.
   }
 }

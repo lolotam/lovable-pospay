@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CatalogPage } from "@/modules/services/ui/catalog-page";
+import { catalogQuery } from "@/modules/services/ui/catalog-query";
 import { preloadOperatorCompanies } from "@/modules/staff";
 import { t } from "@/i18n";
 export const Route = createFileRoute("/services")({
@@ -14,6 +15,9 @@ export const Route = createFileRoute("/services")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  loader: ({ context }) => preloadOperatorCompanies(context.queryClient),
+  loader: ({ context: { queryClient } }) =>
+    preloadOperatorCompanies(queryClient, (companyId, userId) =>
+      queryClient.ensureQueryData(catalogQuery(companyId, userId)),
+    ),
   component: CatalogPage,
 });
