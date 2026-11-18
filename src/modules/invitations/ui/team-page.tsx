@@ -9,9 +9,9 @@ import { invitableRoles } from "../contracts";
 import { createInviteFn, getTeamFn, revokeInviteFn } from "../functions/invitation.functions";
 
 type Role = (typeof invitableRoles)[number];
-const teamQuery = (companyId: string) =>
+const teamQuery = (companyId: string, userId: string) =>
   queryOptions({
-    queryKey: ["team", companyId],
+    queryKey: ["team", userId, companyId],
     queryFn: async () => {
       try {
         return await getTeamFn({ data: { companyId } });
@@ -24,10 +24,14 @@ const selectClass = "h-10 w-full rounded-md border border-input bg-background px
 const roleLabel = (r: string) => t(`team.role.${r}` as MessageKey);
 
 export function TeamPage() {
-  return <CompanyScope title="team.title">{(id) => <Team companyId={id} />}</CompanyScope>;
+  return (
+    <CompanyScope title="team.title">
+      {(id, userId) => <Team companyId={id} userId={userId} />}
+    </CompanyScope>
+  );
 }
-function Team({ companyId }: { companyId: string }) {
-  const { data } = useSuspenseQuery(teamQuery(companyId));
+function Team({ companyId, userId }: { companyId: string; userId: string }) {
+  const { data } = useSuspenseQuery(teamQuery(companyId, userId));
   const qc = useQueryClient();
   const create = useServerFn(createInviteFn);
   const revoke = useServerFn(revokeInviteFn);
@@ -36,11 +40,11 @@ function Team({ companyId }: { companyId: string }) {
     role: "reception",
     branchId: "",
   });
-  const [result, setResult] = useState<{ url: string; emailed: boolean } | null>(null);
+  const [result, setResult] = useState<{ emailed: true } | null>(null);
   const [error, setError] = useState("");
   if (!data?.canInvite) return <p role="alert">{t("ops.forbidden")}</p>;
   const roles = invitableRoles.filter((r) => data.isOwner || r !== "branch_manager");
-  const refresh = () => qc.invalidateQueries({ queryKey: ["team", companyId] });
+  const refresh = () => qc.invalidateQueries({ queryKey: ["team", userId, companyId] });
   async function submit() {
     setError("");
     setResult(null);
@@ -113,14 +117,7 @@ function Team({ companyId }: { companyId: string }) {
       )}
       {result && (
         <div role="status" className="space-y-2 rounded-md border border-border bg-card p-3">
-          <p>{t(result.emailed ? "team.emailed" : "team.notEmailed")}</p>
-          <Input
-            dir="ltr"
-            readOnly
-            value={result.url}
-            onFocus={(e) => e.target.select()}
-            aria-label={t("team.link")}
-          />
+          <p>{t("team.emailed")}</p>
         </div>
       )}
       <ul className="space-y-2">

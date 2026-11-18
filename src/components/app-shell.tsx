@@ -3,6 +3,7 @@ import type { FileRoutesByTo } from "@/routeTree.gen";
 import { useEffect, useRef, type ReactNode } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { t, type MessageKey } from "@/i18n";
+import { serviceSessionRecordingAvailable } from "@/modules/services";
 
 interface NavItem {
   to: keyof FileRoutesByTo;
@@ -20,7 +21,9 @@ const sections: { title: MessageKey | null; items: NavItem[] }[] = [
       { to: "/cards", label: "nav.cards", icon: "▤" },
       { to: "/reception/cards", label: "nav.cardScan", icon: "▥" },
       { to: "/services", label: "nav.services", icon: "◇" },
-      { to: "/sessions", label: "nav.sessions", icon: "◆" },
+      ...(serviceSessionRecordingAvailable
+        ? [{ to: "/sessions", label: "nav.sessions", icon: "◆" } as const]
+        : []),
       { to: "/discounts", label: "nav.discounts", icon: "%" },
       { to: "/team", label: "nav.team", icon: "+" },
       { to: "/reports", label: "nav.reports", icon: "≡" },

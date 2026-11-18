@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useEffect, useState } from "react";
-import { CompanyScope } from "@/modules/staff";
+import { CompanyScope, preloadOperatorCompanies } from "@/modules/staff";
 import { CardActions } from "@/modules/attendance/ui/cards-page";
+import { cardQuery } from "@/modules/attendance/ui/cards-query";
 import { t } from "@/i18n";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme/theme";
 
@@ -16,6 +17,11 @@ export const Route = createFileRoute("/settings")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  loader: ({ context: { queryClient } }) => {
+    void preloadOperatorCompanies(queryClient, (companyId, userId) =>
+      queryClient.ensureQueryData(cardQuery(companyId, userId)),
+    );
+  },
   component: SettingsPage,
 });
 
@@ -63,7 +69,7 @@ function SettingsPage() {
       </fieldset>
       <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
         <CompanyScope title="cards.policy">
-          {(id) => <CardActions companyId={id} policyOnly />}
+          {(id, userId) => <CardActions companyId={id} userId={userId} policyOnly />}
         </CompanyScope>
       </Suspense>
     </main>

@@ -1,10 +1,18 @@
-import type { AttendanceReportRow, OperationalReport } from "../report.contracts";
+import type { AttendanceReportRow, OperationalReport, ReportTab } from "../report.contracts";
 import { t } from "@/i18n";
 
-export type ReportTab = "attendance" | "corrected" | "services";
 export type Table = { title: string; head: string[]; body: string[][] };
 
-const dt = (v: string | null) => (v ? new Date(v).toLocaleString("ar-KW") : "");
+export function formatReportDate(value: string | null, timeZone: string): string {
+  if (!value) return "";
+  const date = new Date(value);
+  try {
+    return date.toLocaleString("ar-KW", { timeZone });
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error;
+    return date.toLocaleString("ar-KW", { timeZone: "UTC", timeZoneName: "short" });
+  }
+}
 export const formatMills = (m: string) =>
   `${BigInt(m) / 1000n}.${(BigInt(m) % 1000n).toString().padStart(3, "0")}`;
 
@@ -18,18 +26,16 @@ export function buildTable(data: OperationalReport, tab: ReportTab): Table {
         t("export.service"),
         t("export.time"),
         t("reports.client"),
-        t("export.phone"),
         t("export.price"),
         t("reports.lateSession"),
       ],
       body: data.sessions.map((r) => [
         r.name,
         r.service,
-        dt(r.occurredAt),
+        formatReportDate(r.occurredAt, r.timeZone),
         r.clientName ?? "",
-        r.clientPhone ?? "",
         formatMills(r.priceMills),
-        r.late ? "✓" : "",
+        r.late === null ? t("reports.sessionTimezoneUnknown") : r.late ? "\u2713" : "",
       ]),
     };
   const rows: AttendanceReportRow[] =
@@ -50,9 +56,9 @@ export function buildTable(data: OperationalReport, tab: ReportTab): Table {
       r.name,
       r.branch,
       r.workDate,
-      dt(r.checkIn),
-      dt(r.checkOut),
-      dt(r.corrected),
+      formatReportDate(r.checkIn, r.timeZone),
+      formatReportDate(r.checkOut, r.timeZone),
+      formatReportDate(r.corrected, r.timeZone),
       r.reason ?? "",
       String(r.late),
     ]),

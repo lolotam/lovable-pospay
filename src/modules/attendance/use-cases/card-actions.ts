@@ -1,6 +1,6 @@
 import { canIssueCard, type CardEligibility } from "../domain/card-policy";
-import type { CardRepository } from "../ports/card-repository";
-import type { IssuedCard } from "../card.contracts";
+import type { CardManagementRecord, CardRepository } from "../ports/card-repository";
+import type { CardManagement, IssuedCard } from "../card.contracts";
 
 /** يتحقق من أهلية الإصدار بعد قفل الموظفة وقراءة حالتها الحالية. */
 export function requireCardEligibility(input: CardEligibility): void {
@@ -38,4 +38,22 @@ export async function revokeCardUseCase(repo: CardRepository, cardId: string): P
   if (!staff.manager) throw new Error("FORBIDDEN");
   if (!(await repo.markRevoked(cardId))) throw new Error("CARD_REVOKED");
   await repo.audit("cards.revoked", cardId, {});
+}
+
+/** يجهز حالة البطاقات وسياسة الشركة لواجهة الإدارة. */
+export async function loadCardManagement(repo: {
+  access(): Promise<{ member: boolean; manager: boolean } | undefined>;
+  read(): Promise<CardManagementRecord>;
+}): Promise<CardManagement> {
+  const access = await repo.access();
+  if (!access?.member) throw new Error("FORBIDDEN");
+  const { approvedAt, staff } = await repo.read();
+  return { approvedAt: approvedAt?.toISOString() ?? null, staff, canApprove: access.manager };
+}
+
+export async function approveCardPolicy(repo: {
+  insert(): Promise<boolean>;
+  audit(): Promise<void>;
+}): Promise<void> {
+  if (await repo.insert()) await repo.audit();
 }

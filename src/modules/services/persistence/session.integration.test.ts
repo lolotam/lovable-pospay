@@ -4,6 +4,7 @@ import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 import pg from "pg";
 import { getPool, withUser } from "@/lib/server/db.server";
 import { pgSessionRepository, readSessionForm } from "./session.server";
+import { loadSessionReport } from "../use-cases/read-session-report";
 import { readSessionReport } from "./session-report.server";
 import { recordSession } from "../use-cases/record-session";
 import { saveDiscountGrant } from "./discount.server";
@@ -17,13 +18,11 @@ const input = {
   staffId: staff,
   clientName: "Noura",
   clientPhone: "96555551234",
-  occurredAt: new Date(Date.now() - 3600_000),
+  occurredAt: new Date(Date.now() - 3600_000).toISOString().slice(0, 16),
 };
-const run = (user: string) =>
+const run = (user: string, requestId = crypto.randomUUID()) =>
   withUser(user, (db) =>
-    recordSession(pgSessionRepository(db, user, company), input, new Date(), () =>
-      crypto.randomUUID(),
-    ),
+    recordSession(pgSessionRepository(db, user, company), { ...input, requestId }, new Date()),
   );
 describe.skipIf(!url)("service sessions real RLS", () => {
   let admin: pg.Pool;
@@ -43,13 +42,14 @@ describe.skipIf(!url)("service sessions real RLS", () => {
         "0012_service_catalog",
         "0013_service_sessions",
         "0014_discount_grants",
+        "0016_discount_grant_membership",
       ])
         await admin.query(await readFile(`db/migrations/${f}.sql`, "utf8"));
     await admin.query(`insert into companies(id,name) values($1,'Sessions salon')`, [company]);
-    await admin.query(`insert into branches(id,company_id,name) values($1,$2,'S branch')`, [
-      branch,
-      company,
-    ]);
+    await admin.query(
+      `insert into branches(id,company_id,name,timezone) values($1,$2,'S branch','UTC')`,
+      [branch, company],
+    );
     await admin.query(
       `insert into memberships(company_id,user_id,role,branch_id) values($1,'s-reception','reception',$2),($1,'s-staff','staff',$2),($1,'s-owner','owner',null)`,
       [company, branch],
@@ -86,57 +86,98 @@ describe.skipIf(!url)("service sessions real RLS", () => {
   it("employee cannot record a session", async () => {
     await expect(run("s-staff")).rejects.toThrow();
   });
-  it("reception records with catalog price and owner report masks the phone", async () => {
-    await run("s-reception");
+  it("reception records with catalog price and owner report omits the phone", async () => {
+    const requestId = crypto.randomUUID();
+    const duplicates = await Promise.all([
+      run("s-reception", requestId),
+      run("s-reception", requestId),
+    ]);
+    expect(duplicates).toEqual([{ id: requestId }, { id: requestId }]);
+    const rowsVisibleToWriter = await withUser("s-reception", async (db) => {
+      const { rowCount } = await db.query(
+        "select id from public.service_sessions where company_id=$1",
+        [company],
+      );
+      return rowCount;
+    });
+    expect(rowsVisibleToWriter).toBe(0);
     const rows = await withUser("s-owner", (db) =>
-      readSessionReport(
-        db,
-        company,
-        new Date(Date.now() - 86400_000).toISOString(),
-        new Date(Date.now() + 60_000).toISOString(),
+      loadSessionReport(() =>
+        readSessionReport(
+          db,
+          company,
+          new Date(Date.now() - 86400_000).toISOString(),
+          new Date(Date.now() + 60_000).toISOString(),
+          20,
+        ),
       ),
     );
     expect(rows).toHaveLength(1);
+    expect(rows[0]).not.toHaveProperty("clientPhone");
+    await expect(
+      withUser("s-reception", (db) =>
+        db.query("select phone from public.clients where company_id=$1", [company]),
+      ),
+    ).rejects.toMatchObject({ code: "42501" });
+    await expect(
+      withUser(
+        "s-reception",
+        async (db) =>
+          (await db.query("select name from public.clients where company_id=$1", [company])).rows,
+      ),
+    ).resolves.toEqual([]);
+    expect(rows[0]?.occurredAt).toBe(`${input.occurredAt}:00.000Z`);
     expect(rows[0]).toMatchObject({
       name: "Mona",
       service: "Hair",
       priceMills: "12500",
       clientName: "Noura",
-      clientPhone: "•••234",
       late: false,
     });
   });
   it("same phone reuses one client per company (D-30)", async () => {
+    await run("s-reception");
     await run("s-reception");
     const c = await admin.query(`select count(*)::int as n from clients where company_id=$1`, [
       company,
     ]);
     expect(c.rows[0].n).toBe(1);
   });
+  it("returns only services with eligible staff in the recording form", async () => {
+    await admin.query(
+      "insert into service_catalog(company_id,name,price_mills) values($1,'Unassigned',1000)",
+      [company],
+    );
+    const form = await withUser("s-reception", (db) => readSessionForm(db, company));
+    expect(form).toMatchObject({
+      canRecord: true,
+      services: [{ id: service, staffIds: [staff], priceMills: 12500n }],
+      staff: [{ id: staff, timeZone: "UTC" }],
+    });
+  });
   it("employee sees no recording form", async () => {
     const form = await withUser("s-staff", (db) => readSessionForm(db, company));
     expect(form.canRecord).toBe(false);
   });
   it("enforces the granted discount limit in RLS (ق-1)", async () => {
-    const disc = (user: string, priceMills: bigint) =>
+    const disc = (user: string, price: string) =>
       withUser(user, (db) =>
         recordSession(
           pgSessionRepository(db, user, company),
-          { ...input, priceMills, discountReason: "vip" },
+          { ...input, requestId: crypto.randomUUID(), price, discountReason: "vip" },
           new Date(),
-          () => crypto.randomUUID(),
         ),
       );
-    await expect(disc("s-reception", 11250n)).rejects.toThrow("DISCOUNT_OVER_LIMIT");
+    await expect(disc("s-reception", "11.250")).rejects.toThrow("DISCOUNT_OVER_LIMIT");
     await expect(
       withUser("s-reception", (db) =>
         db.query(
           `insert into service_sessions(company_id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,price_mills,list_price_mills,discount_reason,recorded_by)
-           select $1,$2,$3,$4,id,now(),'Hair',1,12500,'x','s-reception' from clients where company_id=$1 limit 1`,
+           values($1,$2,$3,$4,public.upsert_session_client($1,$4,'Test client','96512345678'),now(),'Hair',1,12500,'x','s-reception')`,
           [company, service, staff, branch],
         ),
       ),
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({ code: "42501" });
     await expect(
       withUser("s-reception", (db) =>
         saveDiscountGrant(db, "s-reception", company, { kind: "role", role: "reception" }, 50),
@@ -145,7 +186,7 @@ describe.skipIf(!url)("service sessions real RLS", () => {
     await withUser("s-owner", (db) =>
       saveDiscountGrant(db, "s-owner", company, { kind: "role", role: "reception" }, 10),
     );
-    await expect(disc("s-reception", 11250n)).resolves.toHaveProperty("id");
-    await expect(disc("s-reception", 11249n)).rejects.toThrow("DISCOUNT_OVER_LIMIT");
+    await expect(disc("s-reception", "11.250")).resolves.toHaveProperty("id");
+    await expect(disc("s-reception", "11.249")).rejects.toThrow("DISCOUNT_OVER_LIMIT");
   });
 });

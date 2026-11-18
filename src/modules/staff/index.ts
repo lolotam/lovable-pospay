@@ -9,4 +9,4 @@ export {
 export type { PhoneManagementDto, PhoneStaffOption } from "./phone.contracts";
 
 export { CompanyScope } from "./ui/company-scope";
-export { operatorCompaniesQuery } from "./ui/operator-companies-query";
+export { preloadOperatorCompanies } from "./ui/operator-companies-query";

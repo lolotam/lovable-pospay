@@ -1,20 +1,27 @@
 import type pg from "pg";
-import type { CardManagement } from "../card.contracts";
+import type { CardManagementRecord } from "../ports/card-repository";
 export async function cardHash(token: string): Promise<string> {
   const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
   return Buffer.from(hash).toString("hex");
 }
-export async function readCards(db: pg.PoolClient, companyId: string): Promise<CardManagement> {
-  const access = await db.query(
+export async function readCardAccess(db: pg.PoolClient, companyId: string) {
+  const access = await db.query<{ member: boolean; manager: boolean }>(
     `select public.is_member($1) as member, public.card_manager($1) as manager`,
     [companyId],
   );
-  if (!access.rows[0]?.member) throw new Error("FORBIDDEN");
+  return access.rows[0];
+}
+
+/** يقرأ سياسة البطاقات وحالة الموظفات المصرح بعرضها. */
+export async function readCards(
+  db: pg.PoolClient,
+  companyId: string,
+): Promise<CardManagementRecord> {
   const policy = await db.query(
     `select approved_at from public.card_policies where company_id=$1`,
     [companyId],
   );
-  const staff = await db.query(
+  const staff = await db.query<CardManagementRecord["staff"][number]>(
     `select s.id,s.display_name as name,s.branch_id as "branchId",b.name as "branchName",
  exists(select 1 from public.phone_bindings p where p.company_id=s.company_id and p.user_id=s.user_id) as phone,
  c.id as "cardId",public.card_manager(s.company_id,s.branch_id) as "canIssue"
@@ -24,18 +31,16 @@ export async function readCards(db: pg.PoolClient, companyId: string): Promise<C
     [companyId],
   );
   return {
-    approvedAt: policy.rows[0]?.approved_at?.toISOString() ?? null,
-    canApprove: access.rows[0].manager,
+    approvedAt: policy.rows[0]?.approved_at ?? null,
     staff: staff.rows,
   };
 }
-export async function approveCards(db: pg.PoolClient, userId: string, companyId: string) {
+export async function insertCardPolicy(db: pg.PoolClient, userId: string, companyId: string) {
   const result = await db.query(
     `insert into public.card_policies(company_id,approved_by) values($1,$2) on conflict do nothing returning company_id`,
     [companyId, userId],
   );
-  if (result.rowCount)
-    await cardAudit(db, userId, companyId, "cards.policy_approved", companyId, {});
+  return !!result.rowCount;
 }
 export async function cardAudit(
   db: pg.PoolClient,

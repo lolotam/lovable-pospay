@@ -23,11 +23,15 @@ export async function recordAttendance(
     return { outcome: "rejected", reason: "stale_intent" };
   }
   const nextShift = await deps.repo.nextShift(branch.companyId, staffId, now);
-  const decision = decideScan({ now, open, nextShift, intent: input.intent });
-  if (
-    (input.intent === "check_out" && decision.kind !== "check_out") ||
-    (input.intent === "new_shift" && decision.kind !== "forgotten_then_check_in")
-  ) {
+  const withoutIntent = decideScan({ now, open, nextShift, intent: null });
+  if (input.intent === "new_shift" && withoutIntent.kind !== "needs_intent") {
+    return { outcome: "rejected", reason: "stale_intent" };
+  }
+  const decision =
+    input.intent === null
+      ? withoutIntent
+      : decideScan({ now, open, nextShift, intent: input.intent });
+  if (input.intent === "check_out" && decision.kind !== "check_out") {
     return { outcome: "rejected", reason: "stale_intent" };
   }
 

@@ -3,43 +3,45 @@ import { readFile } from "node:fs/promises";
 import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 import pg from "pg";
 import { getPool, withUser } from "@/lib/server/db.server";
-import { approveCards, readCards } from "./card-repository.server";
-import { issueCard as persistIssueCard, revokeCard } from "./card-actions.server";
+import { cardAudit, insertCardPolicy, readCardAccess, readCards } from "./card-repository.server";
+import { cardTokens, pgCardRepository } from "./card-actions.server";
+import { pgCardScanReceipts } from "./card-scan-receipts.server";
 import { scanCard as readCardScan } from "./card-scan.server";
-import {
-  saveService as persistService,
-  readCatalog,
-} from "@/modules/services/persistence/catalog.server";
 import { readAttendanceReport } from "./report.server";
-import { requireCardEligibility } from "../use-cases/card-actions";
-import { recordCard } from "../use-cases/card-scan";
-import { systemClock } from "@/shared/kernel/clock";
+import {
+  approveCardPolicy,
+  issueCardUseCase,
+  loadCardManagement,
+  revokeCardUseCase,
+} from "../use-cases/card-actions";
+import { recordCard, recordCardRequest, settleCardRequest } from "../use-cases/card-scan";
 import { cryptoIds } from "@/shared/kernel/ids";
-import { servicePrice } from "@/modules/services/use-cases/service-price";
 const issueCard = (db: pg.PoolClient, user: string, company: string, staff: string) =>
-  persistIssueCard(db, user, company, staff, requireCardEligibility);
+  issueCardUseCase(pgCardRepository(db, user, company), cardTokens, staff);
+const revokeCard = (db: pg.PoolClient, user: string, company: string, card: string) =>
+  revokeCardUseCase(pgCardRepository(db, user, company), card);
 const scanCard = async (
   db: pg.PoolClient,
   user: string,
-  input: Parameters<typeof readCardScan>[2],
+  input: Omit<Parameters<typeof recordCard>[0], "location"> & { companyId: string },
 ) =>
   recordCard(
     { ...input, location: null },
     await readCardScan(db, user, input),
-    systemClock,
+    { now: () => new Date("2026-11-18T10:00:00Z") },
     cryptoIds,
   );
-const saveService = (
-  db: pg.PoolClient,
-  user: string,
-  input: Parameters<typeof persistService>[2],
-) => persistService(db, user, input, servicePrice(input.price));
+const approveCards = (db: pg.PoolClient, user: string, companyId: string) =>
+  approveCardPolicy({
+    insert: () => insertCardPolicy(db, user, companyId),
+    audit: () => cardAudit(db, user, companyId, "cards.policy_approved", companyId, {}),
+  });
 const url = process.env["POSPAY_TEST_DATABASE_URL"];
 const company = "30000000-0000-0000-0000-000000000001",
   branch = "30000000-0000-0000-0000-000000000002",
   staff = "30000000-0000-0000-0000-000000000003",
   other = "30000000-0000-0000-0000-000000000004";
-describe.skipIf(!url)("card/catalog/report real RLS", () => {
+describe.skipIf(!url)("card/report real RLS", () => {
   let admin: pg.Pool;
   let token = "";
   let cardId = "";
@@ -79,8 +81,6 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
   afterAll(async () => {
     if (admin) {
       await admin.query(`delete from attendance_cards where company_id=$1`, [company]);
-      await admin.query(`delete from service_assignments where company_id=$1`, [company]);
-      await admin.query(`delete from service_catalog where company_id=$1`, [company]);
       await admin.query(`delete from companies where id in($1,$2)`, [company, other]);
       await admin.end();
       await getPool().end();
@@ -126,6 +126,28 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
       [company],
     );
   });
+  it("card-management denial does not revoke scan permission", async () => {
+    await admin.query(
+      "insert into permission_overrides(company_id,user_id,permission,effect) values($1,'cards-manager','attendance.manage_cards','deny')",
+      [company],
+    );
+    try {
+      await expect(
+        withUser("cards-manager", async (db) => {
+          const { rows } = await db.query(
+            "select public.card_operator($1,$2) as operator,public.card_manager($1,$2) as manager",
+            [company, branch],
+          );
+          return rows[0];
+        }),
+      ).resolves.toEqual({ operator: true, manager: false });
+    } finally {
+      await admin.query(
+        "delete from permission_overrides where company_id=$1 and user_id='cards-manager' and permission='attendance.manage_cards'",
+        [company],
+      );
+    }
+  });
   it("manager recording deny does not prevent immediate revocation", async () => {
     await admin.query(
       `insert into permission_overrides(company_id,user_id,permission,effect) values($1,'cards-manager','attendance.record','deny')`,
@@ -161,13 +183,42 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
     ).rejects.toThrow("ACTIVE_CARD");
   });
   it("reception scans check-in then checkout", async () => {
-    expect(
-      (
-        await withUser("cards-reception", (db) =>
-          scanCard(db, "cards-reception", { companyId: company, token, intent: null }),
-        )
-      ).result.outcome,
-    ).toBe("checked_in");
+    const user = "cards-reception";
+    const requestId = crypto.randomUUID();
+    const fingerprint = "a".repeat(64);
+    const input = { companyId: company, token, intent: null };
+    const submit = (hash = fingerprint) =>
+      withUser(user, (db) =>
+        recordCardRequest(
+          pgCardScanReceipts<Awaited<ReturnType<typeof scanCard>>>(db, company, user, requestId),
+          hash,
+          () => scanCard(db, user, input),
+        ),
+      );
+    let releaseOriginal!: () => void;
+    const original = new Promise<void>((resolve) => {
+      releaseOriginal = resolve;
+    }).then(() => submit());
+    const recovered = await submit();
+    releaseOriginal();
+    expect(recovered.result.outcome).toBe("checked_in");
+    await expect(original).resolves.toEqual(recovered);
+    await expect(submit("b".repeat(64))).rejects.toThrow("CARD_REQUEST_CONFLICT");
+    const otherActor = await withUser(
+      "cards-manager",
+      async (db) =>
+        (await db.query("select id from public.card_scan_requests where company_id=$1", [company]))
+          .rows,
+    );
+    expect(otherActor).toEqual([]);
+    await expect(
+      withUser("cards-reception", (db) =>
+        db.query(
+          "update public.attendance_records set late_minutes=99 where company_id=$1 and status='open'",
+          [company],
+        ),
+      ),
+    ).rejects.toThrow("INVALID_CARD_ATTENDANCE_TRANSITION");
     expect(
       (
         await withUser("cards-reception", (db) =>
@@ -175,6 +226,41 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
         )
       ).result.outcome,
     ).toBe("checked_out");
+    await expect(
+      withUser(
+        "cards-reception",
+        async (db) =>
+          (
+            await db.query(
+              "update public.attendance_records set late_minutes=99 where company_id=$1 and status='ok'",
+              [company],
+            )
+          ).rowCount,
+      ),
+    ).resolves.toBe(0);
+  });
+  it("cancels a missing scan under its request lock and prunes only expired receipts", async () => {
+    const user = "cards-reception";
+    const requestId = crypto.randomUUID();
+    const expiredId = crypto.randomUUID();
+    await admin.query(
+      "insert into public.card_scan_requests(company_id,actor_user_id,id,result,created_at) values($1,$2,$3,'{}',now()-interval '8 days')",
+      [company, user, expiredId],
+    );
+    const resolve = (db: pg.PoolClient) => pgCardScanReceipts<string>(db, company, user, requestId);
+    await expect(
+      withUser(user, (db) => settleCardRequest(resolve(db), () => "cancelled")),
+    ).resolves.toBe("cancelled");
+    await expect(
+      withUser(user, (db) =>
+        recordCardRequest(resolve(db), "a".repeat(64), async () => "unexpected"),
+      ),
+    ).rejects.toThrow("CARD_REQUEST_CONFLICT");
+    const { rows } = await admin.query(
+      "select id from public.card_scan_requests where id=any($1::uuid[])",
+      [[requestId, expiredId]],
+    );
+    expect(rows).toEqual([{ id: requestId }]);
   });
   it("reception waits for a manager revocation and rejects the card after commit", async () => {
     await withUser("cards-manager", async (db) => {
@@ -204,45 +290,23 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
     ).rejects.toThrow("ACTIVE_PHONE");
   });
   it("foreign company management is denied", async () => {
-    await expect(withUser("cards-manager", (db) => readCards(db, other))).rejects.toThrow(
-      "FORBIDDEN",
-    );
-  });
-  it("catalog saves 25.125 exactly and assignment reads back", async () => {
-    const c = await withUser("cards-manager", (db) =>
-      saveService(db, "cards-manager", {
-        companyId: company,
-        name: "Hair",
-        price: "25.125",
-        staffIds: [staff],
-      }),
-    );
-    const list = await withUser("cards-manager", (db) => readCatalog(db, company));
-    expect(list.services.find((s) => s.id === c.id)).toMatchObject({
-      priceMills: "25125",
-      staffIds: [staff],
-    });
-  });
-  it("staff cannot edit prices", async () => {
     await expect(
-      withUser("cards-staff", (db) =>
-        saveService(db, "cards-staff", {
-          companyId: company,
-          name: "Forbidden",
-          price: "1.000",
-          staffIds: [],
+      withUser("cards-manager", (db) =>
+        loadCardManagement({
+          access: () => readCardAccess(db, other),
+          read: () => readCards(db, other),
         }),
       ),
     ).rejects.toThrow("FORBIDDEN");
   });
   it("viewer sees attendance only inside half-open range", async () => {
     const rows = await withUser("cards-viewer", (db) =>
-      readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z"),
+      readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", 20),
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]?.name).toBe("Mona");
     const empty = await withUser("cards-viewer", (db) =>
-      readAttendanceReport(db, company, "2025-01-01T00:00:00Z", "2026-01-01T00:00:00Z"),
+      readAttendanceReport(db, company, "2025-01-01T00:00:00Z", "2026-01-01T00:00:00Z", 20),
     );
     expect(empty).toEqual([]);
   });
@@ -281,45 +345,13 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
     );
     expect(counts.rows[0].methods).toBe("1");
   });
-  it("catalog edit retains previous price and rejects stale version", async () => {
-    const list = await withUser("cards-manager", (db) => readCatalog(db, company));
-    const service = list.services[0];
-    if (!service) throw new Error("Missing fixture");
-    await withUser("cards-manager", (db) =>
-      saveService(db, "cards-manager", {
-        companyId: company,
-        id: service.id,
-        version: service.version,
-        name: "Hair updated",
-        price: "30.000",
-        staffIds: [staff],
-      }),
-    );
-    await expect(
-      withUser("cards-manager", (db) =>
-        saveService(db, "cards-manager", {
-          companyId: company,
-          id: service.id,
-          version: service.version,
-          name: "Stale",
-          price: "1.000",
-          staffIds: [],
-        }),
-      ),
-    ).rejects.toThrow("SERVICE_CONFLICT");
-    const audit = await admin.query(
-      `select details from audit_log where company_id=$1 and action='service.saved' and details->>'name'='Hair updated'`,
-      [company],
-    );
-    expect(audit.rows[0].details.previous.price_mills).toBe("25125");
-  });
   it("report retains original checkout and correction reason", async () => {
     await admin.query(
       `update attendance_records set corrected_check_out_at=check_out_at+interval '1 hour',correction_reason='Forgot checkout' where company_id=$1`,
       [company],
     );
     const rows = await withUser("cards-viewer", (db) =>
-      readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z"),
+      readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", 20),
     );
     expect(rows[0]?.reason).toBe("Forgot checkout");
     expect(rows[0]?.corrected).not.toBe(rows[0]?.checkOut);
@@ -327,7 +359,7 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
   it("reception cannot read operational reports", async () => {
     await expect(
       withUser("cards-reception", (db) =>
-        readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z"),
+        readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", 20),
       ),
     ).rejects.toThrow("FORBIDDEN");
   });

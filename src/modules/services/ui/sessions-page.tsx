@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Save } from "lucide-react";
@@ -6,6 +6,7 @@ import { CompanyScope } from "@/modules/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t, type MessageKey } from "@/i18n";
+import type { SessionFormDto } from "../contracts";
 
 const discountErrors = ["DISCOUNT_OVER_LIMIT", "DISCOUNT_REASON_REQUIRED", "PRICE_ABOVE_LIST"];
 import { getSessionFormFn, recordSessionFn } from "../functions/session.functions";
@@ -22,10 +23,6 @@ const formQuery = (companyId: string) =>
     },
   });
 const selectClass = "h-10 w-full rounded-md border border-input bg-background px-3";
-function localNow() {
-  const d = new Date();
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
-}
 export function SessionsPage() {
   return (
     <CompanyScope title="sessions.title">{(id) => <SessionForm companyId={id} />}</CompanyScope>
@@ -39,14 +36,17 @@ function useSessionForm(companyId: string) {
     staffId: "",
     clientName: "",
     clientPhone: "",
-    at: localNow(),
+    at: "",
     price: "",
     reason: "",
   });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const set = (k: keyof typeof f) => (v: string) =>
+  const request = useRef<string | null>(null);
+  const set = (k: keyof typeof f) => (v: string) => {
+    request.current = null;
     setF((p) => ({ ...p, [k]: v, ...(k === "serviceId" ? { staffId: "" } : {}) }));
+  };
   async function submit() {
     if (busy) return;
     setBusy(true);
@@ -59,19 +59,14 @@ function useSessionForm(companyId: string) {
           staffId: f.staffId,
           clientName: f.clientName,
           clientPhone: f.clientPhone,
-          occurredAt: new Date(f.at).toISOString(),
-          price: f.price || undefined,
-          discountReason: f.reason || undefined,
+          occurredAt: f.at,
+          ...(f.price ? { price: f.price } : {}),
+          ...(f.reason ? { discountReason: f.reason } : {}),
+          requestId: (request.current ??= crypto.randomUUID()),
         },
       });
-      setF((p) => ({
-        ...p,
-        clientName: "",
-        clientPhone: "",
-        price: "",
-        reason: "",
-        at: localNow(),
-      }));
+      request.current = null;
+      setF((p) => ({ ...p, clientName: "", clientPhone: "", at: "", price: "", reason: "" }));
       setMessage(t("sessions.saved"));
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
@@ -89,6 +84,7 @@ function SessionForm({ companyId }: { companyId: string }) {
   if (!data?.canRecord) return <p role="alert">{t("ops.forbidden")}</p>;
   const service = data.services.find((s) => s.id === f.serviceId);
   const staff = data.staff.filter((s) => service?.staffIds.includes(s.id));
+  const selectedStaff = staff.find((s) => s.id === f.staffId);
   const price = service
     ? `${BigInt(service.priceMills) / 1000n}.${(BigInt(service.priceMills) % 1000n).toString().padStart(3, "0")}`
     : "";
@@ -100,65 +96,28 @@ function SessionForm({ companyId }: { companyId: string }) {
         submit();
       }}
     >
+      <SessionSelectors
+        services={data.services}
+        staff={staff}
+        serviceId={f.serviceId}
+        staffId={f.staffId}
+        onService={set("serviceId")}
+        onStaff={set("staffId")}
+      />
+      <SessionClientFields
+        name={f.clientName}
+        phone={f.clientPhone}
+        onName={set("clientName")}
+        onPhone={set("clientPhone")}
+      />
       <label className="block space-y-2">
-        <span>{t("sessions.service")}</span>
-        <select
-          className={selectClass}
-          value={f.serviceId}
-          onChange={(e) => set("serviceId")(e.target.value)}
-          required
-        >
-          <option value="">{t("sessions.choose")}</option>
-          {data.services.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block space-y-2">
-        <span>{t("sessions.staff")}</span>
-        <select
-          className={selectClass}
-          value={f.staffId}
-          onChange={(e) => set("staffId")(e.target.value)}
-          required
-          disabled={!service}
-        >
-          <option value="">{t("sessions.choose")}</option>
-          {staff.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block space-y-2">
-        <span>{t("sessions.clientName")}</span>
-        <Input
-          value={f.clientName}
-          onChange={(e) => set("clientName")(e.target.value)}
-          required
-          maxLength={120}
-        />
-      </label>
-      <label className="block space-y-2">
-        <span>{t("sessions.clientPhone")}</span>
-        <Input
-          dir="ltr"
-          inputMode="tel"
-          value={f.clientPhone}
-          onChange={(e) => set("clientPhone")(e.target.value)}
-          required
-          minLength={8}
-          maxLength={24}
-        />
-      </label>
-      <label className="block space-y-2">
-        <span>{t("sessions.at")}</span>
+        <span>
+          {t("sessions.at")} {selectedStaff && <bdi>{selectedStaff.timeZone}</bdi>}
+        </span>
         <Input
           dir="ltr"
           type="datetime-local"
+          disabled={!selectedStaff || busy}
           value={f.at}
           onChange={(e) => set("at")(e.target.value)}
           required
@@ -178,6 +137,94 @@ function SessionForm({ companyId }: { companyId: string }) {
     </form>
   );
 }
+
+function SessionSelectors({
+  services,
+  staff,
+  serviceId,
+  staffId,
+  onService,
+  onStaff,
+}: {
+  services: SessionFormDto["services"];
+  staff: SessionFormDto["staff"];
+  serviceId: string;
+  staffId: string;
+  onService: (id: string) => void;
+  onStaff: (id: string) => void;
+}) {
+  return (
+    <>
+      <label className="block space-y-2">
+        <span>{t("sessions.service")}</span>
+        <select
+          className={selectClass}
+          value={serviceId}
+          onChange={(e) => onService(e.target.value)}
+          required
+        >
+          <option value="">{t("sessions.choose")}</option>
+          {services.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block space-y-2">
+        <span>{t("sessions.staff")}</span>
+        <select
+          className={selectClass}
+          value={staffId}
+          onChange={(e) => onStaff(e.target.value)}
+          required
+          disabled={!serviceId}
+        >
+          <option value="">{t("sessions.choose")}</option>
+          {staff.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    </>
+  );
+}
+
+function SessionClientFields({
+  name,
+  phone,
+  onName,
+  onPhone,
+}: {
+  name: string;
+  phone: string;
+  onName: (value: string) => void;
+  onPhone: (value: string) => void;
+}) {
+  return (
+    <>
+      <label className="block space-y-2">
+        <span>{t("sessions.clientName")}</span>
+        <Input value={name} onChange={(e) => onName(e.target.value)} required maxLength={120} />
+      </label>
+      <label className="block space-y-2">
+        <span>{t("sessions.clientPhone")}</span>
+        <Input
+          dir="ltr"
+          inputMode="tel"
+          value={phone}
+          onChange={(e) => onPhone(e.target.value)}
+          required
+          minLength={8}
+          maxLength={24}
+        />
+      </label>
+    </>
+  );
+}
+
 function DiscountFields({
   cap,
   f,

@@ -1,100 +1,220 @@
-import { useEffect, useRef, useState } from "react";
-import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useEffect, useReducer, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Printer, CreditCard, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { CompanyScope } from "@/modules/staff";
-import { getCardsFn, approveCardsFn, issueCardFn, revokeCardFn } from "../functions/card.functions";
+import { approveCardsFn, issueCardFn, revokeCardFn } from "../functions/card.functions";
+import { cardQuery } from "./cards-query";
 import type { IssuedCard } from "../card.contracts";
-const cardQuery = (companyId: string) =>
-  queryOptions({
-    queryKey: ["cards", companyId],
-    queryFn: async () => {
-      try {
-        return { value: await getCardsFn({ data: { companyId } }), error: null };
-      } catch (error) {
-        return {
-          value: null,
-          error:
-            error instanceof Error && error.message === "FORBIDDEN"
-              ? ("ops.denied" as const)
-              : ("ops.forbidden" as const),
-        };
-      }
+export function CardsPage() {
+  const [switchLocked, setSwitchLocked] = useState(false);
+  const [issuedByScope, setIssuedByScope] = useState(() => new Map<string, IssuedCard>());
+  const mutations = useCardMutations();
+  function rememberIssued(scope: string, card: IssuedCard | null) {
+    setIssuedByScope((previous) => {
+      const next = new Map(previous);
+      if (card) next.set(scope, card);
+      else next.delete(scope);
+      return next;
+    });
+  }
+  return (
+    <CompanyScope title="cards.title" switchLocked={switchLocked}>
+      {(id, userId) => {
+        const scope = JSON.stringify([userId, id]);
+        return (
+          <CardActions
+            companyId={id}
+            userId={userId}
+            issued={issuedByScope.get(scope)}
+            mutation={mutations(scope)}
+            onIssuedChange={(card) => rememberIssued(scope, card)}
+            onSwitchLockChange={setSwitchLocked}
+          />
+        );
+      }}
+    </CompanyScope>
+  );
+}
+
+function useCardMutations() {
+  const inFlight = useRef(new Set<string>());
+  const [, refresh] = useReducer((version: number) => version + 1, 0);
+  return (scope: string) => ({
+    busy: inFlight.current.has(scope),
+    start() {
+      if (inFlight.current.has(scope)) return false;
+      inFlight.current.add(scope);
+      refresh();
+      return true;
+    },
+    finish() {
+      inFlight.current.delete(scope);
+      refresh();
     },
   });
-export function CardsPage() {
-  return <CompanyScope title="cards.title">{(id) => <CardActions companyId={id} />}</CompanyScope>;
 }
-function useCards({ companyId, policyOnly = false }: { companyId: string; policyOnly?: boolean }) {
-  const { data, isFetching } = useSuspenseQuery(cardQuery(companyId));
-  const cache = useQueryClient();
-  const [issued, setIssued] = useState<IssuedCard | null>(null);
-  const [busy, setBusy] = useState(false);
+
+type CardActionScope = Pick<
+  CardActionsProps,
+  "companyId" | "userId" | "issued" | "onIssuedChange" | "mutation"
+>;
+
+function useCards({ companyId, userId, issued, onIssuedChange, mutation }: CardActionScope) {
+  const { data, fetchStatus, isFetchedAfterMount, refetch } = useQuery(
+    cardQuery(companyId, userId),
+  );
+  const isFetching = !isFetchedAfterMount || fetchStatus !== "idle";
+  const localMutation = useCardMutations()("policy");
+  const lock = mutation ?? localMutation;
   const [confirm, setConfirm] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const approve = useServerFn(approveCardsFn),
     issue = useServerFn(issueCardFn),
     revoke = useServerFn(revokeCardFn);
   async function run(action: "approve" | "issue" | "revoke", id = "") {
-    if (busy || isFetching) return;
-    setBusy(true);
+    if (isFetching || issued || !lock.start()) return;
     setMessage("");
-    setIssued(null);
+    let saved = false;
     try {
-      if (action === "approve") await approve({ data: { companyId } });
-      else if (action === "issue") setIssued(await issue({ data: { companyId, staffId: id } }));
-      else await revoke({ data: { companyId, cardId: id } });
-      await cache.invalidateQueries({ queryKey: ["cards", companyId] });
+      const scope = { companyId, expectedUserId: userId };
+      if (action === "approve") await approve({ data: scope });
+      else if (action === "issue")
+        onIssuedChange?.(await issue({ data: { ...scope, staffId: id } }));
+      else await revoke({ data: { ...scope, cardId: id } });
       setConfirm(null);
-      setMessage(t("ops.saved"));
+      saved = true;
     } catch {
-      setMessage(t("cards.error"));
+      setMessage(t(action === "issue" ? "cards.issueUnconfirmed" : "cards.error"));
     } finally {
-      setBusy(false);
+      lock.finish();
+      void refetch().then(
+        ({ data: refreshed }) => {
+          if (saved) {
+            const verified = refreshed?.value && !refreshed.error;
+            setMessage(t(verified ? "ops.saved" : "cards.savedRefreshFailed"));
+          }
+        },
+        () => {
+          if (saved) setMessage(t("cards.savedRefreshFailed"));
+        },
+      );
     }
   }
-  return { data, busy, confirm, setConfirm, issued, message, run };
+  return {
+    data,
+    refetch,
+    busy: lock.busy,
+    isFetching,
+    confirm,
+    setConfirm,
+    issued,
+    dismissIssued: () => onIssuedChange?.(null),
+    message,
+    run,
+  };
 }
 type CardsState = ReturnType<typeof useCards>;
 type CardViewProps = Pick<CardsState, "busy" | "run" | "confirm" | "setConfirm"> & {
-  value: NonNullable<CardsState["data"]["value"]>;
+  value: NonNullable<NonNullable<CardsState["data"]>["value"]>;
 };
 export interface CardActionsProps {
   companyId: string;
+  userId: string;
   policyOnly?: boolean;
+  issued?: IssuedCard | undefined;
+  mutation?: ReturnType<ReturnType<typeof useCardMutations>> | undefined;
+  onIssuedChange?: ((card: IssuedCard | null) => void) | undefined;
+  onSwitchLockChange?: (locked: boolean) => void;
 }
-export function CardActions({ companyId, policyOnly = false }: CardActionsProps) {
-  const { data, busy, confirm, setConfirm, issued, message, run } = useCards({
-    companyId,
-    policyOnly,
-  });
-  if (data.error || !data.value) return <p role="alert">{t(data.error ?? "ops.forbidden")}</p>;
-  const value = data.value;
+export function CardActions({
+  companyId,
+  userId,
+  policyOnly = false,
+  issued: currentCard,
+  mutation,
+  onIssuedChange,
+  onSwitchLockChange,
+}: CardActionsProps) {
+  const {
+    data,
+    refetch,
+    busy,
+    isFetching,
+    confirm,
+    setConfirm,
+    issued,
+    dismissIssued,
+    message,
+    run,
+  } = useCards({ companyId, userId, issued: currentCard, onIssuedChange, mutation });
+  useEffect(() => {
+    onSwitchLockChange?.(busy || !!issued);
+    return () => onSwitchLockChange?.(false);
+  }, [busy, issued, onSwitchLockChange]);
+  const value = isFetching ? null : data?.value;
+  const canPrint = value?.staff.some((staff) => staff.canIssue && staff.cardId === issued?.cardId);
   return (
     <div className="space-y-6">
-      <CardPolicy value={value} busy={busy} run={run} />
-      {!policyOnly && (
+      <CardRosterStatus data={data} isFetching={isFetching} refetch={refetch} />
+      {value && <CardPolicy value={value} busy={busy || isFetching || !!issued} run={run} />}
+      {value && !policyOnly && (
         <>
-          <CardList value={value} busy={busy} confirm={confirm} setConfirm={setConfirm} run={run} />
+          <CardList
+            value={value}
+            busy={busy || isFetching || !!issued}
+            confirm={confirm}
+            setConfirm={setConfirm}
+            run={run}
+          />
           {!value.staff.length && <p>{t("ops.empty")}</p>}
-          {issued && <PrintableCard card={issued} />}
+        </>
+      )}
+      {!policyOnly && issued && (
+        <>
+          {canPrint && <PrintableCard card={issued} />}
+          {value && !canPrint && <p role="status">{t("cards.issuedInactive")}</p>}
+          <Button type="button" variant="outline" onClick={dismissIssued}>
+            {t("cards.dismissIssued")}
+          </Button>
         </>
       )}
       <p role="status">{message}</p>
     </div>
   );
 }
+
+function CardRosterStatus({
+  data,
+  isFetching,
+  refetch,
+}: Pick<CardsState, "data" | "isFetching" | "refetch">) {
+  if (isFetching) return <p role="status">{t("phone.loading")}</p>;
+  if (!data?.error) return null;
+  return (
+    <div className="space-y-2">
+      <p role="alert">{t(data.error)}</p>
+      <Button type="button" onClick={() => void refetch()}>
+        {t("ops.retryLoad")}
+      </Button>
+    </div>
+  );
+}
+
 function PrintableCard({ card }: { card: IssuedCard }) {
   const ref = useRef<SVGSVGElement>(null);
   const [error, setError] = useState(false);
+  const [readyToken, setReadyToken] = useState<string>();
   useEffect(() => {
     let active = true;
     import("jsbarcode")
       .then(({ default: render }) => {
-        if (active && ref.current)
+        if (active && ref.current) {
           render(ref.current, card.token, { format: "CODE128", displayValue: false });
+          setReadyToken(card.token);
+        }
       })
       .catch(() => {
         if (active) setError(true);
@@ -113,7 +233,11 @@ function PrintableCard({ card }: { card: IssuedCard }) {
           <svg ref={ref} role="img" aria-label={t("cards.barcode")} className="max-w-full" />
         )}
       </div>
-      <Button variant="outline" disabled={error} onClick={() => window.print()}>
+      <Button
+        variant="outline"
+        disabled={error || readyToken !== card.token}
+        onClick={() => window.print()}
+      >
         <Printer />
         {t("cards.print")}
       </Button>

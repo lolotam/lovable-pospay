@@ -2,6 +2,7 @@
 begin;
 insert into public.companies(id,name) values ('00000000-0000-0000-0000-0000000000c1','Inv salon');
 insert into public.memberships(company_id,user_id,role) values ('00000000-0000-0000-0000-0000000000c1','inv-owner','owner'),('00000000-0000-0000-0000-0000000000c1','inv-mgr','branch_manager'),('00000000-0000-0000-0000-0000000000c1','inv-rec','reception');
+insert into public."user"(id,email,name,"emailVerified") values ('new-user','new@x.test','New',true);
 set local role pospay_app;
 select set_config('app.user_id','inv-mgr',true);
 do $$ begin

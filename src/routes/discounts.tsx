@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DiscountsPage } from "@/modules/services/ui/discounts-page";
-import { operatorCompaniesQuery } from "@/modules/staff";
+import { preloadOperatorCompanies } from "@/modules/staff";
 import { t } from "@/i18n";
 export const Route = createFileRoute("/discounts")({
   head: () => ({
@@ -14,6 +14,8 @@ export const Route = createFileRoute("/discounts")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(operatorCompaniesQuery),
+  loader: ({ context }) => {
+    void preloadOperatorCompanies(context.queryClient);
+  },
   component: DiscountsPage,
 });

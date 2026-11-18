@@ -1,8 +1,6 @@
 import type pg from "pg";
 import { cardHash, cardAudit, lockCardStaff } from "./card-repository.server";
-import type { CardEligibility } from "../domain/card-policy";
 import type { CardRepository } from "../ports/card-repository";
-import { issueCardUseCase, revokeCardUseCase, type CardTokens } from "../use-cases/card-actions";
 
 export function pgCardRepository(
   db: pg.PoolClient,
@@ -48,21 +46,7 @@ export function pgCardRepository(
   };
 }
 
-export const cardTokens: CardTokens = {
+export const cardTokens = {
   generate: () => Buffer.from(crypto.getRandomValues(new Uint8Array(24))).toString("hex"),
   hash: cardHash,
 };
-
-export function issueCard(
-  db: pg.PoolClient,
-  userId: string,
-  companyId: string,
-  staffId: string,
-  check?: (state: CardEligibility) => void,
-) {
-  return issueCardUseCase(pgCardRepository(db, userId, companyId), cardTokens, staffId, check);
-}
-
-export function revokeCard(db: pg.PoolClient, userId: string, companyId: string, cardId: string) {
-  return revokeCardUseCase(pgCardRepository(db, userId, companyId), cardId);
-}

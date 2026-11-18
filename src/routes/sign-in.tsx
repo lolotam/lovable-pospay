@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { authClient } from "@/lib/auth-client";
+import { duringAccountChange } from "@/lib/account-change";
+import { authClient, verifyAuthSession } from "@/lib/auth-client";
+import { isAuthNotConfigured } from "@/lib/auth-errors";
 import { getSignInOptions } from "@/lib/auth-options.functions";
 import { t } from "@/i18n";
 import { Button } from "@/components/ui/button";
@@ -88,20 +90,27 @@ function useSignInFlow() {
   }
   async function login(action?: "continue" | "google") {
     if (action === "google") {
-      const result = await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/",
-        errorCallbackURL: "/sign-in",
-      });
+      const result = await duringAccountChange(
+        () =>
+          authClient.signIn.social({
+            provider: "google",
+            callbackURL: "/",
+            errorCallbackURL: "/sign-in",
+          }),
+        verifyAuthSession,
+      );
       if (result.error) throw result.error;
       return;
     }
-    const result =
-      action === "continue"
-        ? await authClient.signIn.emailOtp({ email, otp })
-        : step === "totp"
-          ? await authClient.twoFactor.verifyTotp({ code: totp })
-          : await authClient.signIn.email({ email, password });
+    const result = await duringAccountChange(
+      async () =>
+        action === "continue"
+          ? authClient.signIn.emailOtp({ email, otp })
+          : step === "totp"
+            ? authClient.twoFactor.verifyTotp({ code: totp })
+            : authClient.signIn.email({ email, password }),
+      verifyAuthSession,
+    );
     if (result.error) throw result.error;
     await finish(result.data);
   }
@@ -123,13 +132,15 @@ function useSignInFlow() {
         t(
           status === 429
             ? "auth.rateLimited"
-            : status === 503
+            : isAuthNotConfigured(error)
               ? "auth.notConfigured"
-              : step === "request"
-                ? "auth.resetUnavailable"
-                : step === "login"
-                  ? "auth.failed"
-                  : "auth.otpInvalid",
+              : status === 503
+                ? "auth.temporarilyUnavailable"
+                : step === "request"
+                  ? "auth.resetUnavailable"
+                  : step === "login"
+                    ? "auth.failed"
+                    : "auth.otpInvalid",
         ),
       );
     } finally {

@@ -4,7 +4,7 @@
 - [x] 003 barcode fallback implementation: manager-only issue, immediate manager revocation, one active method per employee; company policy approval screen, printable cards and reception scanning. Decisions approved by Waleed.
 - [x] Services catalog implementation: create/edit prices in bigint mills and employee assignments.
 - [x] Operational reports implementation: date-range attendance, corrected checkouts and recorded service sessions; tenant/role isolation.
-- [x] 003 final review closure (12:33 Kuwait): card issue/revoke orchestration moved to use-cases behind ports/card-repository.ts; persistence only implements the port. 5 new use-case tests; full suite 180/180 on local pospay_test; lint 0 errors on attendance; tsgo OK. Self-review only (no independent reviewer).
+- [x] 003 final review closure (12:33 Kuwait): card issue/revoke orchestration moved to use-cases behind ports/card-repository.ts; persistence only implements the port. 5 new use-case tests; full suite 180/180 on local pospay_test; lint 0 errors on attendance; tsgo OK. Self-review at that revision. Independent review of the current release head is tracked separately in PR #5.
 - [ ] Authenticated UI/physical scanner acceptance blocked by preview AUTH_NOT_CONFIGURED; production migrations/deployment and exact-head PR/CI remain external gates. Services session writer added in 011 (see below).
 - [x] Local migrations 0011/0012 double-applied, tenant negative SQL and card/catalog/report integration verified. See docs/specs/003-barcode/verification.md for check evidence.
 
@@ -55,7 +55,7 @@
 ## 004 Platform connectors (super admin)
 - [x] Super-admin-only connectors page `/admin/connectors` (Codex, Kimi, MiniMax, Z.ai sign-in; OpenAI, Google AI, OpenRouter, MiniMax, Resend keys)
 - [x] Apply 0004 on the real DB
-- [ ] Run `db/seeds/super-admin.sql` after Better Auth tables + Waleed sign-up
+- [x] Super admin `pospay.systems@gmail.com` created in production and `db/seeds/super-admin.sql` confirmed (2026-11-18). Change the password before handover.
 - [x] Set `PLATFORM_SECRETS_KEY` in Dokploy (previous deployment setup)
 - [ ] Wire attendance questions to the default connector instead of AI Gateway
 
@@ -76,17 +76,19 @@
 - [x] First build succeeded; site serves HTTP 200
 - [x] Fixed runtime crash: better-auth needs zod v4 (`(void 0) is not a function`) — upgraded zod to 4.6.5, 34 tests pass, typecheck clean, committed 369b843
 - [x] Redeploy zod fix from synchronized GitHub commit 51fdab3
-- [ ] /api/auth/sign-in/email acceptance — zod crash resolved; pooler ENOIDENTIFIER returns 500
-- [ ] After auth works: Waleed registers dr.vet.waleedtam@gmail.com, then run db/seeds/super-admin.sql
+- [x] /api/auth/sign-in/email returns 200 on app2.pospay.systems (2026-11-18)
+- [x] Super admin account `pospay.systems@gmail.com` created directly (public sign-up is disabled); seed re-run is idempotent
 
 ## 011 Service session recording (12:40 Kuwait)
-- [x] Migration 0013 (clients per company by phone D-30, session_writer for owner/manager/reception, insert RLS), /sessions form, reports show client name + last-3 phone (D-43) and late flag (D-49). 193/193 tests, isolation PASS, lint 0, tsgo OK on local pospay_test.
+- [x] Migration 0013 prepares client and session storage. Public session recording is deferred pending D-44. Operational reports exclude client phone fields under the slice 003 acceptance rule.
 - [ ] TODO(spec) ق-1: price override and discount limit (D-44) — sessions use the catalog price snapshot until approved.
-- [ ] Production apply of 0011–0013 — needs Waleed approval. Authenticated UI acceptance unverified (preview auth not configured).
+- [ ] Before enabling session recording, bind reused request IDs to the original normalized client, service, staff and occurrence data. Verify identical retries return the existing session and changed requests return a conflict.
+- [x] Migrations 0011–0013 applied in production after PR #5.
+- [x] Migrations 0014–0015 applied in production from PR #7 commit d33fdd8 (2026-11-18, backup `/root/pospay-backups/pre-0014-0015-20261118T162803Z.dump`).
+- [x] 015 Team invites page `/team` and acceptance page `/invite` (Lovable d180eae, merged into lovable with main's reviewed backend; the invite link is emailed only)
+- [x] Migration 0016 applied in production after PR #7 merge (2026-11-18, backup `/root/pospay-backups/pre-0016-20261118T174058Z.dump`); 0017 waits for approval
+- [ ] Authenticated UI acceptance unverified (preview auth not configured).
 - [x] 012 تصدير تقارير الحضور/المصححة/الجلسات CSV وPDF
 - [ ] ق-1 قرار تعديل السعر وحد الخصم (D-44) — مستني وليد
-- [ ] تحقق تطبيق migrations 0011–0013 على الإنتاج — الفحص لقاها مش موجودة
-- [x] 013 صلاحية الخصم (ق-1) — migration 0014 جاهز، مستني تطبيقه على الإنتاج
+- [ ] 013 صلاحية الخصم (ق-1) — الكود وmigration 0014 للمراجعة. إتاحة تسجيل الجلسات تنتظر اعتماد D-44.
 - [x] 014 تنزيل PDF مباشر من التقارير
-- [x] 015 Invite-only accounts — migration 0015 ready, not applied to production; owner bootstrap open
-- [x] Reconnect Resend in new workspace (Dokploy still needs its own key)

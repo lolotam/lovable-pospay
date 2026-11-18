@@ -16,7 +16,10 @@ describe.skipIf(!url)("invite-only account creation", () => {
     vi.stubEnv("BETTER_AUTH_SECRET", "test-secret-test-secret-test-secret-42");
     vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3000");
     admin = new pg.Pool({ connectionString: url });
-    await admin.query(`insert into companies(id,name) values($1,'Invite salon') on conflict do nothing`, [company]);
+    await admin.query(
+      `insert into companies(id,name) values($1,'Invite salon') on conflict do nothing`,
+      [company],
+    );
     await admin.query(
       `insert into invitations(company_id,email,role,token_hash,expires_at,invited_by) values($1,$2,'reception',$3,now()+interval '1 day','owner-x')`,
       [company, email, await hashInviteToken(token)],
@@ -39,11 +42,16 @@ describe.skipIf(!url)("invite-only account creation", () => {
     expect(invite).toMatchObject({ email, role: "reception", companyName: "Invite salon" });
     const userId = await createInvitedAccount(email, "Sara", "Strong-pass-1");
     await withUser(userId, (db) => acceptInvite(db, hash, email));
-    const m = await admin.query(`select role from memberships where company_id=$1 and user_id=$2`, [company, userId]);
+    const m = await admin.query(`select role from memberships where company_id=$1 and user_id=$2`, [
+      company,
+      userId,
+    ]);
     expect(m.rows).toEqual([{ role: "reception" }]);
     const signed = await getAuth().api.signInEmail({ body: { email, password: "Strong-pass-1" } });
     expect(signed.user.id).toBe(userId);
-    await expect(createInvitedAccount(email, "Sara", "Strong-pass-1")).rejects.toThrow("ACCOUNT_EXISTS");
+    await expect(createInvitedAccount(email, "Sara", "Strong-pass-1")).rejects.toThrow(
+      "ACCOUNT_EXISTS",
+    );
     await expect(withUser("", (db) => previewInvite(db, hash))).resolves.toBeNull();
   });
 });

@@ -1,21 +1,26 @@
-import type { AttendanceReportRow, OperationalReport } from "../report.contracts";
-import { Suspense, useState } from "react";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import type { AttendanceReportRow, OperationalReport, ReportTab } from "../report.contracts";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { CompanyScope } from "@/modules/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { t } from "@/i18n";
 import { getOperationalReportFn } from "../functions/report.functions";
-import { buildTable, downloadCsv } from "./report-export";
+import { buildTable, downloadCsv, formatMills, formatReportDate } from "./report-export";
 export function ReportsPage() {
   return (
-    <CompanyScope title="reports.title">{(id) => <ReportFilters companyId={id} />}</CompanyScope>
+    <CompanyScope title="reports.title">
+      {(id, userId) => <ReportFilters companyId={id} userId={userId} />}
+    </CompanyScope>
   );
 }
-function ReportFilters({ companyId }: { companyId: string }) {
+function ReportFilters({ companyId, userId }: { companyId: string; userId: string }) {
   const [from, setFrom] = useState("");
   const [until, setUntil] = useState("");
-  const [range, setRange] = useState<{ from: string; until: string } | null>(null);
+  const [range, setRange] = useState<{ from: string; until: string; fromDate: string } | null>(
+    null,
+  );
   const [error, setError] = useState(false);
   return (
     <div className="space-y-6">
@@ -30,7 +35,7 @@ function ReportFilters({ companyId }: { companyId: string }) {
             setError(true);
             return;
           }
-          setRange({ from: a.toISOString(), until: b.toISOString() });
+          setRange({ from: a.toISOString(), until: b.toISOString(), fromDate: from.slice(0, 10) });
         }}
       >
         <label className="min-w-0 space-y-2">
@@ -54,62 +59,99 @@ function ReportFilters({ companyId }: { companyId: string }) {
         <Button>{t("reports.show")}</Button>
       </form>
       {error && <p role="alert">{t("reports.invalid")}</p>}
-      {range && (
-        <Suspense fallback={<p>{t("phone.loading")}</p>}>
-          <ReportRows companyId={companyId} range={range} />
-        </Suspense>
-      )}
+      {range && <ReportRows companyId={companyId} range={range} userId={userId} />}
     </div>
   );
 }
-function ReportRows({
-  companyId,
+type ReportRange = { from: string; until: string; fromDate: string };
+
+type ReportScope = { companyId: string; range: ReportRange; userId: string };
+
+function ReportRows({ companyId, range, userId }: ReportScope) {
+  const tabs = [
+    { value: "attendance", label: "reports.attendance" },
+    { value: "corrected", label: "reports.corrected" },
+    { value: "services", label: "reports.services" },
+  ] as const;
+  return (
+    <Tabs defaultValue="attendance" dir="rtl" activationMode="manual" className="space-y-4">
+      <TabsList className="h-auto flex-wrap">
+        {tabs.map(({ value, label }) => (
+          <TabsTrigger key={value} value={value}>
+            {t(label)}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      {tabs.map(({ value }) => (
+        <TabsContent key={value} value={value}>
+          <ReportTabRows
+            key={JSON.stringify(range)}
+            companyId={companyId}
+            range={range}
+            tab={value}
+            userId={userId}
+          />
+        </TabsContent>
+      ))}
+    </Tabs>
+  );
+}
+
+function ReportTabRows({ companyId, range, tab, userId }: ReportScope & { tab: ReportTab }) {
+  const { data, isError, isPending, isFetching, fetchStatus, isFetchedAfterMount, refetch } =
+    useQuery({
+      queryKey: ["reports", userId, companyId, range, tab],
+      queryFn: () =>
+        getOperationalReportFn({
+          data: { companyId, expectedUserId: userId, from: range.from, until: range.until, tab },
+        }),
+      retry: 1,
+      refetchOnMount: "always",
+    });
+  if (fetchStatus === "paused") return <p role="status">{t("reports.reconnect")}</p>;
+  if (isPending || (!isError && (!isFetchedAfterMount || isFetching)))
+    return <p role="status">{t("phone.loading")}</p>;
+  if (isError) {
+    return (
+      <div className="space-y-2">
+        <p role="alert">{t("reports.loadFailed")}</p>
+        <Button type="button" disabled={isFetching} onClick={() => void refetch()}>
+          {t("reports.retry")}
+        </Button>
+      </div>
+    );
+  }
+  if (data === "FORBIDDEN") return <p role="alert">{t("ops.denied")}</p>;
+  if (data === "REPORT_TOO_LARGE") return <p role="alert">{t("reports.narrowRange")}</p>;
+  return (
+    <>
+      <ReportExports data={data} tab={tab} range={range} />
+      {tab === "services" ? (
+        <SessionRows rows={data.sessions} />
+      ) : (
+        <AttendanceRows rows={data.attendance} />
+      )}
+    </>
+  );
+}
+
+function ReportExports({
+  data,
+  tab,
   range,
 }: {
-  companyId: string;
-  range: { from: string; until: string };
+  data: OperationalReport;
+  tab: ReportTab;
+  range: ReportRange;
 }) {
-  const { data } = useSuspenseQuery(
-    queryOptions({
-      queryKey: ["reports", companyId, range],
-      queryFn: async () => {
-        try {
-          return await getOperationalReportFn({ data: { companyId, ...range } });
-        } catch {
-          return null;
-        }
-      },
-    }),
-  );
-  const [tab, setTab] = useState<"attendance" | "corrected" | "services">("attendance");
   const [pdfBusy, setPdfBusy] = useState(false);
-  if (!data) return <p role="alert">{t("ops.forbidden")}</p>;
-  const rows = tab === "corrected" ? data.attendance.filter((r) => r.corrected) : data.attendance;
+  const [pdfError, setPdfError] = useState(false);
   return (
-    <section className="space-y-4">
-      <div role="tablist" className="flex flex-wrap gap-2">
-        {(["attendance", "corrected", "services"] as const).map((v) => (
-          <Button
-            key={v}
-            role="tab"
-            aria-selected={tab === v}
-            variant={tab === v ? "default" : "outline"}
-            onClick={() => setTab(v)}
-          >
-            {t(
-              v === "attendance"
-                ? "reports.attendance"
-                : v === "corrected"
-                  ? "reports.corrected"
-                  : "reports.services",
-            )}
-          </Button>
-        ))}
+    <>
+      <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
-          onClick={() =>
-            downloadCsv(buildTable(data, tab), `pospay-${tab}-${range.from.slice(0, 10)}`)
-          }
+          onClick={() => downloadCsv(buildTable(data, tab), `pospay-${tab}-${range.fromDate}`)}
         >
           {t("export.csv")}
         </Button>
@@ -118,13 +160,16 @@ function ReportRows({
           disabled={pdfBusy}
           onClick={async () => {
             setPdfBusy(true);
+            setPdfError(false);
             try {
               const { downloadPdf } = await import("./report-pdf");
               await downloadPdf(
                 buildTable(data, tab),
                 `${new Date(range.from).toLocaleString("ar-KW")} — ${new Date(range.until).toLocaleString("ar-KW")}`,
-                `pospay-${tab}-${range.from.slice(0, 10)}`,
+                `pospay-${tab}-${range.fromDate}`,
               );
+            } catch {
+              setPdfError(true);
             } finally {
               setPdfBusy(false);
             }
@@ -133,8 +178,8 @@ function ReportRows({
           {t(pdfBusy ? "export.pdfBusy" : "export.pdf")}
         </Button>
       </div>
-      {tab === "services" ? <SessionRows rows={data.sessions} /> : <AttendanceRows rows={rows} />}
-    </section>
+      {pdfError && <p role="alert">{t("export.pdfFailed")}</p>}
+    </>
   );
 }
 
@@ -147,17 +192,17 @@ function SessionRows({ rows }: { rows: OperationalReport["sessions"] }) {
             {r.name} · {r.service}
           </h3>
           <p>
-            {new Date(r.occurredAt).toLocaleString("ar-KW")}
+            {formatReportDate(r.occurredAt, r.timeZone)}
+            {r.late === null && <span className="ms-2">{t("reports.sessionTimezoneUnknown")}</span>}
             {r.late && <span className="ms-2 text-destructive">{t("reports.lateSession")}</span>}
           </p>
           {r.clientName && (
             <p>
-              {t("reports.client")}: {r.clientName} <span dir="ltr">{r.clientPhone}</span>
+              {t("reports.client")}: {r.clientName}
             </p>
           )}
           <p dir="ltr">
-            {`${BigInt(r.priceMills) / 1000n}.${(BigInt(r.priceMills) % 1000n).toString().padStart(3, "0")}`}{" "}
-            {t("ops.kwd")}
+            {formatMills(r.priceMills)} {t("ops.kwd")}
           </p>
         </article>
       ))}
@@ -177,19 +222,17 @@ function AttendanceRows({ rows }: { rows: AttendanceReportRow[] }) {
           <dl className="space-y-2 text-sm">
             <div>
               <dt className="text-muted-foreground">{t("reports.in")}</dt>
-              <dd>{new Date(r.checkIn).toLocaleString("ar-KW")}</dd>
+              <dd>{formatReportDate(r.checkIn, r.timeZone)}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">{t("reports.out")}</dt>
-              <dd>
-                {r.checkOut ? new Date(r.checkOut).toLocaleString("ar-KW") : t("reports.open")}
-              </dd>
+              <dd>{r.checkOut ? formatReportDate(r.checkOut, r.timeZone) : t("reports.open")}</dd>
             </div>
             {r.corrected && (
               <div>
                 <dt className="text-muted-foreground">{t("reports.corrected")}</dt>
                 <dd>
-                  {new Date(r.corrected).toLocaleString("ar-KW")} · {r.reason}
+                  {formatReportDate(r.corrected, r.timeZone)} · {r.reason}
                 </dd>
               </div>
             )}

@@ -8,8 +8,8 @@ language sql stable security definer set search_path=public as $$
 $$;
 create or replace function public.card_operator(_company uuid, _branch uuid) returns boolean
 language sql stable security definer set search_path=public as $$
- select (public.card_manager(_company,_branch) or exists(select 1 from memberships where company_id=_company
- and user_id=public.current_app_user() and role='reception' and (branch_id is null or branch_id=_branch)))
+ select exists(select 1 from memberships where company_id=_company
+ and user_id=public.current_app_user() and role in ('branch_manager','reception') and (branch_id is null or branch_id=_branch))
  and not exists(select 1 from permission_overrides where company_id=_company and user_id=public.current_app_user()
  and permission='attendance.record' and effect='deny')
 $$;
@@ -68,15 +68,8 @@ drop trigger if exists card_method on public.attendance_cards;
 create trigger card_method before insert or update on public.attendance_cards for each row execute function public.enforce_card_method();
 drop trigger if exists phone_method on public.phone_bindings;
 create trigger phone_method before insert on public.phone_bindings for each row execute function public.enforce_phone_method();
-drop policy if exists attendance_card_insert on public.attendance_records;
-create policy attendance_card_insert on public.attendance_records for insert to pospay_app with check(public.card_operator(company_id,branch_id) and exists(select 1 from staff_members s where s.company_id=attendance_records.company_id and s.id=staff_id and s.branch_id=attendance_records.branch_id));
 drop policy if exists attendance_card_read on public.attendance_records;
 create policy attendance_card_read on public.attendance_records for select to pospay_app using(public.card_operator(company_id,branch_id));
-drop policy if exists attendance_card_update on public.attendance_records;
-create policy attendance_card_update on public.attendance_records for update to pospay_app using(public.card_operator(company_id,branch_id)) with check(public.card_operator(company_id,branch_id));
-drop policy if exists shifts_card_read on public.shifts;
-create policy shifts_card_read on public.shifts for select to pospay_app using(exists(select 1 from staff_members s where s.company_id=shifts.company_id and s.id=staff_id and public.card_operator(s.company_id,s.branch_id)));
-
 create or replace function public.card_staff_allowed(_company uuid,_staff uuid) returns boolean
 language sql stable security definer set search_path=public as $$
  select exists(select 1 from staff_members s where s.company_id=_company and s.id=_staff
@@ -85,6 +78,27 @@ language sql stable security definer set search_path=public as $$
 $$;
 revoke all on function public.card_staff_allowed(uuid,uuid) from public;
 grant execute on function public.card_staff_allowed(uuid,uuid) to pospay_app;
+
+drop policy if exists attendance_card_insert on public.attendance_records;
+create policy attendance_card_insert on public.attendance_records for insert to pospay_app
+ with check(public.card_operator(company_id,branch_id)
+  and public.card_staff_allowed(company_id,staff_id)
+  and exists(select 1 from public.staff_members s where s.company_id=attendance_records.company_id
+   and s.id=attendance_records.staff_id and s.branch_id=attendance_records.branch_id)
+  and exists(select 1 from public.attendance_cards c where c.company_id=attendance_records.company_id
+   and c.staff_id=attendance_records.staff_id and c.revoked_at is null));
+
+
+drop policy if exists attendance_card_update on public.attendance_records;
+create policy attendance_card_update on public.attendance_records for update to pospay_app
+ using(status='open' and public.card_operator(company_id,branch_id)
+  and public.card_staff_allowed(company_id,staff_id)
+  and exists(select 1 from public.attendance_cards c where c.company_id=attendance_records.company_id
+   and c.staff_id=attendance_records.staff_id and c.revoked_at is null))
+ with check(status in ('ok','closed_late','forgotten') and public.card_operator(company_id,branch_id));
+drop policy if exists shifts_card_read on public.shifts;
+create policy shifts_card_read on public.shifts for select to pospay_app using(exists(select 1 from staff_members s where s.company_id=shifts.company_id and s.id=staff_id and public.card_operator(s.company_id,s.branch_id)));
+
 
 -- Reception may serialize card scans without general staff update access.
 create or replace function public.lock_staff_for_card_scan(_company uuid, _staff uuid) returns uuid
@@ -96,3 +110,61 @@ language sql volatile security definer set search_path=pg_catalog as $$
 $$;
 revoke all on function public.lock_staff_for_card_scan(uuid,uuid) from public;
 grant execute on function public.lock_staff_for_card_scan(uuid,uuid) to pospay_app;
+
+-- Limit the additional card operator access without changing the original staff/admin policies.
+create or replace function public.guard_card_attendance_update() returns trigger
+language plpgsql set search_path=pg_catalog as $$
+begin
+ if current_user <> 'pospay_app' or public.is_company_admin(old.company_id)
+    or old.staff_id = public.my_staff_id(old.company_id) then
+  return new;
+ end if;
+ if old.status='open'
+    and (to_jsonb(new) - array['status','check_out_at','check_out_exception'])
+        = (to_jsonb(old) - array['status','check_out_at','check_out_exception'])
+    and ((new.status='forgotten' and new.check_out_at is not distinct from old.check_out_at
+          and new.check_out_exception is not distinct from old.check_out_exception)
+      or (new.status in ('ok','closed_late') and new.check_out_at >= old.check_in_at))
+ then return new;
+ end if;
+ raise exception 'INVALID_CARD_ATTENDANCE_TRANSITION';
+end
+$$;
+revoke all on function public.guard_card_attendance_update() from public;
+drop trigger if exists guard_card_attendance_update on public.attendance_records;
+create trigger guard_card_attendance_update before update on public.attendance_records
+ for each row execute function public.guard_card_attendance_update();
+
+-- Keep an operator's scan result in the same transaction as the attendance write.
+create table if not exists public.card_scan_requests (
+ company_id uuid not null references public.companies(id) on delete cascade,
+ actor_user_id text not null, id uuid not null,
+ fingerprint text check(length(fingerprint)=64), result jsonb not null,
+ created_at timestamptz not null default now(),
+ primary key(company_id,actor_user_id,id)
+);
+alter table public.card_scan_requests add column if not exists created_at timestamptz not null default now();
+alter table public.card_scan_requests alter column fingerprint drop not null;
+alter table public.card_scan_requests enable row level security;
+grant select,insert on public.card_scan_requests to pospay_app;
+drop policy if exists card_scan_request_read on public.card_scan_requests;
+create policy card_scan_request_read on public.card_scan_requests for select to pospay_app
+ using(actor_user_id=public.current_app_user() and public.is_member(company_id));
+drop policy if exists card_scan_request_insert on public.card_scan_requests;
+create policy card_scan_request_insert on public.card_scan_requests for insert to pospay_app
+ with check(actor_user_id=public.current_app_user() and public.is_member(company_id));
+
+-- Keep receipts beyond the retry window and both sides of the browser clock tolerance.
+create index if not exists card_scan_requests_expiry on public.card_scan_requests(created_at);
+create or replace function public.prune_card_scan_requests() returns void
+language sql volatile security definer set search_path=pg_catalog as $$
+ with expired as (
+  select company_id,actor_user_id,id from public.card_scan_requests
+  where created_at < now() - interval '7 days 10 minutes'
+  order by created_at limit 100 for update skip locked
+ )
+ delete from public.card_scan_requests r using expired e
+ where (r.company_id,r.actor_user_id,r.id)=(e.company_id,e.actor_user_id,e.id)
+$$;
+revoke all on function public.prune_card_scan_requests() from public;
+grant execute on function public.prune_card_scan_requests() to pospay_app;

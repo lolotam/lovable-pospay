@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ReportsPage } from "@/modules/attendance/ui/reports-page";
-import { operatorCompaniesQuery } from "@/modules/staff";
+import { preloadOperatorCompanies } from "@/modules/staff";
 import { t } from "@/i18n";
 export const Route = createFileRoute("/reports")({
   head: () => ({
@@ -14,6 +14,6 @@ export const Route = createFileRoute("/reports")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(operatorCompaniesQuery),
+  loader: ({ context }) => preloadOperatorCompanies(context.queryClient),
   component: ReportsPage,
 });

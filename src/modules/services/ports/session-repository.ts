@@ -3,6 +3,7 @@ export interface AssignedService {
   serviceName: string;
   priceMills: bigint;
   branchId: string;
+  timeZone: string;
 }
 /** جلسة خدمة جاهزة للحفظ. */
 export interface NewSession {
@@ -21,9 +22,31 @@ export interface NewSession {
 export interface SessionRepository {
   assignedService(serviceId: string, staffId: string): Promise<AssignedService | null>;
   canWrite(branchId: string): Promise<boolean>;
+  resolveTime(local: string, timeZone: string): Promise<Date>;
+  lockRecordedSession(id: string): Promise<boolean>;
+  upsertClient(branchId: string, name: string, phone: string): Promise<string>;
   /** أقصى نسبة خصم مسموحة للمستخدم الحالي (0 = بدون صلاحية). */
   discountCap(): Promise<number>;
-  upsertClient(name: string, phone: string): Promise<string>;
   insertSession(session: NewSession): Promise<void>;
   audit(sessionId: string, details: unknown): Promise<void>;
+}
+
+/** خيارات نموذج الجلسات مع الأسعار بالفلس. */
+export interface SessionFormRecord {
+  canRecord: boolean;
+  discountCap: number;
+  services: { id: string; name: string; priceMills: bigint; staffIds: string[] }[];
+  staff: { id: string; name: string; timeZone: string }[];
+}
+
+/** سجل جلسة للتقرير، بوقت التنفيذ ووقت التسجيل وسعر الخدمة بالفلس. */
+export interface SessionReportRecord {
+  id: string;
+  name: string;
+  service: string;
+  priceMills: bigint;
+  occurredAt: Date;
+  recordedAt: Date;
+  timeZone: string;
+  clientName: string | null;
 }

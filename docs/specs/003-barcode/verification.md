@@ -18,3 +18,7 @@ Policy approval in settings; manager-only issuance, immediate revoke and one act
 
 ## Gates still open
 Authenticated browser save/readback and physical scanner acceptance; final independent review; exact-head PR/CI; approval to apply production migrations and deploy. No production mutations performed.
+
+## Session recording decision
+
+Waleed deferred public service-session recording until the D-44 price and discount rule is approved. The public form and mutation remain unavailable. Existing service reports still list recorded rows, and report output excludes client phone numbers.
