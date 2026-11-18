@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { expect, it, vi } from "vitest";
 import { t } from "@/i18n";
@@ -69,4 +69,38 @@ it("recovers after leaving the scanner without storing the card token", async ()
   });
   expect(sessionStorage.getItem(key)).toBeNull();
   expect(scan).toHaveBeenCalledTimes(1);
+});
+
+it("preserves a receipt for recovery when the scan response arrives after unmount", async () => {
+  let finishScan!: (reply: unknown) => void;
+  scan.mockReset().mockReturnValueOnce(
+    new Promise((resolve) => {
+      finishScan = resolve;
+    }),
+  );
+  settle.mockReset().mockResolvedValueOnce({
+    status: "recorded",
+    scan: { name: "Employee", result: { outcome: "checked_in" } },
+  });
+  const first = render(<CardScanPage />);
+  fireEvent.change(screen.getByRole("textbox", { name: t("cards.scanInput") }), {
+    target: { value: "c".repeat(48) },
+  });
+  fireEvent.click(screen.getByRole("button", { name: t("cards.scan") }));
+  const key = sessionStorage.key(0);
+  if (!key) throw new Error("Expected a stored recovery request");
+  const stored = sessionStorage.getItem(key);
+  first.unmount();
+  await act(async () =>
+    finishScan({
+      status: "recorded",
+      scan: { name: "Employee", result: { outcome: "checked_in" } },
+    }),
+  );
+  expect(sessionStorage.getItem(key)).toBe(stored);
+
+  render(<CardScanPage />);
+  fireEvent.click(screen.getByRole("button", { name: t("cards.checkScanStatus") }));
+  expect(await screen.findByText(new RegExp(t("attend.checkedIn")))).toBeInTheDocument();
+  expect(sessionStorage.getItem(key)).toBeNull();
 });

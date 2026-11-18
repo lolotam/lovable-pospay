@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ScanLine } from "lucide-react";
 import { CompanyScope } from "@/modules/staff";
@@ -56,6 +56,23 @@ function usePendingScan(companyId: string, userId: string) {
   const key = "pospay:card-scan:" + JSON.stringify([userId, companyId]);
   const [pending, setPending] = useState<CardRequest | null>(null);
   const [ready, setReady] = useState(false);
+  const [displayedRequestId, acknowledge] = useState<string | null>(null);
+  useLayoutEffect(() => {
+    if (!displayedRequestId) return;
+    acknowledge(null);
+    try {
+      const raw = sessionStorage.getItem(key);
+      const stored = raw ? cardRequestInput.parse(JSON.parse(raw)) : null;
+      if (stored?.requestId === displayedRequestId) {
+        sessionStorage.removeItem(key);
+        setPending(null);
+      } else {
+        setPending(stored);
+      }
+    } catch {
+      setReady(false);
+    }
+  }, [displayedRequestId, key]);
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(key);
@@ -80,12 +97,7 @@ function usePendingScan(companyId: string, userId: string) {
     }
   }
 
-  function forget() {
-    sessionStorage.removeItem(key);
-    setPending(null);
-  }
-
-  return { pending, ready, remember, forget };
+  return { pending, ready, remember, acknowledge };
 }
 
 function useScanner(companyId: string, userId: string) {
@@ -93,7 +105,7 @@ function useScanner(companyId: string, userId: string) {
   const settle = useServerFn(settleCardScanFn);
   const inFlight = useRef(false);
   const current = useRef<CardScanRequest | null>(null);
-  const { pending, ready, remember, forget } = usePendingScan(companyId, userId);
+  const { pending, ready, remember, acknowledge } = usePendingScan(companyId, userId);
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [prompt, setPrompt] = useState<string | null>(null);
@@ -107,7 +119,7 @@ function useScanner(companyId: string, userId: string) {
     try {
       current.current = request;
       const response = request ? await scan({ data: request }) : await settle({ data: attempt });
-      forget();
+      acknowledge(attempt.requestId);
       current.current = null;
       setPrompt(null);
       if (
