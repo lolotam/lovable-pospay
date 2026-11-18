@@ -56,7 +56,9 @@ create or replace function public.upsert_session_client(_company uuid, _branch u
 returns uuid language plpgsql security definer set search_path=pg_catalog as $$
 declare result_id uuid;
 begin
- if not public.session_writer(_company,_branch) then raise exception 'FORBIDDEN'; end if;
+ if not public.session_writer(_company,_branch) or not exists (
+  select 1 from public.branches b where b.company_id=_company and b.id=_branch
+ ) then raise exception 'FORBIDDEN'; end if;
  insert into public.clients(company_id,name,phone) values(_company,_name,_phone)
  on conflict(company_id,phone) do update set name=excluded.name returning id into result_id;
  return result_id;

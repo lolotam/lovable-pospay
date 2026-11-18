@@ -224,6 +224,7 @@
   "nav.reports": "Reports",
   "ops.denied": "You do not have permission for this action",
   "nav.sessions": "Record sessions",
+  "sessions.unavailable": "Service-session recording is temporarily unavailable.",
   "sessions.title": "Record a service session",
   "sessions.service": "Service",
   "sessions.staff": "Employee",

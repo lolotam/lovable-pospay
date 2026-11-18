@@ -224,6 +224,7 @@
   "nav.reports": "التقارير",
   "ops.denied": "ليس لديك صلاحية لهذه العملية",
   "nav.sessions": "تسجيل الجلسات",
+  "sessions.unavailable": "تسجيل جلسات الخدمة غير متاح حاليًا.",
   "sessions.title": "تسجيل جلسة خدمة",
   "sessions.service": "الخدمة",
   "sessions.staff": "الموظفة",
