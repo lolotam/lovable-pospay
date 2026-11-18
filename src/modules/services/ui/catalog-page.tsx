@@ -125,7 +125,6 @@ function useCatalog(companyId: string, userId: string, drafts: PendingCreates) {
   const { edit, name, price, staffIds, busy, setBusy, setForm, setMessage } = state;
   async function submit() {
     if (busy || query.fetchStatus !== "idle" || pendingCreate?.confirmedId) return;
-    const recovering = !!pendingCreate;
     const parsed = saveServiceInput.safeParse(
       pendingCreate ?? {
         companyId,
@@ -144,8 +143,10 @@ function useCatalog(companyId: string, userId: string, drafts: PendingCreates) {
     setBusy(true);
     try {
       const result = await save({ data: { ...data, expectedUserId: userId } });
-      if (result.status === "unverified") throw new Error("Account changed during save");
-      if (result.status === "saved" && recovering) {
+      if (result.status === "denied") void query.refetch();
+      if (result.status === "denied" || result.status === "unverified")
+        throw new Error("Catalog write not authorized");
+      if (result.status === "saved" && pendingCreate) {
         confirm(data, result.id);
         await query.refetch();
         return;

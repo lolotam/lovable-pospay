@@ -41,10 +41,9 @@ export const saveServiceFn = createServerFn({ method: "POST" })
         )),
       };
     } catch (error) {
-      if (
-        error instanceof Error &&
-        ["FORBIDDEN", "SERVICE_REQUEST_CONFLICT"].includes(error.message)
-      )
+      if (error instanceof Error && error.message === "FORBIDDEN")
+        return { status: "denied" as const };
+      if (error instanceof Error && error.message === "SERVICE_REQUEST_CONFLICT")
         return { status: "rejected" as const };
       if (error instanceof Error && error.message === "SERVICE_CONFLICT")
         return { status: "stale" as const };
