@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { CompanyScope } from "@/modules/staff";
+import { CardActions } from "@/modules/attendance/ui/cards-page";
 import { t } from "@/i18n";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme/theme";
 
@@ -59,6 +61,11 @@ function SettingsPage() {
           ))}
         </div>
       </fieldset>
+      <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
+        <CompanyScope title="cards.policy">
+          {(id) => <CardActions companyId={id} policyOnly />}
+        </CompanyScope>
+      </Suspense>
     </main>
   );
 }

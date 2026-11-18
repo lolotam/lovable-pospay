@@ -14,7 +14,15 @@ insert into public.staff_members (company_id, id, branch_id, user_id, display_na
 insert into public.attendance_records (company_id, id, staff_id, branch_id, work_date, check_in_at)
   select s.company_id, gen_random_uuid(), s.id, s.branch_id, current_date, now() from public.staff_members s;
 
-select set_config('test.b_branch', (select id::text from public.branches where name='B-1'), true);
+insert into public.card_policies(company_id,approved_by) values ('00000000-0000-0000-0000-00000000000b','user-b');
+insert into public.attendance_cards(company_id,staff_id,token_hash,issued_by)
+ select company_id,id,repeat('b',64),'user-b' from public.staff_members where user_id='user-b';
+insert into public.service_catalog(company_id,name,price_mills) values ('00000000-0000-0000-0000-00000000000b','B service',25125);
+insert into public.service_assignments(company_id,service_id,staff_id)
+ select s.company_id,c.id,s.id from public.staff_members s join public.service_catalog c using(company_id) where s.user_id='user-b';
+insert into public.service_sessions(company_id,service_id,staff_id,branch_id,occurred_at,service_name,price_mills)
+ select s.company_id,c.id,s.id,s.branch_id,now(),c.name,c.price_mills from public.staff_members s join public.service_catalog c using(company_id) where s.user_id='user-b';
+select set_config('test.b_branch' , (select id::text from public.branches where name='B-1'), true);
 set local role pospay_app;
 select set_config('app.user_id','user-a',true);
 do $$ begin
@@ -24,6 +32,11 @@ do $$ begin
     select 1 from public.branches where name='Owner branch default'
       and length(public.branch_qr_secret(id)) = 64
   ) then raise exception 'Branch QR secret default missing'; end if;
+  if exists(select 1 from public.card_policies) then raise exception 'LEAK card policy'; end if;
+  if exists(select 1 from public.attendance_cards) then raise exception 'LEAK cards'; end if;
+  if exists(select 1 from public.service_catalog) then raise exception 'LEAK catalog'; end if;
+  if exists(select 1 from public.service_assignments) then raise exception 'LEAK assignments'; end if;
+  if exists(select 1 from public.service_sessions) then raise exception 'LEAK sessions'; end if;
   if (select count(*) from public.companies where name='B') <> 0 then raise exception 'LEAK companies'; end if;
   if (select count(*) from public.branches where name='B-1') <> 0 then raise exception 'LEAK branches'; end if;
   if (select count(*) from public.memberships where user_id='user-b') <> 0 then raise exception 'LEAK memberships'; end if;

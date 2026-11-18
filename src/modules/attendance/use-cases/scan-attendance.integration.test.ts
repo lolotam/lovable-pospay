@@ -31,6 +31,8 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
         "0001_tenancy_foundation.sql",
         "0002_attendance.sql",
         "0009_attendance_branch_company.sql",
+        "0011_barcode.sql",
+        "0012_service_catalog.sql",
       ]) {
         await admin.query(await readFile(`db/migrations/${file}`, "utf8"));
       }

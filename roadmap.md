@@ -1,5 +1,13 @@
 # Roadmap
 
+## Approved request (2026-11-18, 11:47 Kuwait)
+- [x] 003 barcode fallback implementation: manager-only issue, immediate manager revocation, one active method per employee; company policy approval screen, printable cards and reception scanning. Decisions approved by Waleed.
+- [x] Services catalog implementation: create/edit prices in bigint mills and employee assignments.
+- [x] Operational reports implementation: date-range attendance, corrected checkouts and recorded service sessions; tenant/role isolation.
+- [ ] 003 final review closure: initial Standards review flagged persistence/use-case placement; dependency imports corrected but full port orchestration review remains open. No claim of review approval.
+- [ ] Authenticated UI/physical scanner acceptance blocked by preview AUTH_NOT_CONFIGURED; production migrations/deployment and exact-head PR/CI remain external gates. Services session writer remains outside this catalog slice pending its approved workflow; empty session report is truthful.
+- [x] Local migrations 0011/0012 double-applied, tenant negative SQL and card/catalog/report integration verified. See docs/specs/003-barcode/verification.md for check evidence.
+
 ## Continuation (2026-11-18)
 - [x] 010 / remaining 001 reception QR safety — spec → plan → expiry/search/branch-return RED → GREEN. Single-flight polling hides expired/previous-branch images; malformed search no longer enters error boundary. 102/102 serial tests pass, lint 0 errors/6 existing warnings, harness build OK; 18 browser size/theme/input states pass. Independent Standards/Spec review addressed import/export and evidence gaps; authenticated acceptance and external PR/CI remain open.
 - [x] 009 / 008 local default-check blockers — spec → plan → RED → config/formatting; ordinary bun run test passes 85/85 twice (and post-commit), no skipped DB tests; full lint exits 0 with 0 errors/6 existing warnings. Generated caches excluded; authored coverage and intentional concurrency preserved. Commit 7e2891b; no shared DB/env/server/deploy writes.

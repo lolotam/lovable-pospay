@@ -1,0 +1,54 @@
+import { requireCardEligibility } from "../use-cases/card-actions";
+import { recordCard } from "../use-cases/card-scan";
+import { systemClock } from "@/shared/kernel/clock";
+import { cryptoIds } from "@/shared/kernel/ids";
+import { createServerFn } from "@tanstack/react-start";
+import { cardScope, cardStaffInput, revokeCardInput, cardScanInput } from "../card.contracts";
+export const getCardsFn = createServerFn({ method: "GET" })
+  .inputValidator((v: unknown) => cardScope.parse(v))
+  .handler(async ({ data }) => {
+    const { requireUserId } = await import("@/lib/server/session.server");
+    const { withUser } = await import("@/lib/server/db.server");
+    const { readCards } = await import("../persistence/card-repository.server");
+    return withUser(await requireUserId(), (db) => readCards(db, data.companyId));
+  });
+export const approveCardsFn = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => cardScope.parse(v))
+  .handler(async ({ data }) => {
+    const { requireUserId } = await import("@/lib/server/session.server");
+    const { withUser } = await import("@/lib/server/db.server");
+    const { approveCards } = await import("../persistence/card-repository.server");
+    const id = await requireUserId();
+    return withUser(id, (db) => approveCards(db, id, data.companyId));
+  });
+export const issueCardFn = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => cardStaffInput.parse(v))
+  .handler(async ({ data }) => {
+    const { requireUserId } = await import("@/lib/server/session.server");
+    const { withUser } = await import("@/lib/server/db.server");
+    const { issueCard } = await import("../persistence/card-actions.server");
+    const id = await requireUserId();
+    return withUser(id, (db) =>
+      issueCard(db, id, data.companyId, data.staffId, requireCardEligibility),
+    );
+  });
+export const revokeCardFn = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => revokeCardInput.parse(v))
+  .handler(async ({ data }) => {
+    const { requireUserId } = await import("@/lib/server/session.server");
+    const { withUser } = await import("@/lib/server/db.server");
+    const { revokeCard } = await import("../persistence/card-actions.server");
+    const id = await requireUserId();
+    return withUser(id, (db) => revokeCard(db, id, data.companyId, data.cardId));
+  });
+export const scanCardFn = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => cardScanInput.parse(v))
+  .handler(async ({ data }) => {
+    const { requireUserId } = await import("@/lib/server/session.server");
+    const { withUser } = await import("@/lib/server/db.server");
+    const { scanCard } = await import("../persistence/card-scan.server");
+    const id = await requireUserId();
+    return withUser(id, async (db) =>
+      recordCard({ ...data, location: null }, await scanCard(db, id, data), systemClock, cryptoIds),
+    );
+  });

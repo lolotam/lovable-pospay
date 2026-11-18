@@ -115,6 +115,10 @@ export async function bindPhone(
   credentialId: string,
   sessionId: string,
 ) {
+  await db.query(
+    `select id from public.staff_members where company_id=$1 and user_id=$2 for update`,
+    [companyId, userId],
+  );
   const existing = getCookie(cookieName);
   // Concurrent first binds in one signed-in session must hit the same unique hash.
   const token = existing ?? (await firstDeviceToken(sessionId));
