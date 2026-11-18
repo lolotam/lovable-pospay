@@ -2,13 +2,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { CompanyScope } from "./company-scope";
+import { preloadOperatorCompanies } from "./operator-companies-query";
 
-const { useSession, getMyCompanies } = vi.hoisted(() => ({
+const { useSession, getMyCompanies, requireUserId } = vi.hoisted(() => ({
   useSession: vi.fn(),
   getMyCompanies: vi.fn(),
+  requireUserId: vi.fn(),
 }));
 vi.mock("@/lib/auth-client", () => ({ authClient: { useSession } }));
 vi.mock("@/lib/tenancy.functions", () => ({ getMyCompanies }));
+vi.mock("@/lib/server/session.server", () => ({ requireUserId }));
+vi.mock("@tanstack/react-start", () => ({
+  createServerFn: () => ({ handler: (handler: unknown) => handler }),
+}));
 
 it("uses the new account's companies when the query client survives an account switch", async () => {
   const cache = new QueryClient();
@@ -55,4 +61,17 @@ it("uses the new account's companies when the query client survives an account s
   await act(async () => finishSecond(second));
   expect(screen.getByText("second-company")).toBeInTheDocument();
   expect(getMyCompanies).toHaveBeenLastCalledWith({ data: { expectedUserId: "second" } });
+});
+
+it("preloads only the authenticated account's scope", async () => {
+  const cache = new QueryClient();
+  requireUserId.mockResolvedValueOnce("loader-account");
+  getMyCompanies.mockResolvedValueOnce([]);
+  await preloadOperatorCompanies(cache);
+  expect(cache.getQueryData(["operator-companies", "loader-account"])).toEqual({
+    companies: [],
+    error: null,
+  });
+  expect(cache.getQueryData(["operator-companies"])).toBeUndefined();
+  expect(getMyCompanies).toHaveBeenLastCalledWith({ data: { expectedUserId: "loader-account" } });
 });
