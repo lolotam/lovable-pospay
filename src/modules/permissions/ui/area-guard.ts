@@ -1,7 +1,7 @@
 import { redirect } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
 import type { Area, SessionContextDto } from "../contracts";
-import { canEnterArea } from "../domain/workspace";
+import { canEnterArea, landingPath, safeRedirectPath } from "../domain/workspace";
 import { sessionContextQuery } from "./use-session-context";
 import { visibleNavigation } from "./navigation";
 import { serviceSessionRecordingAvailable } from "@/modules/services";
@@ -24,4 +24,17 @@ export function pageAllowed(session: SessionContextDto, path: string) {
   return visibleNavigation(area, session.permissions, serviceSessionRecordingAvailable).some(
     (item) => item.to === path || item.children?.some((child) => child.to === path),
   );
+}
+
+/** وجهة ما بعد الدخول: المسار المطلوب لو مسموح، وإلا الاختيار مع حمل المسار، وإلا بيت المساحة. */
+export function signInDestination(
+  context: SessionContextDto | null,
+  redirect: string | undefined,
+): string {
+  const requested = safeRedirectPath(redirect);
+  if (context && requested && pageAllowed(context, requested.split("?")[0] ?? "")) return requested;
+  const landing = landingPath(context?.workspaces ?? [], context?.active ?? null);
+  return landing === "/workspaces" && requested
+    ? `/workspaces?redirect=${encodeURIComponent(requested)}`
+    : landing;
 }

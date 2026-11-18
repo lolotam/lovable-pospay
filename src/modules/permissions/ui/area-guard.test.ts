@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
-import { loadArea, pageAllowed } from "./area-guard";
+import { loadArea, pageAllowed, signInDestination } from "./area-guard";
 import type { SessionContextDto } from "../contracts";
 
 const { getSessionContext } = vi.hoisted(() => ({ getSessionContext: vi.fn() }));
@@ -46,5 +46,19 @@ describe("loadArea", () => {
     await expect(loadArea(cache, "/app/attendance/reports?day=1", "app")).rejects.toMatchObject({
       options: { to: "/workspaces", search: { redirect: "/app/attendance/reports?day=1" } },
     });
+  });
+});
+describe("signInDestination", () => {
+  it("keeps the requested path through the chooser when no workspace is active", () => {
+    const many = {
+      ...context,
+      active: null,
+      workspaces: [{ kind: "platform" as const }, context.active!],
+    };
+    expect(signInDestination(many, "/me/attend?t=abc")).toBe(
+      `/workspaces?redirect=${encodeURIComponent("/me/attend?t=abc")}`,
+    );
+    expect(signInDestination(many, undefined)).toBe("/workspaces");
+    expect(signInDestination(context, "/app/staff/team")).toBe("/app/staff/team");
   });
 });

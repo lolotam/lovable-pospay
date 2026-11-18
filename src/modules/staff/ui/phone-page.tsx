@@ -20,6 +20,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { useActiveCompany } from "@/lib/active-company";
 import { t } from "@/i18n";
 
 const companiesQuery = queryOptions({
@@ -64,7 +65,13 @@ export function PhonePage({ mode }: { mode: "binding" | "management" }) {
   const { data } = useSuspenseQuery(companiesQuery);
   const [selected, setSelected] = useState("");
   const [busy, setBusy] = useState(false);
-  const companyId = selected || data.companies[0]?.id || "";
+  const pinned = useActiveCompany();
+  const companyId =
+    pinned !== undefined
+      ? data.companies.some(({ id }) => id === pinned)
+        ? (pinned ?? "")
+        : ""
+      : selected || data.companies[0]?.id || "";
   return (
     <main className="mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-16 space-y-6">
       <Link to="/">{t("app.name")}</Link>
@@ -75,26 +82,28 @@ export function PhonePage({ mode }: { mode: "binding" | "management" }) {
         <p>{t("phone.noCompanies")}</p>
       ) : (
         <>
-          <label htmlFor="phone-company" className="block">
-            {t("phone.companyName")}
-          </label>
-          <Select dir="rtl" value={companyId} onValueChange={setSelected} disabled={busy}>
-            <SelectTrigger id="phone-company">
-              <SelectValue placeholder={t("phone.selectCompany")} />
-            </SelectTrigger>
-            <SelectContent>
-              {data.companies
-                .filter(
-                  (company, index, all) =>
-                    all.findIndex((item) => item.id === company.id) === index,
-                )
-                .map((company) => (
-                  <SelectItem key={company.id} value={company.id}>
-                    {company.name}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
+          <div hidden={pinned !== undefined} className="space-y-2">
+            <label htmlFor="phone-company" className="block">
+              {t("phone.companyName")}
+            </label>
+            <Select dir="rtl" value={companyId} onValueChange={setSelected} disabled={busy}>
+              <SelectTrigger id="phone-company">
+                <SelectValue placeholder={t("phone.selectCompany")} />
+              </SelectTrigger>
+              <SelectContent>
+                {data.companies
+                  .filter(
+                    (company, index, all) =>
+                      all.findIndex((item) => item.id === company.id) === index,
+                  )
+                  .map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
             <PhoneActions
               mode={mode}

@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { sessionContextQuery } from "@/modules/permissions/ui/use-session-context";
-import { landingPath, safeRedirectPath } from "@/modules/permissions";
-import { pageAllowed } from "@/modules/permissions/ui/area-guard";
+import { safeRedirectPath } from "@/modules/permissions";
+import { signInDestination } from "@/modules/permissions/ui/area-guard";
 import { useEffect, useState } from "react";
 import { duringAccountChange } from "@/lib/account-change";
 import { authClient, verifyAuthSession } from "@/lib/auth-client";
@@ -69,12 +69,7 @@ function useSignInFlow() {
       return;
     }
     const context = await cache.fetchQuery(sessionContextQuery);
-    const requested = safeRedirectPath(search.redirect);
-    const destination =
-      context && requested && pageAllowed(context, requested.split("?")[0] ?? "")
-        ? requested
-        : landingPath(context?.workspaces ?? [], context?.active ?? null);
-    await navigate({ href: destination });
+    await navigate({ href: signInDestination(context, search.redirect) });
   }
 
   async function requestCode() {
