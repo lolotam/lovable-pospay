@@ -1,6 +1,6 @@
 import type { AttendanceReportRow, OperationalReport, ReportTab } from "../report.contracts";
-import { Suspense, useState } from "react";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { CompanyScope } from "@/modules/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,11 +59,7 @@ function ReportFilters({ companyId, userId }: { companyId: string; userId: strin
         <Button>{t("reports.show")}</Button>
       </form>
       {error && <p role="alert">{t("reports.invalid")}</p>}
-      {range && (
-        <Suspense fallback={<p>{t("phone.loading")}</p>}>
-          <ReportRows companyId={companyId} range={range} userId={userId} />
-        </Suspense>
-      )}
+      {range && <ReportRows companyId={companyId} range={range} userId={userId} />}
     </div>
   );
 }
@@ -88,9 +84,7 @@ function ReportRows({ companyId, range, userId }: ReportScope) {
       </TabsList>
       {tabs.map(({ value }) => (
         <TabsContent key={value} value={value}>
-          <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
-            <ReportTabRows companyId={companyId} range={range} tab={value} userId={userId} />
-          </Suspense>
+          <ReportTabRows companyId={companyId} range={range} tab={value} userId={userId} />
         </TabsContent>
       ))}
     </Tabs>
@@ -98,22 +92,26 @@ function ReportRows({ companyId, range, userId }: ReportScope) {
 }
 
 function ReportTabRows({ companyId, range, tab, userId }: ReportScope & { tab: ReportTab }) {
-  const { data } = useSuspenseQuery(
-    queryOptions({
-      queryKey: ["reports", userId, companyId, range, tab],
-      queryFn: async () => {
-        try {
-          return await getOperationalReportFn({
-            data: { companyId, expectedUserId: userId, from: range.from, until: range.until, tab },
-          });
-        } catch {
-          return "REPORT_LOAD_FAILED" as const;
-        }
-      },
-    }),
-  );
+  const { data, isError, isPending, isFetching, refetch } = useQuery({
+    queryKey: ["reports", userId, companyId, range, tab],
+    queryFn: () =>
+      getOperationalReportFn({
+        data: { companyId, expectedUserId: userId, from: range.from, until: range.until, tab },
+      }),
+    retry: 1,
+  });
+  if (isPending) return <p role="status">{t("phone.loading")}</p>;
+  if (isError) {
+    return (
+      <div className="space-y-2">
+        <p role="alert">{t("reports.loadFailed")}</p>
+        <Button type="button" disabled={isFetching} onClick={() => void refetch()}>
+          {t("reports.retry")}
+        </Button>
+      </div>
+    );
+  }
   if (data === "FORBIDDEN") return <p role="alert">{t("ops.denied")}</p>;
-  if (data === "REPORT_LOAD_FAILED") return <p role="alert">{t("reports.loadFailed")}</p>;
   if (data === "REPORT_TOO_LARGE") return <p role="alert">{t("reports.narrowRange")}</p>;
   return (
     <>

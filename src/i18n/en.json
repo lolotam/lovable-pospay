@@ -259,6 +259,7 @@
   "export.printBlocked": "Your browser blocked the print window.",
   "reports.narrowRange": "This report exceeds 2,000 rows. Choose a shorter date range.",
   "reports.loadFailed": "Could not load the report. Check the connection and try again.",
+  "reports.retry": "Retry report",
   "reports.sessionTimezoneUnknown": "Branch timezone unavailable. Time shown in UTC.",
   "cards.issueUnconfirmed": "Issuance could not be confirmed. Check the refreshed list. If the card is active and you cannot print it, revoke it before issuing a replacement.",
   "cards.savedRefreshFailed": "Changes were saved, but the card list could not be refreshed. Reload the list before making another change."
