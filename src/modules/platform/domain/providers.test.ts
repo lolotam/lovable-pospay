@@ -4,7 +4,10 @@ import { CONNECTORS, findConnector, isAllowedModel, needsRefresh } from "./provi
 describe("platform connectors", () => {
   it("offers the four account sign-ins from prolifepharma", () => {
     expect(CONNECTORS.filter((c) => c.kind === "account").map((c) => c.id)).toEqual([
-      "codex", "kimi_coding", "minimax_coding", "zai_coding",
+      "codex",
+      "kimi_coding",
+      "minimax_coding",
+      "zai_coding",
     ]);
   });
   it("rejects unknown connectors and models", () => {

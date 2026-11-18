@@ -10,14 +10,20 @@ function getKey() {
 }
 export async function seal(plain: string): Promise<string> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await getKey(), new TextEncoder().encode(plain));
+  const data = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    await getKey(),
+    new TextEncoder().encode(plain),
+  );
   return `${Buffer.from(iv).toString("base64")}.${Buffer.from(data).toString("base64")}`;
 }
 export async function open(sealed: string): Promise<string> {
   const [iv, data] = sealed.split(".");
   if (!iv || !data) throw new Error("SECRET_CORRUPT");
   const out = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: Buffer.from(iv, "base64") }, await getKey(), Buffer.from(data, "base64"),
+    { name: "AES-GCM", iv: Buffer.from(iv, "base64") },
+    await getKey(),
+    Buffer.from(data, "base64"),
   );
   return new TextDecoder().decode(out);
 }

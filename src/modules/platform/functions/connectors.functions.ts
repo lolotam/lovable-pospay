@@ -1,7 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import {
-  accountProviderSchema, apiKeySchema, defaultAiSchema, loginIdSchema, providerSchema,
-  type ConnectorsStatusDto, type LoginPollDto, type LoginStartDto,
+  accountProviderSchema,
+  apiKeySchema,
+  defaultAiSchema,
+  loginIdSchema,
+  providerSchema,
+  type ConnectorsStatusDto,
+  type LoginPollDto,
+  type LoginStartDto,
 } from "../contracts";
 import type pg from "pg";
 
@@ -31,7 +37,12 @@ export const startAccountLoginFn = createServerFn({ method: "POST" })
       const s = await startLogin(p);
       const loginId = await saveLogin(db, userId, p, s.state, s.expiresInSec);
       await audit(db, userId, "connector.login_started", p);
-      return { loginId, userCode: s.userCode ?? null, verificationUrl: s.verificationUrl, expiresInSec: s.expiresInSec };
+      return {
+        loginId,
+        userCode: s.userCode ?? null,
+        verificationUrl: s.verificationUrl,
+        expiresInSec: s.expiresInSec,
+      };
     }),
   );
 
@@ -82,7 +93,14 @@ export const testConnectorFn = createServerFn({ method: "POST" })
       const { isAllowedModel } = await import("../domain/providers");
       if (!isAllowedModel(data.provider, data.model)) throw new Error("MODEL_NOT_ALLOWED");
       const { callConnector } = await import("../persistence/ai-call.server");
-      const reply = await callConnector(db, userId, data.provider, data.model, "Reply in one short sentence.", "Say that the PosPay connection works.");
+      const reply = await callConnector(
+        db,
+        userId,
+        data.provider,
+        data.model,
+        "Reply in one short sentence.",
+        "Say that the PosPay connection works.",
+      );
       return { reply: reply.slice(0, 300) };
     }),
   );

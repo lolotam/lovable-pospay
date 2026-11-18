@@ -15,14 +15,62 @@ export interface ConnectorDef {
 
 /** كل الموصلات المتاحة، منسوخة من مشروع prolifepharma ومرتبة حسب المجموعة. */
 export const CONNECTORS: readonly ConnectorDef[] = [
-  { id: "codex", kind: "account", group: "ai_account", name: "ChatGPT (Codex)", models: ["gpt-5.1-codex-mini", "gpt-5.1-codex", "gpt-5.1"] },
-  { id: "kimi_coding", kind: "account", group: "ai_account", name: "Kimi Coding Plan", models: ["kimi-for-coding"] },
-  { id: "minimax_coding", kind: "account", group: "ai_account", name: "MiniMax Coding Plan", models: ["MiniMax-M2.5", "MiniMax-M3.1-Flash"] },
-  { id: "zai_coding", kind: "account", group: "ai_account", name: "Z.ai GLM Coding Plan", models: ["glm-4.6", "glm-4.5-air"] },
-  { id: "openai", kind: "api_key", group: "ai_key", name: "OpenAI", models: ["gpt-5.1", "gpt-5.1-mini"] },
-  { id: "google_ai", kind: "api_key", group: "ai_key", name: "Google AI Studio", models: ["gemini-2.5-flash", "gemini-2.5-pro"] },
-  { id: "openrouter", kind: "api_key", group: "ai_key", name: "OpenRouter", models: ["openai/gpt-5.1-mini", "anthropic/claude-sonnet-4.5"] },
-  { id: "minimax", kind: "api_key", group: "ai_key", name: "MiniMax API", models: ["MiniMax-M2.5"] },
+  {
+    id: "codex",
+    kind: "account",
+    group: "ai_account",
+    name: "ChatGPT (Codex)",
+    models: ["gpt-5.1-codex-mini", "gpt-5.1-codex", "gpt-5.1"],
+  },
+  {
+    id: "kimi_coding",
+    kind: "account",
+    group: "ai_account",
+    name: "Kimi Coding Plan",
+    models: ["kimi-for-coding"],
+  },
+  {
+    id: "minimax_coding",
+    kind: "account",
+    group: "ai_account",
+    name: "MiniMax Coding Plan",
+    models: ["MiniMax-M2.5", "MiniMax-M3.1-Flash"],
+  },
+  {
+    id: "zai_coding",
+    kind: "account",
+    group: "ai_account",
+    name: "Z.ai GLM Coding Plan",
+    models: ["glm-4.6", "glm-4.5-air"],
+  },
+  {
+    id: "openai",
+    kind: "api_key",
+    group: "ai_key",
+    name: "OpenAI",
+    models: ["gpt-5.1", "gpt-5.1-mini"],
+  },
+  {
+    id: "google_ai",
+    kind: "api_key",
+    group: "ai_key",
+    name: "Google AI Studio",
+    models: ["gemini-2.5-flash", "gemini-2.5-pro"],
+  },
+  {
+    id: "openrouter",
+    kind: "api_key",
+    group: "ai_key",
+    name: "OpenRouter",
+    models: ["openai/gpt-5.1-mini", "anthropic/claude-sonnet-4.5"],
+  },
+  {
+    id: "minimax",
+    kind: "api_key",
+    group: "ai_key",
+    name: "MiniMax API",
+    models: ["MiniMax-M2.5"],
+  },
   { id: "resend", kind: "api_key", group: "messaging", name: "Resend", models: [] },
 ];
 
