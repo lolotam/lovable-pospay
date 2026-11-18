@@ -94,7 +94,8 @@
 - [x] 014 تنزيل PDF مباشر من التقارير
 
 ## 016-A frontend structure
-- [ ] Tasks 1–3: shared DTO, pure rules and tests, navigation and browser-only session adapter.
-- [ ] Tasks 4–7: area shells, chooser, landing, route moves, legacy redirects and dashboard links.
-- [ ] Verify unit tests, lint and browser size/theme/navigation checks; authenticated backend acceptance waits for 016-B.
+- [x] Tasks 1–3: shared DTO, pure rules and tests, navigation and browser-only session adapter.
+- [x] Tasks 4–7: area shells, chooser, landing, route moves, legacy redirects and dashboard links.
+- [x] Frontend verification: 215 tests passed, 61 database integration tests skipped; affected tests rerun 20/20 after final lint fixes; lint 0 errors / 8 warnings; harness build OK; 168 isolated-fixture browser checks passed.
+- [ ] Real authenticated acceptance and cookie/override/branch-context integration wait for 016-B; not verified against real users.
 - Part B (Tasks 8–12) is owned by the backend developer; no migrations, persistence or server functions in this request.

@@ -34,11 +34,19 @@ export function landingPath(
 export function safeRedirectPath(value: string | undefined): string | null {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\"))
     return null;
-  if (/[\u0000-\u0020\u007f]/.test(value)) return null;
+  if ([...value].some((char) => char.charCodeAt(0) <= 32 || char.charCodeAt(0) === 127))
+    return null;
   try {
     const decoded = decodeURIComponent(value);
-    if (decoded.startsWith("//") || decoded.includes("\\") || /[\u0000-\u001f\u007f]/.test(decoded)) return null;
-  } catch { return null; }
+    if (
+      decoded.startsWith("//") ||
+      decoded.includes("\\") ||
+      [...decoded].some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)
+    )
+      return null;
+  } catch {
+    return null;
+  }
   return value;
 }
 

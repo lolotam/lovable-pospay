@@ -5,7 +5,12 @@ import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-
 import { useServerFn } from "@tanstack/react-start";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { authClient } from "@/lib/auth-client";
-import { startBindingFn, finishBindingFn, unbindPhoneFn, getPhoneManagementFn } from "@/modules/staff";
+import {
+  startBindingFn,
+  finishBindingFn,
+  unbindPhoneFn,
+  getPhoneManagementFn,
+} from "@/modules/staff";
 import { getMyCompanies } from "@/lib/tenancy.functions";
 import { Button } from "@/components/ui/button";
 import {

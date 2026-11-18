@@ -5,9 +5,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { receptionQrSearchSchema } from "@/modules/attendance";
 import { ReceptionQr } from "@/modules/attendance/ui/reception-qr";
 import { t } from "@/i18n";
+import { z } from "zod";
 
 export const Route = createFileRoute("/pos/qr")({
-  validateSearch: receptionQrSearchSchema,
+  validateSearch: z.object({ branch: z.string().optional() }),
   ssr: false,
   errorComponent: RouteError,
   notFoundComponent: RouteNotFound,
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/pos/qr")({
 });
 
 function ReceptionQrPage() {
-  const { branch } = Route.useSearch();
+  const { branch } = receptionQrSearchSchema.parse(Route.useSearch());
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-6 sm:px-6 sm:py-10">
       {branch ? <ReceptionQr branchId={branch} /> : <p>{t("qr.missingBranch")}</p>}
