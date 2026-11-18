@@ -13,8 +13,8 @@ vi.mock("@/modules/staff", () => ({
 vi.mock("../functions/card.functions", () => ({ scanCardFn: scan, settleCardScanFn: settle }));
 
 it("allows another card after a terminal status response and preserves uncertainty after a transport error", async () => {
-  scan
-    .mockRejectedValueOnce(new Error("Connection lost"))
+  scan.mockRejectedValueOnce(new Error("Connection lost"));
+  settle
     .mockRejectedValueOnce(new Error("Connection lost"))
     .mockResolvedValueOnce({ status: "rejected" });
   render(<CardScanPage />);
@@ -32,14 +32,16 @@ it("allows another card after a terminal status response and preserves uncertain
   expect(await screen.findByText(t("cards.statusDiscontinued"))).toBeInTheDocument();
   expect(input).toBeEnabled();
   expect(input).toHaveValue("");
-  expect(scan).toHaveBeenCalledTimes(3);
-  expect(scan.mock.calls[1]).toEqual(scan.mock.calls[0]);
-  expect(scan.mock.calls[2]).toEqual(scan.mock.calls[0]);
+  expect(scan).toHaveBeenCalledTimes(1);
+  expect(settle).toHaveBeenCalledTimes(2);
+  expect(settle.mock.calls[0]).toEqual(settle.mock.calls[1]);
+  expect(settle.mock.calls[0]?.[0].data.requestId).toBe(scan.mock.calls[0]?.[0].data.requestId);
+  expect(settle.mock.calls[0]?.[0].data).not.toHaveProperty("token");
 });
 
 it("recovers after leaving the scanner without storing the card token", async () => {
   scan.mockReset().mockRejectedValueOnce(new Error("Connection lost"));
-  settle.mockResolvedValueOnce({ status: "cancelled" });
+  settle.mockReset().mockResolvedValueOnce({ status: "cancelled" });
   const card = "b".repeat(48);
   const first = render(<CardScanPage />);
   fireEvent.change(screen.getByRole("textbox", { name: t("cards.scanInput") }), {

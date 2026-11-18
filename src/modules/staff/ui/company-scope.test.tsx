@@ -102,3 +102,26 @@ it("preloads only the authenticated account's scope", async () => {
   expect(cache.getQueryData(["operator-companies"])).toBeUndefined();
   expect(getMyCompanies).toHaveBeenLastCalledWith({ data: { expectedUserId: "loader-account" } });
 });
+
+it("keeps the default company selected when the refreshed list is reordered", async () => {
+  const cache = new QueryClient();
+  const first = { id: "original-company", name: "Original", role: "owner" };
+  const added = { id: "added-company", name: "Added", role: "owner" };
+  const key = ["operator-companies", "manager"];
+  useSession.mockReturnValue({ data: { user: { id: "manager" } }, isPending: false });
+  cache.setQueryData(key, { companies: [first], error: null });
+  render(
+    <QueryClientProvider client={cache}>
+      <CompanyScope title="reports.title" switchLocked>
+        {(companyId) => <p>{companyId}</p>}
+      </CompanyScope>
+    </QueryClientProvider>,
+  );
+  expect(screen.getByText(first.id)).toBeInTheDocument();
+  act(() => {
+    cache.setQueryData(key, { companies: [added, first], error: null });
+  });
+  expect(await screen.findByText(added.name)).toBeInTheDocument();
+  expect(screen.getByText(first.id)).toBeInTheDocument();
+  expect(screen.queryByText(added.id)).not.toBeInTheDocument();
+});

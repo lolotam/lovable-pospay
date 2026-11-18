@@ -126,6 +126,10 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
     const prompt = await scan(at("2026-11-18T20:00"));
     expect(prompt.outcome).toBe("needs_intent");
     if (prompt.outcome !== "needs_intent") throw new Error("Expected an attendance prompt");
+    expect(await scan(at("2026-11-18T22:01"), "new_shift", true, prompt.recordId)).toEqual({
+      outcome: "rejected",
+      reason: "stale_intent",
+    });
     expect(await scan(at("2026-11-18T20:00"), "new_shift", true, prompt.recordId)).toEqual({
       outcome: "checked_in",
       lateMinutes: 0,

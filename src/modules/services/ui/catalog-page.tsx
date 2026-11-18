@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   queryOptions,
   useSuspenseQuery,
@@ -28,27 +28,58 @@ const catalogQuery = (companyId: string, userId: string) =>
       }
     },
   });
+type PendingCreates = Map<string, SaveServiceInput>;
+
 export function CatalogPage() {
+  const pendingCreates = useRef<PendingCreates>(new Map());
   const [switchLocked, setSwitchLocked] = useState(false);
   return (
     <CompanyScope title="services.title" switchLocked={switchLocked}>
       {(id, userId) => (
-        <Catalog companyId={id} userId={userId} onSwitchLockChange={setSwitchLocked} />
+        <Catalog
+          companyId={id}
+          userId={userId}
+          pendingCreates={pendingCreates.current}
+          onSwitchLockChange={setSwitchLocked}
+        />
       )}
     </CompanyScope>
   );
 }
-function useCatalogForm() {
+function usePendingCreate(drafts: PendingCreates, companyId: string, userId: string) {
+  const key = JSON.stringify([userId, companyId]);
+  const [pendingCreate, setPending] = useState(() => drafts.get(key));
+  const mounted = useRef(false);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, [key]);
+  function remember(data: SaveServiceInput) {
+    const previous = drafts.get(key);
+    if (previous && previous.requestId !== data.requestId) return false;
+    drafts.set(key, data);
+    setPending(data);
+    return true;
+  }
+  function complete(requestId: string | undefined) {
+    if (!requestId || !mounted.current || drafts.get(key)?.requestId !== requestId) return;
+    drafts.delete(key);
+    setPending(undefined);
+  }
+  return { pendingCreate, remember, complete };
+}
+
+function useCatalogForm(pendingCreate: SaveServiceInput | undefined) {
   const [edit, setEdit] = useState<ServiceDto | null>(null);
-  const [form, setForm] = useState(false);
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [staffIds, setStaff] = useState<string[]>([]);
+  const [form, setForm] = useState(!!pendingCreate);
+  const [name, setName] = useState(pendingCreate?.name ?? "");
+  const [price, setPrice] = useState(pendingCreate?.price ?? "");
+  const [staffIds, setStaff] = useState<string[]>(pendingCreate?.staffIds ?? []);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [pendingCreate, setPendingCreate] = useState<SaveServiceInput | null>(null);
+  const [message, setMessage] = useState(pendingCreate ? t("services.createUnconfirmed") : "");
   function open(s: ServiceDto | null) {
-    setPendingCreate(null);
     setEdit(s);
     setName(s?.name ?? "");
     setPrice(s ? kwd(s.priceMills) : "");
@@ -70,8 +101,6 @@ function useCatalogForm() {
     setBusy,
     message,
     setMessage,
-    pendingCreate,
-    setPendingCreate,
     open,
   };
 }
@@ -98,13 +127,13 @@ async function refreshSavedService(
   return "services.savedRefreshFailed" as const;
 }
 
-function useCatalog(companyId: string, userId: string) {
+function useCatalog(companyId: string, userId: string, drafts: PendingCreates) {
   const { data, isFetching } = useSuspenseQuery(catalogQuery(companyId, userId));
   const cache = useQueryClient();
   const save = useServerFn(saveServiceFn);
-  const state = useCatalogForm();
-  const { edit, name, price, staffIds, busy, pendingCreate } = state;
-  const { setPendingCreate, setBusy, setForm, setMessage, open } = state;
+  const { pendingCreate, remember, complete } = usePendingCreate(drafts, companyId, userId);
+  const state = useCatalogForm(pendingCreate);
+  const { edit, name, price, staffIds, busy, setBusy, setForm, setMessage, open } = state;
   async function submit() {
     if (busy || isFetching) return;
     const recovering = !!pendingCreate;
@@ -122,11 +151,12 @@ function useCatalog(companyId: string, userId: string) {
       return;
     }
     const data = parsed.data;
-    if (!data.id) setPendingCreate(data);
+    if (!data.id && !remember(data)) return;
     setBusy(true);
     try {
-      const result = await save({ data });
-      setPendingCreate(null);
+      const result = await save({ data: { ...data, expectedUserId: userId } });
+      if (result.status === "unverified") throw new Error("Account changed during save");
+      complete(data.requestId);
       if (result.status === "rejected") {
         setMessage(t("services.error"));
         return;
@@ -155,18 +185,20 @@ function useCatalog(companyId: string, userId: string) {
       setBusy(false);
     }
   }
-  return { ...state, data, submit };
+  return { ...state, data, pendingCreate, submit };
 }
 function Catalog({
   companyId,
   userId,
+  pendingCreates,
   onSwitchLockChange,
 }: {
   companyId: string;
   userId: string;
+  pendingCreates: PendingCreates;
   onSwitchLockChange: (locked: boolean) => void;
 }) {
-  const state = useCatalog(companyId, userId);
+  const state = useCatalog(companyId, userId, pendingCreates);
   const { data, busy, open, message, pendingCreate } = state;
   useEffect(() => {
     onSwitchLockChange(busy || !!pendingCreate);

@@ -104,7 +104,6 @@ function useScanner(companyId: string, userId: string) {
   const scan = useServerFn(scanCardFn);
   const settle = useServerFn(settleCardScanFn);
   const inFlight = useRef(false);
-  const current = useRef<CardScanRequest | null>(null);
   const { pending, ready, remember, acknowledge } = usePendingScan(companyId, userId);
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
@@ -116,11 +115,9 @@ function useScanner(companyId: string, userId: string) {
     setBusy(true);
     setMessage("");
     try {
-      current.current = request;
       const response = request ? await scan({ data: request }) : await settle({ data: attempt });
       if (response.status === "unverified") return setMessage(t("cards.scanSessionUnverified"));
       acknowledge(attempt.requestId);
-      current.current = null;
       setPrompt(null);
       if (
         response.status === "recorded" &&
@@ -155,7 +152,7 @@ function useScanner(companyId: string, userId: string) {
 
   const controls = { token, setToken, busy, prompt, setPrompt, message };
   function recover() {
-    if (pending) void submit(pending, current.current, true);
+    if (pending) void submit(pending, null, true);
   }
   return { ...controls, pending, ready, run, recover };
 }

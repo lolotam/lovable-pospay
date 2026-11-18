@@ -16,13 +16,17 @@ export const getCatalogFn = createServerFn({ method: "GET" })
   });
 export const saveServiceFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) =>
-    saveServiceInput.refine((data) => !!(data.id || data.requestId)).parse(v),
+    saveServiceInput
+      .extend({ expectedUserId: z.string().min(1) })
+      .refine((data) => !!(data.id || data.requestId))
+      .parse(v),
   )
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { pgCatalogWriter } = await import("../persistence/catalog.server");
     const userId = await requireUserId();
+    if (userId !== data.expectedUserId) return { status: "unverified" as const };
     try {
       return {
         status: "saved" as const,

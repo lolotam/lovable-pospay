@@ -1,4 +1,4 @@
-import { Suspense, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { isAuthNotConfigured } from "@/lib/auth-errors";
 import { useAccountChangePending } from "@/lib/account-change";
@@ -38,10 +38,13 @@ function SignedInCompanyScope({
   userId,
 }: CompanyScopeProps & { userId: string }) {
   const { data } = useSuspenseQuery(operatorCompaniesQuery(userId));
-  const [selected, setSelected] = useState("");
+  const [selected, setSelected] = useState(() => data.companies[0]?.id ?? "");
   const companyId = data.companies.some(({ id }) => id === selected)
     ? selected
     : (data.companies[0]?.id ?? "");
+  useEffect(() => {
+    if (companyId) setSelected(companyId);
+  }, [companyId]);
   return (
     <section className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold">{t(title)}</h1>
