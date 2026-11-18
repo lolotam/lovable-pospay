@@ -16,7 +16,10 @@ export const Route = createFileRoute("/settings")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  loader: ({ context }) => preloadOperatorCompanies(context.queryClient),
+  loader: ({ context }) =>
+    preloadOperatorCompanies(context.queryClient).catch(() => {
+      // A session lookup failure must leave the public theme controls available.
+    }),
   component: SettingsPage,
 });
 

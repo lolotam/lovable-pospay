@@ -1,6 +1,7 @@
 import { Suspense, useState, type ReactNode } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { isAuthNotConfigured } from "@/lib/auth-errors";
+import { useAccountChangePending } from "@/lib/account-change";
 import { authClient } from "@/lib/auth-client";
 import { operatorCompaniesQuery } from "./operator-companies-query";
 import { t, type MessageKey } from "@/i18n";
@@ -11,32 +12,22 @@ export interface CompanyScopeProps {
 }
 export function CompanyScope(props: CompanyScopeProps) {
   const { data, error, isPending, isRefetching } = authClient.useSession();
-  const checkingSession = isPending || isRefetching;
+  const accountChanging = useAccountChangePending();
+  if (isPending || isRefetching || accountChanging)
+    return <p role="status">{t("phone.loading")}</p>;
   const userId = data?.user.id;
-  const blocked = checkingSession || !!error;
+  if (error || !userId) {
+    const key = isAuthNotConfigured(error)
+      ? "auth.notConfigured"
+      : error
+        ? "ops.forbidden"
+        : "attend.signInFirst";
+    return <p role="status">{t(key)}</p>;
+  }
   return (
-    <>
-      {blocked || !userId ? (
-        <p role="status">
-          {t(
-            checkingSession
-              ? "phone.loading"
-              : isAuthNotConfigured(error)
-                ? "auth.notConfigured"
-                : error
-                  ? "ops.forbidden"
-                  : "attend.signInFirst",
-          )}
-        </p>
-      ) : null}
-      {userId && (
-        <div hidden={blocked}>
-          <Suspense key={userId} fallback={<p role="status">{t("phone.loading")}</p>}>
-            <SignedInCompanyScope {...props} userId={userId} />
-          </Suspense>
-        </div>
-      )}
-    </>
+    <Suspense key={userId} fallback={<p role="status">{t("phone.loading")}</p>}>
+      <SignedInCompanyScope {...props} userId={userId} />
+    </Suspense>
   );
 }
 

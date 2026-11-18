@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { duringAccountChange } from "@/lib/account-change";
 import { authClient } from "@/lib/auth-client";
 import { getSignInOptions } from "@/lib/auth-options.functions";
 import { t } from "@/i18n";
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/sign-in")({
 
 function useSignInFlow() {
   const navigate = useNavigate();
+  const { refetch } = authClient.useSession();
+  const verifySession = () => refetch({ query: { disableCookieCache: true } });
   const search = Route.useSearch();
   const [step, setStep] = useState<Step>("login");
   const [email, setEmail] = useState("");
@@ -88,20 +91,27 @@ function useSignInFlow() {
   }
   async function login(action?: "continue" | "google") {
     if (action === "google") {
-      const result = await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/",
-        errorCallbackURL: "/sign-in",
-      });
+      const result = await duringAccountChange(
+        () =>
+          authClient.signIn.social({
+            provider: "google",
+            callbackURL: "/",
+            errorCallbackURL: "/sign-in",
+          }),
+        verifySession,
+      );
       if (result.error) throw result.error;
       return;
     }
-    const result =
-      action === "continue"
-        ? await authClient.signIn.emailOtp({ email, otp })
-        : step === "totp"
-          ? await authClient.twoFactor.verifyTotp({ code: totp })
-          : await authClient.signIn.email({ email, password });
+    const result = await duringAccountChange(
+      async () =>
+        action === "continue"
+          ? authClient.signIn.emailOtp({ email, otp })
+          : step === "totp"
+            ? authClient.twoFactor.verifyTotp({ code: totp })
+            : authClient.signIn.email({ email, password }),
+      verifySession,
+    );
     if (result.error) throw result.error;
     await finish(result.data);
   }

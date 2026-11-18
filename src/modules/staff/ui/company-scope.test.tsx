@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
+import { duringAccountChange } from "@/lib/account-change";
 import { CompanyScope } from "./company-scope";
 import { preloadOperatorCompanies } from "./operator-companies-query";
 
@@ -29,7 +30,14 @@ it("uses the new account's companies when the query client survives an account s
     .mockReturnValueOnce(secondResponse);
   const screenForAccount = () => (
     <QueryClientProvider client={cache}>
-      <CompanyScope title="reports.title">{(companyId) => <p>{companyId}</p>}</CompanyScope>
+      <CompanyScope title="reports.title">
+        {(companyId) => (
+          <>
+            <p>{companyId}</p>
+            <button type="button">Export report</button>
+          </>
+        )}
+      </CompanyScope>
     </QueryClientProvider>
   );
 
@@ -38,6 +46,23 @@ it("uses the new account's companies when the query client survives an account s
     view = render(screenForAccount());
   });
   expect(screen.getByText("first-company")).toBeVisible();
+  let finishChange!: () => void;
+  const changing = new Promise<void>((resolve) => {
+    finishChange = resolve;
+  });
+  let transition!: Promise<void>;
+  act(() => {
+    transition = duringAccountChange(
+      () => changing,
+      async () => undefined,
+    );
+  });
+  expect(screen.queryByText("first-company")).not.toBeInTheDocument();
+  expect(screen.queryByText("Export report")).not.toBeInTheDocument();
+  await act(async () => {
+    finishChange();
+    await transition;
+  });
 
   useSession.mockReturnValue({
     data: { user: { id: "first" } },
@@ -45,7 +70,8 @@ it("uses the new account's companies when the query client survives an account s
     isRefetching: true,
   });
   view.rerender(screenForAccount());
-  expect(screen.getByText("first-company")).not.toBeVisible();
+  expect(screen.queryByText("first-company")).not.toBeInTheDocument();
+  expect(screen.queryByText("Export report")).not.toBeInTheDocument();
 
   useSession.mockReturnValue({
     data: { user: { id: "first" } },
@@ -53,7 +79,8 @@ it("uses the new account's companies when the query client survives an account s
     error: new Error("Session check failed"),
   });
   view.rerender(screenForAccount());
-  expect(screen.getByText("first-company")).not.toBeVisible();
+  expect(screen.queryByText("first-company")).not.toBeInTheDocument();
+  expect(screen.queryByText("Export report")).not.toBeInTheDocument();
 
   useSession.mockReturnValue({ data: { user: { id: "second" } }, isPending: false });
   view.rerender(screenForAccount());
