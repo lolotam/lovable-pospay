@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CatalogPage } from "@/modules/services/ui/catalog-page";
-import { operatorCompaniesQuery } from "@/modules/staff";
 import { t } from "@/i18n";
 export const Route = createFileRoute("/services")({
   head: () => ({
@@ -14,6 +13,5 @@ export const Route = createFileRoute("/services")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(operatorCompaniesQuery),
   component: CatalogPage,
 });

@@ -17,12 +17,12 @@ function kwd(value: string) {
   const n = BigInt(value);
   return `${n / 1000n}.${(n % 1000n).toString().padStart(3, "0")}`;
 }
-const catalogQuery = (companyId: string) =>
+const catalogQuery = (companyId: string, userId: string) =>
   queryOptions({
-    queryKey: ["catalog", companyId],
+    queryKey: ["catalog", userId, companyId],
     queryFn: async () => {
       try {
-        return await getCatalogFn({ data: { companyId } });
+        return await getCatalogFn({ data: { companyId, expectedUserId: userId } });
       } catch {
         return null;
       }
@@ -32,7 +32,9 @@ export function CatalogPage() {
   const [switchLocked, setSwitchLocked] = useState(false);
   return (
     <CompanyScope title="services.title" switchLocked={switchLocked}>
-      {(id) => <Catalog companyId={id} onSwitchLockChange={setSwitchLocked} />}
+      {(id, userId) => (
+        <Catalog companyId={id} userId={userId} onSwitchLockChange={setSwitchLocked} />
+      )}
     </CompanyScope>
   );
 }
@@ -77,12 +79,13 @@ function useCatalogForm() {
 async function refreshSavedService(
   cache: QueryClient,
   companyId: string,
+  userId: string,
   id: string,
   name: string,
   recovering: boolean,
   open: (service: ServiceDto) => void,
 ) {
-  const options = catalogQuery(companyId);
+  const options = catalogQuery(companyId, userId);
   try {
     await cache.invalidateQueries({ queryKey: options.queryKey });
     const refreshed = await cache.fetchQuery(options);
@@ -95,8 +98,8 @@ async function refreshSavedService(
   return "services.savedRefreshFailed" as const;
 }
 
-function useCatalog({ companyId }: { companyId: string }) {
-  const { data, isFetching } = useSuspenseQuery(catalogQuery(companyId));
+function useCatalog(companyId: string, userId: string) {
+  const { data, isFetching } = useSuspenseQuery(catalogQuery(companyId, userId));
   const cache = useQueryClient();
   const save = useServerFn(saveServiceFn);
   const state = useCatalogForm();
@@ -130,7 +133,7 @@ function useCatalog({ companyId }: { companyId: string }) {
       }
       if (result.status === "stale") {
         setForm(false);
-        await cache.invalidateQueries({ queryKey: ["catalog", companyId] });
+        await cache.invalidateQueries({ queryKey: catalogQuery(companyId, userId).queryKey });
         setMessage(t("services.staleEdit"));
         return;
       }
@@ -139,6 +142,7 @@ function useCatalog({ companyId }: { companyId: string }) {
       const message = await refreshSavedService(
         cache,
         companyId,
+        userId,
         result.id,
         data.name,
         recovering,
@@ -155,12 +159,14 @@ function useCatalog({ companyId }: { companyId: string }) {
 }
 function Catalog({
   companyId,
+  userId,
   onSwitchLockChange,
 }: {
   companyId: string;
+  userId: string;
   onSwitchLockChange: (locked: boolean) => void;
 }) {
-  const state = useCatalog({ companyId });
+  const state = useCatalog(companyId, userId);
   const { data, busy, open, message, pendingCreate } = state;
   useEffect(() => {
     onSwitchLockChange(busy || !!pendingCreate);

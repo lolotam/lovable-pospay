@@ -63,7 +63,7 @@ function SettingsPage() {
       </fieldset>
       <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
         <CompanyScope title="cards.policy">
-          {(id) => <CardActions companyId={id} policyOnly />}
+          {(id, userId) => <CardActions companyId={id} userId={userId} policyOnly />}
         </CompanyScope>
       </Suspense>
     </main>

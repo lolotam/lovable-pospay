@@ -1,7 +1,6 @@
 import type { AttendanceReportRow, OperationalReport, ReportTab } from "../report.contracts";
 import { Suspense, useState } from "react";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { authClient } from "@/lib/auth-client";
 import { CompanyScope } from "@/modules/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,13 +9,9 @@ import { t } from "@/i18n";
 import { getOperationalReportFn } from "../functions/report.functions";
 import { buildTable, downloadCsv, formatMills, formatReportDate, printPdf } from "./report-export";
 export function ReportsPage() {
-  const { data: session, isPending } = authClient.useSession();
-  if (isPending) return <p role="status">{t("phone.loading")}</p>;
-  const userId = session?.user.id;
-  if (!userId) return <p role="status">{t("attend.signInFirst")}</p>;
   return (
-    <CompanyScope title="reports.title" key={userId}>
-      {(id) => <ReportFilters companyId={id} userId={userId} />}
+    <CompanyScope title="reports.title">
+      {(id, userId) => <ReportFilters companyId={id} userId={userId} />}
     </CompanyScope>
   );
 }

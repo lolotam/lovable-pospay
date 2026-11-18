@@ -1,15 +1,18 @@
 import { loadCatalog, saveService } from "../use-cases/save-service";
+import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { serviceScope, saveServiceInput } from "../contracts";
 export const getCatalogFn = createServerFn({ method: "GET" })
-  .inputValidator((v: unknown) => serviceScope.parse(v))
+  .inputValidator((v: unknown) =>
+    serviceScope.extend({ expectedUserId: z.string().min(1) }).parse(v),
+  )
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { pgCatalogReader } = await import("../persistence/catalog.server");
-    return withUser(await requireUserId(), (db) =>
-      loadCatalog(pgCatalogReader(db, data.companyId)),
-    );
+    const userId = await requireUserId();
+    if (userId !== data.expectedUserId) throw new Error("FORBIDDEN");
+    return withUser(userId, (db) => loadCatalog(pgCatalogReader(db, data.companyId)));
   });
 export const saveServiceFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) =>

@@ -1,14 +1,39 @@
 import { Suspense, useState, type ReactNode } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { isAuthNotConfigured } from "@/lib/auth-errors";
+import { authClient } from "@/lib/auth-client";
 import { operatorCompaniesQuery } from "./operator-companies-query";
 import { t, type MessageKey } from "@/i18n";
 export interface CompanyScopeProps {
   title: MessageKey;
   switchLocked?: boolean;
-  children: (companyId: string) => ReactNode;
+  children: (companyId: string, userId: string) => ReactNode;
 }
-export function CompanyScope({ title, children, switchLocked = false }: CompanyScopeProps) {
-  const { data } = useSuspenseQuery(operatorCompaniesQuery);
+export function CompanyScope(props: CompanyScopeProps) {
+  const { data, error, isPending } = authClient.useSession();
+  if (isPending) return <p role="status">{t("phone.loading")}</p>;
+  const userId = data?.user.id;
+  if (!userId) {
+    return (
+      <p role="status">
+        {t(isAuthNotConfigured(error) ? "auth.notConfigured" : "attend.signInFirst")}
+      </p>
+    );
+  }
+  return (
+    <Suspense key={userId} fallback={<p role="status">{t("phone.loading")}</p>}>
+      <SignedInCompanyScope {...props} userId={userId} />
+    </Suspense>
+  );
+}
+
+function SignedInCompanyScope({
+  title,
+  children,
+  switchLocked = false,
+  userId,
+}: CompanyScopeProps & { userId: string }) {
+  const { data } = useSuspenseQuery(operatorCompaniesQuery(userId));
   const [selected, setSelected] = useState("");
   const companyId = data.companies.some(({ id }) => id === selected)
     ? selected
@@ -40,7 +65,7 @@ export function CompanyScope({ title, children, switchLocked = false }: CompanyS
             </select>
           </label>
           <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
-            <div key={companyId}>{children(companyId)}</div>
+            <div key={companyId}>{children(companyId, userId)}</div>
           </Suspense>
         </>
       )}

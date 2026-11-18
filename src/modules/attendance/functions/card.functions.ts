@@ -7,6 +7,7 @@ import {
 import { readCardStatus, recordCard } from "../use-cases/card-scan";
 import { systemClock } from "@/shared/kernel/clock";
 import { cryptoIds } from "@/shared/kernel/ids";
+import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import {
   cardScope,
@@ -16,12 +17,14 @@ import {
   cardStatusInput,
 } from "../card.contracts";
 export const getCardsFn = createServerFn({ method: "GET" })
-  .inputValidator((v: unknown) => cardScope.parse(v))
+  .inputValidator((v: unknown) => cardScope.extend({ expectedUserId: z.string().min(1) }).parse(v))
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { readCardAccess, readCards } = await import("../persistence/card-repository.server");
-    return withUser(await requireUserId(), (db) =>
+    const userId = await requireUserId();
+    if (userId !== data.expectedUserId) throw new Error("FORBIDDEN");
+    return withUser(userId, (db) =>
       loadCardManagement({
         access: () => readCardAccess(db, data.companyId),
         read: () => readCards(db, data.companyId),
@@ -70,8 +73,20 @@ export const getCardStatusFn = createServerFn({ method: "POST" })
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { scanCard } = await import("../persistence/card-scan.server");
-    const id = await requireUserId();
-    return withUser(id, async (db) => readCardStatus(await scanCard(db, id, data)));
+    try {
+      const id = await requireUserId();
+      const attendance = await withUser(id, async (db) =>
+        readCardStatus(await scanCard(db, id, data)),
+      );
+      return { status: "confirmed" as const, ...attendance };
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        ["CARD_REVOKED", "FORBIDDEN", "UNAUTHENTICATED"].includes(error.message)
+      )
+        return { status: "unavailable" as const };
+      throw error;
+    }
   });
 
 export const scanCardFn = createServerFn({ method: "POST" })

@@ -15,6 +15,25 @@ export function CardScanPage() {
     </CompanyScope>
   );
 }
+function scanStatusMessage(status: Awaited<ReturnType<typeof getCardStatusFn>>) {
+  if (status.status === "unavailable") return t("cards.statusDiscontinued");
+  return (
+    status.name + " \u00b7 " + t(status.checkedIn ? "cards.currentlyIn" : "cards.currentlyOut")
+  );
+}
+
+type RecordedScan = Extract<Awaited<ReturnType<typeof scanCardFn>>, { status: "recorded" }>["scan"];
+
+function scanResultMessage({ name, result }: RecordedScan) {
+  const key =
+    result.outcome === "checked_in"
+      ? "attend.checkedIn"
+      : result.outcome === "checked_out"
+        ? "attend.checkedOut"
+        : "cards.error";
+  return name + " \u00b7 " + t(key);
+}
+
 function useScanner({ companyId }: { companyId: string }) {
   const scan = useServerFn(scanCardFn);
   const fetchStatus = useServerFn(getCardStatusFn);
@@ -47,9 +66,7 @@ function useScanner({ companyId }: { companyId: string }) {
       else {
         setPrompt(null);
         setToken("");
-        setMessage(
-          `${r.name} · ${t(r.result.outcome === "checked_in" ? "attend.checkedIn" : r.result.outcome === "checked_out" ? "attend.checkedOut" : "cards.error")}`,
-        );
+        setMessage(scanResultMessage(r));
       }
     } catch {
       setPrompt(null);
@@ -64,9 +81,7 @@ function useScanner({ companyId }: { companyId: string }) {
     setBusy(true);
     try {
       const status = await fetchStatus({ data: { companyId, token } });
-      setMessage(
-        status.name + " \u00b7 " + t(status.checkedIn ? "cards.currentlyIn" : "cards.currentlyOut"),
-      );
+      setMessage(scanStatusMessage(status));
       setToken("");
       setUncertain(false);
     } catch {
@@ -89,6 +104,7 @@ function Scanner({
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     onSwitchLockChange(busy || uncertain || !!prompt);
+    return () => onSwitchLockChange(false);
   }, [busy, uncertain, prompt, onSwitchLockChange]);
   useEffect(() => {
     if (!busy && !prompt && !uncertain) input.current?.focus();

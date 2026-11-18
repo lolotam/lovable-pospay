@@ -7,12 +7,15 @@ import { t } from "@/i18n";
 import { CompanyScope } from "@/modules/staff";
 import { getCardsFn, approveCardsFn, issueCardFn, revokeCardFn } from "../functions/card.functions";
 import type { IssuedCard } from "../card.contracts";
-const cardQuery = (companyId: string) =>
+const cardQuery = (companyId: string, userId: string) =>
   queryOptions({
-    queryKey: ["cards", companyId],
+    queryKey: ["cards", userId, companyId],
     queryFn: async () => {
       try {
-        return { value: await getCardsFn({ data: { companyId } }), error: null };
+        return {
+          value: await getCardsFn({ data: { companyId, expectedUserId: userId } }),
+          error: null,
+        };
       } catch (error) {
         return {
           value: null,
@@ -28,12 +31,14 @@ export function CardsPage() {
   const [switchLocked, setSwitchLocked] = useState(false);
   return (
     <CompanyScope title="cards.title" switchLocked={switchLocked}>
-      {(id) => <CardActions companyId={id} onSwitchLockChange={setSwitchLocked} />}
+      {(id, userId) => (
+        <CardActions companyId={id} userId={userId} onSwitchLockChange={setSwitchLocked} />
+      )}
     </CompanyScope>
   );
 }
-function useCards({ companyId, policyOnly = false }: { companyId: string; policyOnly?: boolean }) {
-  const { data, isFetching, refetch } = useSuspenseQuery(cardQuery(companyId));
+function useCards(companyId: string, userId: string) {
+  const { data, isFetching, refetch } = useSuspenseQuery(cardQuery(companyId, userId));
   const [issued, setIssued] = useState<IssuedCard | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -81,18 +86,20 @@ type CardViewProps = Pick<CardsState, "busy" | "run" | "confirm" | "setConfirm">
 };
 export interface CardActionsProps {
   companyId: string;
+  userId: string;
   policyOnly?: boolean;
   onSwitchLockChange?: (locked: boolean) => void;
 }
 export function CardActions({
   companyId,
+  userId,
   policyOnly = false,
   onSwitchLockChange,
 }: CardActionsProps) {
-  const { data, busy, confirm, setConfirm, issued, dismissIssued, message, run } = useCards({
+  const { data, busy, confirm, setConfirm, issued, dismissIssued, message, run } = useCards(
     companyId,
-    policyOnly,
-  });
+    userId,
+  );
   useEffect(() => {
     onSwitchLockChange?.(busy || !!issued);
   }, [busy, issued, onSwitchLockChange]);
