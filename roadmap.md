@@ -55,7 +55,7 @@
 ## 004 Platform connectors (super admin)
 - [x] Super-admin-only connectors page `/admin/connectors` (Codex, Kimi, MiniMax, Z.ai sign-in; OpenAI, Google AI, OpenRouter, MiniMax, Resend keys)
 - [x] Apply 0004 on the real DB
-- [ ] Run `db/seeds/super-admin.sql` after Better Auth tables + Waleed sign-up
+- [x] Super admin `pospay.systems@gmail.com` created in production and `db/seeds/super-admin.sql` confirmed (2026-11-18). Change the password before handover.
 - [x] Set `PLATFORM_SECRETS_KEY` in Dokploy (previous deployment setup)
 - [ ] Wire attendance questions to the default connector instead of AI Gateway
 
@@ -76,14 +76,15 @@
 - [x] First build succeeded; site serves HTTP 200
 - [x] Fixed runtime crash: better-auth needs zod v4 (`(void 0) is not a function`) — upgraded zod to 4.6.5, 34 tests pass, typecheck clean, committed 369b843
 - [x] Redeploy zod fix from synchronized GitHub commit 51fdab3
-- [ ] /api/auth/sign-in/email acceptance — zod crash resolved; pooler ENOIDENTIFIER returns 500
-- [ ] After auth works: Waleed registers dr.vet.waleedtam@gmail.com, then run db/seeds/super-admin.sql
+- [x] /api/auth/sign-in/email returns 200 on app2.pospay.systems (2026-11-18)
+- [x] Super admin account `pospay.systems@gmail.com` created directly (public sign-up is disabled); seed re-run is idempotent
 
 ## 011 Service session recording (12:40 Kuwait)
 - [x] Migration 0013 prepares client and session storage. Public session recording is deferred pending D-44. Operational reports exclude client phone fields under the slice 003 acceptance rule.
 - [ ] TODO(spec) ق-1: price override and discount limit (D-44) — sessions use the catalog price snapshot until approved.
 - [ ] Before enabling session recording, bind reused request IDs to the original normalized client, service, staff and occurrence data. Verify identical retries return the existing session and changed requests return a conflict.
 - [x] Migrations 0011–0013 applied in production after PR #5.
+- [x] Migrations 0014–0015 applied in production from PR #7 commit d33fdd8 (2026-11-18, backup `/root/pospay-backups/pre-0014-0015-20261118T162803Z.dump`).
 - [ ] Authenticated UI acceptance unverified (preview auth not configured).
 - [x] 012 تصدير تقارير الحضور/المصححة/الجلسات CSV وPDF
 - [ ] ق-1 قرار تعديل السعر وحد الخصم (D-44) — مستني وليد
