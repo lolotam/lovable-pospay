@@ -45,6 +45,8 @@ export const unbindPhoneFn = createServerFn({ method: "POST" })
     const { withUser } = await import("@/lib/server/db.server");
     const userId = await requireUserId();
     return withUser(userId, async (db) => {
+      const { requirePermission } = await import("@/modules/permissions/index.server");
+      await requirePermission(db, data.companyId, "staff.manage");
       const r = await db.query(
         "delete from public.phone_bindings where company_id=$1 and user_id=$2 returning id",
         [data.companyId, data.userId],

@@ -12,12 +12,17 @@ export const getCatalogFn = createServerFn({ method: "GET" })
   .handler(async ({ data: input }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { withPermission } = await import("@/modules/permissions/index.server");
     const { pgCatalogReader } = await import("../persistence/catalog.server");
     try {
       const userId = await requireUserId();
       const data = catalogRequest.parse(input);
       if (userId !== data.expectedUserId) return null;
-      return await withUser(userId, (db) => loadCatalog(pgCatalogReader(db, data.companyId)));
+      return await withUser(userId, (db) =>
+        withPermission(db, data.companyId, "services.manage", () =>
+          loadCatalog(pgCatalogReader(db, data.companyId)),
+        ),
+      );
     } catch (error) {
       if (error instanceof Error && ["FORBIDDEN", "UNAUTHENTICATED"].includes(error.message))
         return null;
@@ -29,6 +34,7 @@ export const saveServiceFn = createServerFn({ method: "POST" })
   .handler(async ({ data: input }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { withPermission } = await import("@/modules/permissions/index.server");
     const { pgCatalogWriter } = await import("../persistence/catalog.server");
     const userId = await requireUserId();
     const data = catalogSaveRequest.parse(input);
@@ -37,7 +43,9 @@ export const saveServiceFn = createServerFn({ method: "POST" })
       return {
         status: "saved" as const,
         ...(await withUser(userId, (db) =>
-          saveService(pgCatalogWriter(db, userId, data.companyId), data),
+          withPermission(db, data.companyId, "services.manage", () =>
+            saveService(pgCatalogWriter(db, userId, data.companyId), data),
+          ),
         )),
       };
     } catch (error) {

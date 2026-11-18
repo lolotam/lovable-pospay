@@ -65,7 +65,7 @@ export const getBranchQrFn = createServerFn({ method: "GET" })
     return withUser(userId, async (db) => {
       const { rows } = await db.query(
         `select b.name from public.branches b
-          where b.id = $1 and (public.is_company_admin(b.company_id) or public.has_company_role(b.company_id, 'reception'))`,
+          where b.id = $1 and public.has_permission(b.company_id, 'pos.access') and (public.is_company_admin(b.company_id) or public.has_company_role(b.company_id, 'reception'))`,
         [data.branchId],
       );
       const signer = rows[0] ? await branchSigner(db, data.branchId) : null;

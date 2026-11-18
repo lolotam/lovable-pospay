@@ -99,3 +99,9 @@
 - [x] Frontend verification: 215 tests passed, 61 database integration tests skipped; affected tests rerun 20/20 after final lint fixes; lint 0 errors / 8 warnings; harness build OK; 168 isolated-fixture browser checks passed.
 - [ ] Real authenticated acceptance and cookie/override/branch-context integration wait for 016-B; not verified against real users.
 - Part B (Tasks 8–12) is owned by the backend developer; no migrations, persistence or server functions in this request.
+
+## 016-B trusted workspaces (2026-11-18)
+- [x] Tasks 8–11 source implementation: prepared migration/isolation, repository/use cases, trusted cookies, endpoint permission checks and scoped overviews; no database execution.
+- [x] Task 12 local checks/evidence: 248 tests passed / 124 database tests skipped; lint 0 errors / 8 existing warnings; harness build OK; 10 public browser checks. See verification.md; no PR requested.
+- [ ] Task 12 authenticated acceptance and TODO(spec): supplied SQL aggregates company roles while DTO uses active role; supplied stale-choice test conflicts with immediate R2 single-workspace entry. Requires Waleed/Codex decision, not silently changed.
+- [ ] Codex: execute SQL integration, migration double-application and isolation on disposable pospay_test; production migration and deploy require separate Waleed approval.

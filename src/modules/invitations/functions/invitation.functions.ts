@@ -12,8 +12,11 @@ export const getTeamFn = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { withPermission } = await import("@/modules/permissions/index.server");
     const { readTeam } = await import("../persistence/invitation.server");
-    return withUser(await requireUserId(), (db) => readTeam(db, data.companyId));
+    return withUser(await requireUserId(), (db) =>
+      withPermission(db, data.companyId, "staff.manage", () => readTeam(db, data.companyId)),
+    );
   });
 
 export const createInviteFn = createServerFn({ method: "POST" })
@@ -21,6 +24,7 @@ export const createInviteFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { withPermission } = await import("@/modules/permissions/index.server");
     const { insertInvite, revokeInvite } = await import("../persistence/invitation.server");
     const { sendInvitationEmail } = await import("@/lib/server/resend.server");
     const { issueInvite } = await import("../use-cases/issue-invite");
@@ -35,9 +39,16 @@ export const createInviteFn = createServerFn({ method: "POST" })
       {
         save: () =>
           withUser(userId, (db) =>
-            insertInvite(db, { ...data, tokenHash, expiresAt: inviteExpiry(new Date()), userId }),
+            withPermission(db, data.companyId, "staff.manage", () =>
+              insertInvite(db, { ...data, tokenHash, expiresAt: inviteExpiry(new Date()), userId }),
+            ),
           ),
-        revoke: (id) => withUser(userId, (db) => revokeInvite(db, data.companyId, id, userId)),
+        revoke: (id) =>
+          withUser(userId, (db) =>
+            withPermission(db, data.companyId, "staff.manage", () =>
+              revokeInvite(db, data.companyId, id, userId),
+            ),
+          ),
         send: (link, companyName) => sendInvitationEmail(data.email, link, companyName),
       },
       url,
@@ -49,9 +60,14 @@ export const revokeInviteFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { withPermission } = await import("@/modules/permissions/index.server");
     const { revokeInvite } = await import("../persistence/invitation.server");
     const userId = await requireUserId();
-    await withUser(userId, (db) => revokeInvite(db, data.companyId, data.id, userId));
+    await withUser(userId, (db) =>
+      withPermission(db, data.companyId, "staff.manage", () =>
+        revokeInvite(db, data.companyId, data.id, userId),
+      ),
+    );
     return { ok: true };
   });
 

@@ -31,9 +31,17 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
         "0001_tenancy_foundation.sql",
         "0002_attendance.sql",
         "0003_phone_binding.sql",
+        "0004_platform_connectors.sql",
+        "0006_better_auth.sql",
         "0009_attendance_branch_company.sql",
         "0011_barcode.sql",
         "0012_service_catalog.sql",
+        "0013_service_sessions.sql",
+        "0014_discount_grants.sql",
+        "0015_invitations.sql",
+        "0016_discount_grant_membership.sql",
+        "0017_invitation_scope.sql",
+        "0018_app_structure.sql",
       ]) {
         await admin.query(await readFile(`db/migrations/${file}`, "utf8"));
       }

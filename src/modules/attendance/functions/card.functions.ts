@@ -34,15 +34,18 @@ export const getCardsFn = createServerFn({ method: "GET" })
   .handler(async ({ data: input }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { withPermission } = await import("@/modules/permissions/index.server");
     const { readCardAccess, readCards } = await import("../persistence/card-repository.server");
     const userId = await requireUserId();
     const data = cardAccountScope.parse(input);
     if (userId !== data.expectedUserId) throw new Error("FORBIDDEN");
     return withUser(userId, (db) =>
-      loadCardManagement({
-        access: () => readCardAccess(db, data.companyId),
-        read: () => readCards(db, data.companyId),
-      }),
+      withPermission(db, data.companyId, "staff.manage", () =>
+        loadCardManagement({
+          access: () => readCardAccess(db, data.companyId),
+          read: () => readCards(db, data.companyId),
+        }),
+      ),
     );
   });
 export const approveCardsFn = createServerFn({ method: "POST" })
@@ -50,15 +53,19 @@ export const approveCardsFn = createServerFn({ method: "POST" })
   .handler(async ({ data: input }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { withPermission } = await import("@/modules/permissions/index.server");
     const { cardAudit, insertCardPolicy } = await import("../persistence/card-repository.server");
     const id = await requireUserId();
     const data = cardAccountScope.parse(input);
     if (id !== data.expectedUserId) throw new Error("FORBIDDEN");
     return withUser(id, (db) =>
-      approveCardPolicy({
-        insert: () => insertCardPolicy(db, id, data.companyId),
-        audit: () => cardAudit(db, id, data.companyId, "cards.policy_approved", data.companyId, {}),
-      }),
+      withPermission(db, data.companyId, "staff.manage", () =>
+        approveCardPolicy({
+          insert: () => insertCardPolicy(db, id, data.companyId),
+          audit: () =>
+            cardAudit(db, id, data.companyId, "cards.policy_approved", data.companyId, {}),
+        }),
+      ),
     );
   });
 export const issueCardFn = createServerFn({ method: "POST" })
@@ -66,12 +73,15 @@ export const issueCardFn = createServerFn({ method: "POST" })
   .handler(async ({ data: input }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { withPermission } = await import("@/modules/permissions/index.server");
     const { pgCardRepository, cardTokens } = await import("../persistence/card-actions.server");
     const id = await requireUserId();
     const data = issueCardRequest.parse(input);
     if (id !== data.expectedUserId) throw new Error("FORBIDDEN");
     return withUser(id, (db) =>
-      issueCardUseCase(pgCardRepository(db, id, data.companyId), cardTokens, data.staffId),
+      withPermission(db, data.companyId, "staff.manage", () =>
+        issueCardUseCase(pgCardRepository(db, id, data.companyId), cardTokens, data.staffId),
+      ),
     );
   });
 export const revokeCardFn = createServerFn({ method: "POST" })
@@ -79,12 +89,15 @@ export const revokeCardFn = createServerFn({ method: "POST" })
   .handler(async ({ data: input }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { withPermission } = await import("@/modules/permissions/index.server");
     const { pgCardRepository } = await import("../persistence/card-actions.server");
     const id = await requireUserId();
     const data = revokeCardRequest.parse(input);
     if (id !== data.expectedUserId) throw new Error("FORBIDDEN");
     return withUser(id, (db) =>
-      revokeCardUseCase(pgCardRepository(db, id, data.companyId), data.cardId),
+      withPermission(db, data.companyId, "staff.manage", () =>
+        revokeCardUseCase(pgCardRepository(db, id, data.companyId), data.cardId),
+      ),
     );
   });
 type CardScanResponse =
@@ -157,12 +170,14 @@ async function withCardRequest<Request extends CardRequest>(
 ): Promise<CardScanResponse> {
   const { requireUserId } = await import("@/lib/server/session.server");
   const { withUser } = await import("@/lib/server/db.server");
+  const { withPermission } = await import("@/modules/permissions/index.server");
   const { pgCardScanReceipts } = await import("../persistence/card-scan-receipts.server");
   try {
     const userId = await requireUserId();
     const data = schema.parse(input);
     if (userId !== data.expectedUserId) return { status: "unverified" };
     return await withUser(userId, async (db) => {
+      await withPermission(db, data.companyId, "pos.access", async () => undefined);
       const { rows } = await db.query<{ member: boolean }>(
         "select public.is_member($1) as member",
         [data.companyId],
@@ -179,7 +194,7 @@ async function withCardRequest<Request extends CardRequest>(
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHENTICATED")
       return { status: "unverified" };
-    if (error instanceof Error && error.message === "CARD_REQUEST_CONFLICT")
+    if (error instanceof Error && ["CARD_REQUEST_CONFLICT", "FORBIDDEN"].includes(error.message))
       return { status: "rejected" };
     throw error;
   }

@@ -1,3 +1,8 @@
+import {
+  platformOverviewQuery,
+  connectorSummaryQuery,
+} from "@/modules/permissions/ui/overview-query";
+import { PlatformOverview } from "@/modules/permissions/ui/overview";
 import { createFileRoute } from "@tanstack/react-router";
 import { Dashboard } from "@/modules/permissions/ui/dashboard";
 import { t } from "@/i18n";
@@ -16,7 +21,13 @@ export const Route = createFileRoute("/admin/")({
     ],
   }),
   loader: ({ context }) =>
-    context.allowed ? context.queryClient.ensureQueryData(statusQuery) : undefined,
+    context.allowed
+      ? Promise.all([
+          context.queryClient.ensureQueryData(statusQuery),
+          context.queryClient.ensureQueryData(platformOverviewQuery),
+          context.queryClient.ensureQueryData(connectorSummaryQuery),
+        ])
+      : undefined,
   errorComponent: RouteError,
   notFoundComponent: RouteNotFound,
   component: Home,
@@ -26,6 +37,7 @@ function Home() {
   return (
     <>
       <Dashboard area="admin" context={session} />
+      <PlatformOverview />
       <SystemStatus />
     </>
   );

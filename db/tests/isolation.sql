@@ -31,6 +31,8 @@ insert into public.discount_grants(company_id,role,max_percent,granted_by) value
 insert into public.discount_grants(company_id,user_id,max_percent,granted_by) values ('00000000-0000-0000-0000-00000000000b','user-former',50,'seed');
 insert into public.invitations(company_id,email,role,token_hash,expires_at,invited_by)
  values ('00000000-0000-0000-0000-00000000000b','invite-b@example.test','staff',repeat('b',64),now()+interval '1 day','user-b');
+insert into public.permission_overrides(company_id,user_id,permission,effect) values
+ ('00000000-0000-0000-0000-00000000000b','user-b','reports.view','allow');
 select set_config('test.b_branch' , (select id::text from public.branches where name='B-1'), true);
 select set_config('test.a_branch' , (select id::text from public.branches where name='A-1'), true);
 insert into public.memberships (company_id, user_id, role, branch_id)
@@ -103,6 +105,16 @@ do $$ begin
     select 1 from public.branches where name='Owner branch default'
       and length(public.branch_qr_secret(id)) = 64
   ) then raise exception 'Branch QR secret default missing'; end if;
+  if (select count(*) from public.permission_overrides where company_id='00000000-0000-0000-0000-00000000000b') <> 0
+    then raise exception 'LEAK permission_overrides'; end if;
+  if public.has_permission('00000000-0000-0000-0000-00000000000b','reports.view')
+    then raise exception 'LEAK foreign permission'; end if;
+  begin
+    insert into public.permission_overrides(company_id,user_id,permission,effect)
+      values ('00000000-0000-0000-0000-00000000000b','user-a','pos.access','allow');
+    raise exception 'LEAK: A inserted override into B';
+  exception when insufficient_privilege then null;
+  end;
   if exists(select 1 from public.card_policies) then raise exception 'LEAK card policy'; end if;
   if exists(select 1 from public.invitations) then raise exception 'LEAK invitations'; end if;
   if exists(select 1 from public.attendance_cards) then raise exception 'LEAK cards'; end if;

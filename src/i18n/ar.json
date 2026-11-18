@@ -374,5 +374,16 @@
   "page.retry": "حاول تاني",
   "ws.failed": "تعذّر تحميل مساحات العمل. حاول تاني.",
   "dashboard.quickLinks": "روابط سريعة",
-  "dashboard.welcome": "مساحة عملك"
+  "dashboard.welcome": "مساحة عملك",
+  "dashboard.companies": "الشركات",
+  "dashboard.users": "المستخدمون",
+  "dashboard.connected": "الخدمات المتصلة",
+  "dashboard.present": "الحاضرات اليوم",
+  "dashboard.exceptions": "استثناءات الحضور المفتوحة",
+  "dashboard.staff": "الموظفات",
+  "dashboard.attendance": "حضور اليوم",
+  "dashboard.attendanceOpen": "تم الحضور",
+  "dashboard.attendanceClosed": "تم الانصراف",
+  "dashboard.attendanceForgotten": "الانصراف يحتاج تصحيح",
+  "dashboard.attendanceNone": "لم يتم الحضور"
 }

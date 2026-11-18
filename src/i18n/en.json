@@ -374,5 +374,16 @@
   "page.retry": "Try again",
   "ws.failed": "Unable to load your workspaces. Please try again.",
   "dashboard.quickLinks": "Quick links",
-  "dashboard.welcome": "Your workspace"
+  "dashboard.welcome": "Your workspace",
+  "dashboard.companies": "Companies",
+  "dashboard.users": "Users",
+  "dashboard.connected": "Connected services",
+  "dashboard.present": "Staff present today",
+  "dashboard.exceptions": "Open attendance exceptions",
+  "dashboard.staff": "Staff members",
+  "dashboard.attendance": "Today’s attendance",
+  "dashboard.attendanceOpen": "Checked in",
+  "dashboard.attendanceClosed": "Checked out",
+  "dashboard.attendanceForgotten": "Checkout needs correction",
+  "dashboard.attendanceNone": "Not checked in"
 }

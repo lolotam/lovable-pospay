@@ -21,7 +21,7 @@ vi.mock("@/lib/server/session.server", () => ({
 }));
 vi.mock("@/lib/server/db.server", () => ({
   withUser: async (_userId: string, run: (db: unknown) => unknown) =>
-    run({ query: async () => ({ rows: [{ member: true }] }) }),
+    run({ query: async () => ({ rows: [{ member: true, allowed: true }] }) }),
 }));
 vi.mock("../persistence/card-scan-receipts.server", () => ({
   pgCardScanReceipts: () => ({ lockAndRead, save }),

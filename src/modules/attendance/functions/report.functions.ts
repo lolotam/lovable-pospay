@@ -6,17 +6,21 @@ export const getOperationalReportFn = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { withPermission } = await import("@/modules/permissions/index.server");
     const { readAttendanceReport } = await import("../persistence/report.server");
     const { readServiceReport } = await import("@/modules/services");
     try {
       const userId = await requireUserId();
       if (userId !== data.expectedUserId) return "FORBIDDEN" as const;
       return await withUser(userId, (db) =>
-        readOperationalReport(data.tab, {
-          attendance: (limit, correctedOnly) =>
-            readAttendanceReport(db, data.companyId, data.from, data.until, limit, correctedOnly),
-          sessions: (limit) => readServiceReport(db, data.companyId, data.from, data.until, limit),
-        }),
+        withPermission(db, data.companyId, "reports.view", () =>
+          readOperationalReport(data.tab, {
+            attendance: (limit, correctedOnly) =>
+              readAttendanceReport(db, data.companyId, data.from, data.until, limit, correctedOnly),
+            sessions: (limit) =>
+              readServiceReport(db, data.companyId, data.from, data.until, limit),
+          }),
+        ),
       );
     } catch (error) {
       if (error instanceof Error && ["FORBIDDEN", "UNAUTHENTICATED"].includes(error.message))

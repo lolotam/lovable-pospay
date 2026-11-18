@@ -22,7 +22,7 @@ export async function readPhoneManagement(
     (select json_build_object('companyId', c.id, 'companyName', c.name)
       from public.phone_bindings p join public.companies c on c.id=p.company_id
       where p.user_id=$2 and p.device_hash=$3) as "browserBinding",
-    (public.is_company_admin($1) and not exists (
+    (public.is_company_admin($1) and public.has_permission($1, 'staff.manage') and not exists (
       select 1 from public.permission_overrides where company_id=$1 and user_id=$2
       and permission='attendance.manage_devices' and effect='deny')) as "canManage"`,
     [companyId, userId, deviceHash],

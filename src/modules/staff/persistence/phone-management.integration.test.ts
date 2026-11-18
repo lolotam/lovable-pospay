@@ -39,6 +39,9 @@ describe.skipIf(!url)("phone management under company RLS", () => {
         "0001_tenancy_foundation.sql",
         "0002_attendance.sql",
         "0003_phone_binding.sql",
+        "0004_platform_connectors.sql",
+        "0006_better_auth.sql",
+        "0018_app_structure.sql",
       ]) {
         await admin.query(await readFile(`db/migrations/${file}`, "utf8"));
       }
