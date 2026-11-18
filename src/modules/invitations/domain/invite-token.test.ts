@@ -9,6 +9,8 @@ describe("invite token", () => {
     expect(await hashInviteToken(a)).toMatch(/^[0-9a-f]{64}$/);
   });
   it("expires after 7 days", () => {
-    expect(inviteExpiry(new Date("2026-11-18T00:00:00Z")).toISOString()).toBe("2026-11-25T00:00:00.000Z");
+    expect(inviteExpiry(new Date("2026-11-18T00:00:00Z")).toISOString()).toBe(
+      "2026-11-25T00:00:00.000Z",
+    );
   });
 });

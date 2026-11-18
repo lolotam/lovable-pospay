@@ -79,7 +79,11 @@ export function getResendOtpSender(): Parameters<typeof emailOTP>[0]["sendVerifi
 }
 
 /** يرسل رابط الدعوة لصاحب البريد؛ يرجع false لو البريد غير مضبوط بدل إيقاف الدعوة. */
-export async function sendInvitationEmail(to: string, url: string, companyName: string): Promise<boolean> {
+export async function sendInvitationEmail(
+  to: string,
+  url: string,
+  companyName: string,
+): Promise<boolean> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   const connectionKey = process.env["RESEND_API_KEY"];
   if (!apiKey || !connectionKey) return false;

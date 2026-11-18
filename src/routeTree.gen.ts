@@ -15,6 +15,7 @@ import { Route as AttendanceCorrectionsRouteImport } from './routes/attendance-c
 import { Route as AttendanceQuestionsRouteImport } from './routes/attendance-questions'
 import { Route as CardsRouteImport } from './routes/cards'
 import { Route as DiscountsRouteImport } from './routes/discounts'
+import { Route as InviteRouteImport } from './routes/invite'
 import { Route as PhoneRouteImport } from './routes/phone'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -22,6 +23,7 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as TeamRouteImport } from './routes/team'
 import { Route as AdminConnectorsRouteImport } from './routes/admin/connectors'
 import { Route as AdminDiagnoseRouteImport } from './routes/admin/diagnose'
 import { Route as ReceptionCardsRouteImport } from './routes/reception/cards'
@@ -56,6 +58,11 @@ const CardsRoute = CardsRouteImport.update({
 const DiscountsRoute = DiscountsRouteImport.update({
   id: '/discounts',
   path: '/discounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteRoute = InviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PhoneRoute = PhoneRouteImport.update({
@@ -93,6 +100,11 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TeamRoute = TeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminConnectorsRoute = AdminConnectorsRouteImport.update({
   id: '/admin/connectors',
   path: '/admin/connectors',
@@ -126,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/cards': typeof CardsRoute
   '/discounts': typeof DiscountsRoute
+  '/invite': typeof InviteRoute
   '/phone': typeof PhoneRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -133,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
+  '/team': typeof TeamRoute
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
   '/reception/cards': typeof ReceptionCardsRoute
@@ -146,6 +160,7 @@ export interface FileRoutesByTo {
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/cards': typeof CardsRoute
   '/discounts': typeof DiscountsRoute
+  '/invite': typeof InviteRoute
   '/phone': typeof PhoneRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -153,6 +168,7 @@ export interface FileRoutesByTo {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
+  '/team': typeof TeamRoute
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
   '/reception/cards': typeof ReceptionCardsRoute
@@ -167,6 +183,7 @@ export interface FileRoutesById {
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/cards': typeof CardsRoute
   '/discounts': typeof DiscountsRoute
+  '/invite': typeof InviteRoute
   '/phone': typeof PhoneRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -174,6 +191,7 @@ export interface FileRoutesById {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
+  '/team': typeof TeamRoute
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
   '/reception/cards': typeof ReceptionCardsRoute
@@ -189,6 +207,7 @@ export interface FileRouteTypes {
     | '/attendance-questions'
     | '/cards'
     | '/discounts'
+    | '/invite'
     | '/phone'
     | '/reports'
     | '/reset-password'
@@ -196,6 +215,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/sign-in'
+    | '/team'
     | '/admin/connectors'
     | '/admin/diagnose'
     | '/reception/cards'
@@ -209,6 +229,7 @@ export interface FileRouteTypes {
     | '/attendance-questions'
     | '/cards'
     | '/discounts'
+    | '/invite'
     | '/phone'
     | '/reports'
     | '/reset-password'
@@ -216,6 +237,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/sign-in'
+    | '/team'
     | '/admin/connectors'
     | '/admin/diagnose'
     | '/reception/cards'
@@ -229,6 +251,7 @@ export interface FileRouteTypes {
     | '/attendance-questions'
     | '/cards'
     | '/discounts'
+    | '/invite'
     | '/phone'
     | '/reports'
     | '/reset-password'
@@ -236,6 +259,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/sign-in'
+    | '/team'
     | '/admin/connectors'
     | '/admin/diagnose'
     | '/reception/cards'
@@ -250,6 +274,7 @@ export interface RootRouteChildren {
   AttendanceQuestionsRoute: typeof AttendanceQuestionsRoute
   CardsRoute: typeof CardsRoute
   DiscountsRoute: typeof DiscountsRoute
+  InviteRoute: typeof InviteRoute
   PhoneRoute: typeof PhoneRoute
   ReportsRoute: typeof ReportsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -257,6 +282,7 @@ export interface RootRouteChildren {
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRoute
   SignInRoute: typeof SignInRoute
+  TeamRoute: typeof TeamRoute
   AdminConnectorsRoute: typeof AdminConnectorsRoute
   AdminDiagnoseRoute: typeof AdminDiagnoseRoute
   ReceptionCardsRoute: typeof ReceptionCardsRoute
@@ -308,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiscountsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invite': {
+      id: '/invite'
+      path: '/invite'
+      fullPath: '/invite'
+      preLoaderRoute: typeof InviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/phone': {
       id: '/phone'
       path: '/phone'
@@ -357,6 +390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/team': {
+      id: '/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof TeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/connectors': {
       id: '/admin/connectors'
       path: '/admin/connectors'
@@ -402,6 +442,7 @@ const rootRouteChildren: RootRouteChildren = {
   AttendanceQuestionsRoute: AttendanceQuestionsRoute,
   CardsRoute: CardsRoute,
   DiscountsRoute: DiscountsRoute,
+  InviteRoute: InviteRoute,
   PhoneRoute: PhoneRoute,
   ReportsRoute: ReportsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -409,6 +450,7 @@ const rootRouteChildren: RootRouteChildren = {
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRoute,
   SignInRoute: SignInRoute,
+  TeamRoute: TeamRoute,
   AdminConnectorsRoute: AdminConnectorsRoute,
   AdminDiagnoseRoute: AdminDiagnoseRoute,
   ReceptionCardsRoute: ReceptionCardsRoute,

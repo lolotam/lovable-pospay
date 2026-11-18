@@ -23,7 +23,8 @@ export const createInviteFn = createServerFn({ method: "POST" })
     const { withUser } = await import("@/lib/server/db.server");
     const { insertInvite } = await import("../persistence/invitation.server");
     const { sendInvitationEmail } = await import("@/lib/server/resend.server");
-    const { newInviteToken, hashInviteToken, inviteExpiry } = await import("../domain/invite-token");
+    const { newInviteToken, hashInviteToken, inviteExpiry } =
+      await import("../domain/invite-token");
     const userId = await requireUserId();
     const token = newInviteToken();
     const tokenHash = await hashInviteToken(token);
@@ -32,7 +33,9 @@ export const createInviteFn = createServerFn({ method: "POST" })
     );
     const base = process.env["BETTER_AUTH_URL"] ?? "";
     const url = `${new URL(base).origin}/invite?t=${token}`;
-    const emailed = await sendInvitationEmail(data.email, url, saved.companyName).catch(() => false);
+    const emailed = await sendInvitationEmail(data.email, url, saved.companyName).catch(
+      () => false,
+    );
     return { url, emailed };
   });
 
@@ -62,7 +65,8 @@ export const acceptInviteFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { withUser } = await import("@/lib/server/db.server");
     const { previewInvite, acceptInvite } = await import("../persistence/invitation.server");
-    const { createInvitedAccount, deleteInvitedAccount } = await import("../persistence/account.server");
+    const { createInvitedAccount, deleteInvitedAccount } =
+      await import("../persistence/account.server");
     const { hashInviteToken } = await import("../domain/invite-token");
     const hash = await hashInviteToken(data.token);
     const invite = await withUser("", (db) => previewInvite(db, hash));
