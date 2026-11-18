@@ -45,10 +45,21 @@ export interface AttendanceRepository {
   nextShift(companyId: string, staffId: string, around: Date): Promise<ShiftWindow | null>;
   /** يضيف سجل حضور مفتوح. */
   insertCheckIn(companyId: string, record: NewAttendance): Promise<void>;
-  /** يغلق سجلاً بحالة الإغلاق. */
-  close(companyId: string, recordId: string, at: Date, status: "ok" | "closed_late", exception: LocationException | null): Promise<void>;
-  /** يعلّم السجل كانصراف منسي بدون وقت انصراف (D-32). */
+  /** يغلق سجلاً مفتوحاً؛ يرفض بـ ATTENDANCE_CONFLICT إذا سبق حسمه، فلا يُكتب تدقيق كاذب. */
+  close(
+    companyId: string,
+    recordId: string,
+    at: Date,
+    status: "ok" | "closed_late",
+    exception: LocationException | null,
+  ): Promise<void>;
+  /** يعلّم السجل المفتوح كانصراف منسي بدون وقت انصراف؛ يرفض التحديث المتقادم بـ ATTENDANCE_CONFLICT. */
   markForgotten(companyId: string, recordId: string): Promise<void>;
   /** يكتب في سجل التدقيق. */
-  audit(companyId: string, action: string, entityId: string, details: Record<string, unknown>): Promise<void>;
+  audit(
+    companyId: string,
+    action: string,
+    entityId: string,
+    details: Record<string, unknown>,
+  ): Promise<void>;
 }

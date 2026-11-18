@@ -11,9 +11,16 @@ export function pgAttendanceRepository(db: pg.PoolClient, userId: string): Atten
       );
       const r = rows[0];
       if (!r) return null;
-      const location = r.latitude != null && r.longitude != null
-        ? { latitude: Number(r.latitude), longitude: Number(r.longitude) } : null;
-      return { companyId: r.company_id, timeZone: r.timezone, location, geofenceMeters: r.geofence_meters };
+      const location =
+        r.latitude != null && r.longitude != null
+          ? { latitude: Number(r.latitude), longitude: Number(r.longitude) }
+          : null;
+      return {
+        companyId: r.company_id,
+        timeZone: r.timezone,
+        location,
+        geofenceMeters: r.geofence_meters,
+      };
     },
     async myStaffId(companyId) {
       const { rows } = await db.query(`select public.my_staff_id($1) as id`, [companyId]);
@@ -29,7 +36,9 @@ export function pgAttendanceRepository(db: pg.PoolClient, userId: string): Atten
       );
       const r = rows[0];
       if (!r) return null;
-      const shift = r.shift_id ? { id: r.shift_id, startsAt: r.starts_at, endsAt: r.ends_at } : null;
+      const shift = r.shift_id
+        ? { id: r.shift_id, startsAt: r.starts_at, endsAt: r.ends_at }
+        : null;
       return { id: r.id, checkInAt: r.check_in_at, shift };
     },
     async nextShift(companyId, staffId, around) {
@@ -48,21 +57,33 @@ export function pgAttendanceRepository(db: pg.PoolClient, userId: string): Atten
         `insert into public.attendance_records
            (company_id, id, staff_id, branch_id, shift_id, work_date, check_in_at, late_minutes, check_in_exception)
          values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-        [companyId, rec.id, rec.staffId, rec.branchId, rec.shiftId, rec.workDate, rec.checkInAt, rec.lateMinutes, rec.exception],
+        [
+          companyId,
+          rec.id,
+          rec.staffId,
+          rec.branchId,
+          rec.shiftId,
+          rec.workDate,
+          rec.checkInAt,
+          rec.lateMinutes,
+          rec.exception,
+        ],
       );
     },
     async close(companyId, recordId, at, status, exception) {
-      await db.query(
+      const { rowCount } = await db.query(
         `update public.attendance_records set check_out_at = $3, status = $4, check_out_exception = $5
           where company_id = $1 and id = $2 and status = 'open'`,
         [companyId, recordId, at, status, exception],
       );
+      if (rowCount !== 1) throw new Error("ATTENDANCE_CONFLICT");
     },
     async markForgotten(companyId, recordId) {
-      await db.query(
+      const { rowCount } = await db.query(
         `update public.attendance_records set status = 'forgotten' where company_id = $1 and id = $2 and status = 'open'`,
         [companyId, recordId],
       );
+      if (rowCount !== 1) throw new Error("ATTENDANCE_CONFLICT");
     },
     async audit(companyId, action, entityId, details) {
       await db.query(

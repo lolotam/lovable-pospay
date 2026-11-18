@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Continuation (2026-11-18)
+- [ ] 008 / remaining 001 transition safety — spec and inline plan written; verify concurrent checkout/new-shift cannot report duplicate success or audit. No new business decisions, shared DB/env/server/deploy writes.
 - [x] 007 / remaining 001 D-32 — spec → plan → manager correction screen implemented; original checkout retained, required reason, row lock, transactional audit, permission recheck and verified readback. 77 tests pass on disposable localhost pospay_test; changed-file lint passes; latest harness build OK. No shared DB/server/env/deploy writes.
 - [ ] 007 authenticated UI acceptance — preview Better Auth not configured. Unavailable state + sign-in navigation verified at 390/820/1280 light/dark without horizontal overflow; actual manager list/save/readback not browser-verified. Full lint ended SIGTERM after 240 seconds; not a pass. PR/CI gates unrun.
 - [x] 002 phone management selector implementation — company/staff names replace manual IDs; 4 repository permission tests pass on disposable PostgreSQL; authenticated browser acceptance remains open.
