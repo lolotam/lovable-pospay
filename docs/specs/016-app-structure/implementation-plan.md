@@ -364,6 +364,7 @@ const NAV: Record<Area, NavGroup[]> = {
     { label: "nav.group.staff", icon: "▤", children: [
       { to: "/app/staff/cards", label: "nav.cards", icon: "▤", requires: "staff.manage" },
       { to: "/app/staff/phones", label: "nav.phones", icon: "▢", requires: "staff.manage" },
+      { to: "/app/staff/team", label: "nav.team", icon: "+", requires: "staff.manage" },
     ] },
     { label: "nav.group.services", icon: "◇", children: [
       { to: "/app/services", label: "nav.services", icon: "◇", requires: "services.manage" },
@@ -500,7 +501,7 @@ function AppArea() {
 - [ ] Old paths: replace each old route file body with
   `createFileRoute("/reports")({ beforeLoad: ({ search }) => { throw redirect({ to: "/app/attendance/reports", search }); } })`.
   List: `/reports`, `/attendance-corrections`, `/attendance-questions`, `/cards`, `/services`,
-  `/discounts`, `/sessions`, `/reception/qr`, `/reception/cards`, `/attend`, `/phone` (→ `/me/phone`),
+  `/discounts`, `/team`, `/sessions`, `/reception/qr`, `/reception/cards`, `/attend`, `/phone` (→ `/me/phone`),
   `/settings` (→ `/${area}/settings` of the active workspace, `/sign-in` when signed out).
 - [ ] `__root.tsx`: `RootComponent` renders `<Outlet />` directly inside `QueryClientProvider`;
   translate the 404 and error texts through i18n while there. Delete `app-shell.tsx` and its
@@ -682,5 +683,5 @@ export interface SessionContextRepository {
 
 ## Not in this plan (016-C)
 
-`/app/permissions` management page, staff passkey sign-in, invitation acceptance page, dashboard
+`/app/permissions` management page, staff passkey sign-in, invitation acceptance for an existing account (#8), dashboard
 charts, page builder at `/s/$slug`, per-policy use of `has_permission` in RLS.
