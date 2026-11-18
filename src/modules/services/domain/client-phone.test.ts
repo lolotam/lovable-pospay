@@ -7,11 +7,25 @@ describe("client phone (D-43)", () => {
 });
 describe("late session (D-49)", () => {
   it("same Kuwait day is not late", () =>
-    expect(isLateSession(new Date("2026-11-18T06:00:00Z"), new Date("2026-11-18T20:00:00Z"))).toBe(
-      false,
-    ));
+    expect(
+      isLateSession(
+        new Date("2026-11-18T06:00:00Z"),
+        new Date("2026-11-18T20:00:00Z"),
+        "Asia/Kuwait",
+      ),
+    ).toBe(false));
   it("next Kuwait day is late", () =>
-    expect(isLateSession(new Date("2026-11-18T10:00:00Z"), new Date("2026-11-18T21:30:00Z"))).toBe(
-      true,
-    ));
+    expect(
+      isLateSession(
+        new Date("2026-11-18T10:00:00Z"),
+        new Date("2026-11-18T21:30:00Z"),
+        "Asia/Kuwait",
+      ),
+    ).toBe(true));
+  it("uses the branch calendar when Kuwait and UTC cross midnight at different times", () => {
+    const occurred = new Date("2026-11-18T20:30:00Z");
+    const recorded = new Date("2026-11-18T21:30:00Z");
+    expect(isLateSession(occurred, recorded, "UTC")).toBe(false);
+    expect(isLateSession(occurred, recorded, "Asia/Kuwait")).toBe(true);
+  });
 });

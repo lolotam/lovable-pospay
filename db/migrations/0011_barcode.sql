@@ -85,3 +85,14 @@ language sql stable security definer set search_path=public as $$
 $$;
 revoke all on function public.card_staff_allowed(uuid,uuid) from public;
 grant execute on function public.card_staff_allowed(uuid,uuid) to pospay_app;
+
+-- Reception may serialize card scans without general staff update access.
+create or replace function public.lock_staff_for_card_scan(_company uuid, _staff uuid) returns uuid
+language sql volatile security definer set search_path=pg_catalog as $$
+ select s.id from public.staff_members s
+ where s.company_id=_company and s.id=_staff
+ and public.card_staff_allowed(s.company_id,s.id)
+ for update of s
+$$;
+revoke all on function public.lock_staff_for_card_scan(uuid,uuid) from public;
+grant execute on function public.lock_staff_for_card_scan(uuid,uuid) to pospay_app;

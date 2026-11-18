@@ -176,8 +176,16 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
       ).result.outcome,
     ).toBe("checked_out");
   });
-  it("revocation invalidates card immediately", async () => {
-    await withUser("cards-manager", (db) => revokeCard(db, "cards-manager", company, cardId));
+  it("reception waits for a manager revocation and rejects the card after commit", async () => {
+    await withUser("cards-manager", async (db) => {
+      await revokeCard(db, "cards-manager", company, cardId);
+      await expect(
+        withUser("cards-reception", async (reader) => {
+          await reader.query("set local lock_timeout = '100ms'");
+          return scanCard(reader, "cards-reception", { companyId: company, token, intent: null });
+        }),
+      ).rejects.toMatchObject({ code: "55P03" });
+    });
     await expect(
       withUser("cards-reception", (db) =>
         scanCard(db, "cards-reception", { companyId: company, token, intent: null }),

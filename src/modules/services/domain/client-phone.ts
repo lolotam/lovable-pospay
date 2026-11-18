@@ -8,8 +8,13 @@ export function normalizePhone(value: string): string {
 export function maskPhone(phone: string): string {
   return `•••${phone.slice(-3)}`;
 }
-/** جلسة متأخرة إذا سُجّلت في يوم كويتي لاحق ليوم تنفيذها (D-49). */
-export function isLateSession(occurredAt: Date, recordedAt: Date): boolean {
-  const day = (d: Date) => new Date(d.getTime() + 3 * 3600_000).toISOString().slice(0, 10);
-  return day(occurredAt) < day(recordedAt);
+/** جلسة متأخرة إذا سُجّلت بعد يوم تنفيذها بحسب توقيت الفرع (D-49). */
+export function isLateSession(occurredAt: Date, recordedAt: Date, timeZone: string): boolean {
+  const day = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return day.format(occurredAt) < day.format(recordedAt);
 }
