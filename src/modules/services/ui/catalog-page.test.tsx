@@ -33,45 +33,58 @@ vi.mock("../functions/catalog.functions", () => ({
   saveServiceFn: save,
 }));
 
-it("preserves the exact create across company refresh and a temporary permission downgrade", async () => {
-  const catalog = { canManage: true, services: [], staff: [] };
-  getCatalog.mockResolvedValue(catalog);
-  save
-    .mockRejectedValueOnce(new Error("Response lost"))
-    .mockResolvedValueOnce({ status: "rejected" });
-  const cache = new QueryClient();
-  const page = () => (
-    <QueryClientProvider client={cache}>
-      <CatalogPage />
-    </QueryClientProvider>
-  );
-  const view = render(page());
-  fireEvent.click(await screen.findByRole("button", { name: t("services.add") }));
-  fireEvent.change(screen.getByLabelText(t("services.name")), { target: { value: "New service" } });
-  fireEvent.change(screen.getByLabelText(t("services.price")), { target: { value: "10" } });
-  fireEvent.click(screen.getByRole("button", { name: t("services.save") }));
-  await screen.findByText(t("services.createUnconfirmed"));
+it.each(["read-only", "denied", "failed"] as const)(
+  "preserves the exact create while allowing company switching when the catalog is %s",
+  async (access) => {
+    const catalog = { canManage: true, services: [], staff: [] };
+    getCatalog.mockReset().mockResolvedValue(catalog);
+    save
+      .mockReset()
+      .mockRejectedValueOnce(new Error("Response lost"))
+      .mockResolvedValueOnce({ status: "rejected" });
+    const cache = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
+    const page = () => (
+      <QueryClientProvider client={cache}>
+        <CatalogPage />
+      </QueryClientProvider>
+    );
+    const view = render(page());
+    fireEvent.click(await screen.findByRole("button", { name: t("services.add") }));
+    fireEvent.change(screen.getByLabelText(t("services.name")), {
+      target: { value: "New service" },
+    });
+    fireEvent.change(screen.getByLabelText(t("services.price")), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: t("services.save") }));
+    await screen.findByText(t("services.createUnconfirmed"));
 
-  scope.unavailable = true;
-  view.rerender(page());
-  getCatalog.mockResolvedValue({ ...catalog, canManage: false });
-  scope.unavailable = false;
-  view.rerender(page());
-  expect(await screen.findByText(t("services.createManageAccessNeeded"))).toBeVisible();
-  expect(screen.getByRole("button", { name: "Switch company" })).toBeEnabled();
-  expect(screen.queryByRole("button", { name: t("services.retryCreate") })).toBeNull();
-  getCatalog.mockResolvedValue(catalog);
-  fireEvent.click(screen.getByRole("button", { name: t("ops.retryLoad") }));
-  const retry = await screen.findByRole("button", { name: t("services.retryCreate") });
-  await waitFor(() => expect(retry).toBeEnabled());
-  expect(save).toHaveBeenCalledTimes(1);
-  expect(screen.getByLabelText(t("services.name"))).toHaveValue("New service");
-  fireEvent.click(retry);
-  await screen.findByText(t("services.error"));
-  expect(save).toHaveBeenCalledTimes(2);
-  expect(save.mock.calls[1]).toEqual(save.mock.calls[0]);
-  expect(save.mock.calls[0]?.[0].data.expectedUserId).toBe("manager");
-});
+    scope.unavailable = true;
+    view.rerender(page());
+    if (access === "failed") getCatalog.mockRejectedValue(new Error("Catalog unavailable"));
+    else
+      getCatalog.mockResolvedValue(access === "denied" ? null : { ...catalog, canManage: false });
+    scope.unavailable = false;
+    view.rerender(page());
+    const status = {
+      "read-only": "services.createManageAccessNeeded",
+      denied: "ops.denied",
+      failed: "ops.forbidden",
+    } as const;
+    expect(await screen.findByText(t(status[access]))).toBeVisible();
+    expect(screen.getByRole("button", { name: "Switch company" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: t("services.retryCreate") })).toBeNull();
+    getCatalog.mockResolvedValue(catalog);
+    fireEvent.click(screen.getByRole("button", { name: t("ops.retryLoad") }));
+    const retry = await screen.findByRole("button", { name: t("services.retryCreate") });
+    await waitFor(() => expect(retry).toBeEnabled());
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText(t("services.name"))).toHaveValue("New service");
+    fireEvent.click(retry);
+    await screen.findByText(t("services.error"));
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(save.mock.calls[1]).toEqual(save.mock.calls[0]);
+    expect(save.mock.calls[0]?.[0].data.expectedUserId).toBe("manager");
+  },
+);
 
 it.each([true, false])(
   "retries a confirmed create read with manage access %s",

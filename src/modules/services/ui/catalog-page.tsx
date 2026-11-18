@@ -187,6 +187,7 @@ function Catalog({
   const state = useCatalog(companyId, userId, pendingCreates);
   const { data, busy, open, setForm, message, pendingCreate, complete, query } = state;
   const checking = !query.isFetchedAfterMount || query.fetchStatus !== "idle";
+  const canRecover = !checking && !query.isError && data?.canManage === true;
   const readOnly = !checking && !query.isError && data?.canManage === false;
   const confirmed = data?.services.find((service) => service.id === pendingCreate?.confirmedId);
   useEffect(() => {
@@ -205,9 +206,9 @@ function Catalog({
     setForm,
   ]);
   useEffect(() => {
-    onSwitchLockChange(busy || (!!pendingCreate && !readOnly));
+    onSwitchLockChange(busy || (!!pendingCreate && canRecover));
     return () => onSwitchLockChange(false);
-  }, [busy, pendingCreate, readOnly, onSwitchLockChange]);
+  }, [busy, pendingCreate, canRecover, onSwitchLockChange]);
   if (checking || data === null || query.isError || pendingCreate?.confirmedId) {
     return <CatalogReadStatus query={query} confirmed={!!pendingCreate?.confirmedId} />;
   }
