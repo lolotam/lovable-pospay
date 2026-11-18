@@ -105,6 +105,10 @@ describe.skipIf(!url)("D-32 real correction transaction", () => {
     },
   );
   it("keeps original checkout and writes actor/reason evidence atomically", async () => {
+    await admin.query(
+      "update public.attendance_records set check_out_at='2026-11-18T10:00:00Z' where id=$1",
+      [record],
+    );
     expect(await run("correction-manager")).toEqual({
       id: record,
       correctedAt: "2026-11-18T11:00:00.000Z",
@@ -116,8 +120,8 @@ describe.skipIf(!url)("D-32 real correction transaction", () => {
       [record],
     );
     expect(result.rows[0]).toEqual({
-      check_out_at: null,
-      previous_check_out_at: null,
+      check_out_at: new Date("2026-11-18T10:00:00Z"),
+      previous_check_out_at: new Date("2026-11-18T10:00:00Z"),
       status: "forgotten",
       correction_reason: "Forgot reception scan",
       corrected_by: "correction-manager",
@@ -131,7 +135,7 @@ describe.skipIf(!url)("D-32 real correction transaction", () => {
         actor_user_id: "correction-manager",
         action: "attendance.corrected",
         details: {
-          previousCheckOutAt: null,
+          previousCheckOutAt: "2026-11-18T10:00:00.000Z",
           previousCorrectedAt: null,
           correctedAt: "2026-11-18T11:00:00.000Z",
           reason: "Forgot reception scan",
@@ -148,5 +152,82 @@ describe.skipIf(!url)("D-32 real correction transaction", () => {
       [record],
     );
     expect(audit.rows[0].total).toBe(1);
+  });
+  it("rechecks permission after listing before saving", async () => {
+    await withUser("correction-manager", (db) =>
+      listForgottenAttendance(db, "correction-manager", company),
+    );
+    await admin.query(
+      "insert into public.permission_overrides(company_id,user_id,permission,effect) values ($1,'correction-manager','attendance.correct','deny')",
+      [company],
+    );
+    try {
+      await expect(run("correction-manager")).rejects.toThrow("FORBIDDEN");
+    } finally {
+      await admin.query(
+        "delete from public.permission_overrides where company_id=$1 and user_id='correction-manager'",
+        [company],
+      );
+    }
+  });
+  it("serializes two concurrent requests into one correction and one audit", async () => {
+    const concurrentId = "20000000-0000-0000-0000-000000000005";
+    await admin.query(
+      `insert into public.attendance_records(company_id,id,staff_id,branch_id,work_date,check_in_at,status)
+      values ($1,$2,$3,$4,'2026-11-18','2026-11-18T06:00:00+03:00','forgotten')`,
+      [company, concurrentId, staff, branch],
+    );
+    const outcomes = await Promise.allSettled([
+      run("correction-manager", { ...input, recordId: concurrentId }),
+      run("correction-manager", { ...input, recordId: concurrentId }),
+    ]);
+    expect(outcomes.filter((value) => value.status === "fulfilled")).toHaveLength(1);
+    const failure = outcomes.find((value) => value.status === "rejected");
+    expect(failure?.status === "rejected" ? failure.reason.message : null).toBe(
+      "ALREADY_CORRECTED",
+    );
+    const audit = await admin.query(
+      "select count(*)::int as total from public.audit_log where entity_id=$1",
+      [concurrentId],
+    );
+    expect(audit.rows[0].total).toBe(1);
+  });
+  it("rolls back correction when audit writing fails", async () => {
+    const rollbackId = "20000000-0000-0000-0000-000000000006";
+    await admin.query(
+      `insert into public.attendance_records(company_id,id,staff_id,branch_id,work_date,check_in_at,status)
+      values ($1,$2,$3,$4,'2026-11-18','2026-11-18T06:00:00+03:00','forgotten')`,
+      [company, rollbackId, staff, branch],
+    );
+    await expect(
+      withUser("correction-manager", async (db) => {
+        const query = db.query.bind(db);
+        const spy = vi.spyOn(db, "query").mockImplementation(((...args: unknown[]) => {
+          if (String(args[0]).includes("insert into public.audit_log"))
+            throw new Error("AUDIT_UNAVAILABLE");
+          return Reflect.apply(query, db, args);
+        }) as typeof db.query);
+        try {
+          return await correctAttendance(
+            { ...input, recordId: rollbackId, correctedAt: new Date(input.correctedAt) },
+            {
+              repo: pgCorrectionRepository(db, "correction-manager"),
+              clock: { now: () => new Date("2026-11-18T20:00Z") },
+            },
+          );
+        } finally {
+          spy.mockRestore();
+        }
+      }),
+    ).rejects.toThrow("AUDIT_UNAVAILABLE");
+    const result = await admin.query(
+      "select corrected_check_out_at,correction_reason,corrected_by from public.attendance_records where id=$1",
+      [rollbackId],
+    );
+    expect(result.rows[0]).toEqual({
+      corrected_check_out_at: null,
+      correction_reason: null,
+      corrected_by: null,
+    });
   });
 });

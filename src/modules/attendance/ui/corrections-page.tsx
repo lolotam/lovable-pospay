@@ -17,6 +17,7 @@ import {
 import { t } from "@/i18n";
 import { getForgottenAttendanceFn, correctAttendanceFn } from "../functions/correction.functions";
 import type { ForgottenAttendanceDto } from "../correction.contracts";
+import { assertCorrectionReadback } from "./correction-readback";
 
 const companiesQuery = queryOptions({
   queryKey: ["correction-companies"],
@@ -97,8 +98,9 @@ function CorrectionList({ companyId }: { companyId: string }) {
           key={record.id}
           record={record}
           companyId={companyId}
-          refresh={async () => {
-            await refetch();
+          refresh={async (id, correctedAt) => {
+            const result = await refetch();
+            assertCorrectionReadback(result.data, id, correctedAt);
           }}
         />
       ))}
@@ -109,7 +111,7 @@ function CorrectionList({ companyId }: { companyId: string }) {
 interface CorrectionItemProps {
   record: ForgottenAttendanceDto;
   companyId: string;
-  refresh: () => Promise<void>;
+  refresh: (id: string, correctedAt: string) => Promise<void>;
 }
 function useCorrection(props: CorrectionItemProps) {
   const [time, setTime] = useState("");
@@ -122,10 +124,10 @@ function useCorrection(props: CorrectionItemProps) {
     setBusy(true);
     setMessage("");
     try {
-      await save({
+      const result = await save({
         data: { companyId: props.companyId, recordId: props.record.id, correctedAt: time, reason },
       });
-      await props.refresh();
+      await props.refresh(result.id, result.correctedAt);
       setMessage(t("correction.saved"));
     } catch {
       setMessage(t("correction.error"));
