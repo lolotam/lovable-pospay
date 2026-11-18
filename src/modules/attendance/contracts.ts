@@ -29,3 +29,5 @@ export function scanQrBranchId(token: string): string | null {
 }
 
 export type BranchQrDto = { token: string; branchName: string; expiresInSeconds: number };
+export const qrBranchesInputSchema = z.object({ companyId: z.string().uuid() });
+export type QrBranchDto = { id: string; name: string };

@@ -62,3 +62,26 @@ export function sameWorkspace(ws: WorkspaceDto, other: unknown): boolean {
     ws.role === other.role
   );
 }
+
+/** المسارات القديمة الثابتة وبدائلها الجديدة؛ روابط QR المطبوعة تشير إلى /attend. */
+export const LEGACY_PATHS = {
+  "/attend": "/me/attend",
+  "/reports": "/app/attendance/reports",
+  "/attendance-corrections": "/app/attendance/corrections",
+  "/attendance-questions": "/app/attendance/questions",
+  "/cards": "/app/staff/cards",
+  "/team": "/app/staff/team",
+  "/services": "/app/services",
+  "/discounts": "/app/services/discounts",
+  "/sessions": "/pos/sessions",
+  "/reception/qr": "/pos/qr",
+  "/reception/cards": "/pos/cards",
+} as const;
+
+/** يحوّل مساراً قديماً (بدون query) إلى الجديد حسب المساحة النشطة؛ غير ذلك يرجع كما هو. */
+export function resolveLegacyPath(path: string, active: WorkspaceDto): string {
+  const area = areaForWorkspace(active);
+  if (path === "/phone") return area === "me" ? "/me/phone" : "/app/staff/phones";
+  if (path === "/settings") return `/${area}/settings`;
+  return path in LEGACY_PATHS ? LEGACY_PATHS[path as keyof typeof LEGACY_PATHS] : path;
+}

@@ -1,6 +1,13 @@
 export * from "./contracts";
 export { effectivePermissions } from "./domain/permission-matrix";
-export { areaForWorkspace, canEnterArea, landingPath, safeRedirectPath } from "./domain/workspace";
+export {
+  areaForWorkspace,
+  canEnterArea,
+  landingPath,
+  LEGACY_PATHS,
+  resolveLegacyPath,
+  safeRedirectPath,
+} from "./domain/workspace";
 export { getSessionContext, selectWorkspace } from "./functions/session-context.functions";
 export {
   getPlatformOverview,

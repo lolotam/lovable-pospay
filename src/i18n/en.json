@@ -385,5 +385,9 @@
   "dashboard.attendanceOpen": "Checked in",
   "dashboard.attendanceClosed": "Checked out",
   "dashboard.attendanceForgotten": "Checkout needs correction",
-  "dashboard.attendanceNone": "Not checked in"
+  "dashboard.attendanceNone": "Not checked in",
+  "qr.chooseBranch": "Choose a branch",
+  "qr.noBranches": "No branches available for a QR",
+  "qr.failed": "Could not load branches, try again",
+  "qr.loadingBranches": "Loading branches…"
 }

@@ -4,6 +4,7 @@ import { RouteError, RouteNotFound } from "@/modules/permissions/ui/route-feedba
 import { createFileRoute } from "@tanstack/react-router";
 import { receptionQrSearchSchema } from "@/modules/attendance";
 import { ReceptionQr } from "@/modules/attendance/ui/reception-qr";
+import { QrBranchPicker } from "@/modules/attendance/ui/qr-branch-picker";
 import { t } from "@/i18n";
 import { z } from "zod";
 
@@ -28,9 +29,18 @@ export const Route = createFileRoute("/pos/qr")({
 
 function ReceptionQrPage() {
   const { branch } = receptionQrSearchSchema.parse(Route.useSearch());
+  const { session } = Route.useRouteContext();
+  const active = session.active?.kind === "company" ? session.active : null;
+  const branchId = branch ?? active?.branchId;
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-6 sm:px-6 sm:py-10">
-      {branch ? <ReceptionQr branchId={branch} /> : <p>{t("qr.missingBranch")}</p>}
+      {branchId ? (
+        <ReceptionQr branchId={branchId} />
+      ) : active ? (
+        <QrBranchPicker companyId={active.companyId} />
+      ) : (
+        <p>{t("qr.missingBranch")}</p>
+      )}
     </main>
   );
 }

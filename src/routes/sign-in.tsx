@@ -1,8 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { sessionContextQuery } from "@/modules/permissions/ui/use-session-context";
-import { safeRedirectPath } from "@/modules/permissions";
-import { signInDestination } from "@/modules/permissions/ui/area-guard";
+import { chooserPath, signInDestination } from "@/modules/permissions/ui/area-guard";
 import { useEffect, useState } from "react";
 import { duringAccountChange } from "@/lib/account-change";
 import { authClient, verifyAuthSession } from "@/lib/auth-client";
@@ -15,10 +14,6 @@ import { Input } from "@/components/ui/input";
 type Step = "login" | "request" | "code" | "choice" | "password" | "totp";
 
 /** يرجّع Google لصفحة اختيار المساحة مع المسار المطلوب، عشان يتطبّق نفس فحص الصلاحية بعد الدخول. */
-function googleCallbackURL(redirect: string | undefined): string {
-  const requested = safeRedirectPath(redirect);
-  return requested ? `/workspaces?redirect=${encodeURIComponent(requested)}` : "/workspaces";
-}
 
 export const Route = createFileRoute("/sign-in")({
   validateSearch: (
@@ -68,8 +63,14 @@ function useSignInFlow() {
       setStep("totp");
       return;
     }
-    const context = await cache.fetchQuery(sessionContextQuery);
-    await navigate({ href: signInDestination(context, search.redirect) });
+    // فشل تحميل المساحات بعد دخول ناجح: صفحة الاختيار تعيد المحاولة بالجلسة نفسها دون كلمة مرور.
+    const context = await cache.fetchQuery(sessionContextQuery).catch(() => undefined);
+    await navigate({
+      href:
+        context === undefined
+          ? chooserPath(search.redirect)
+          : signInDestination(context, search.redirect),
+    });
   }
 
   async function requestCode() {
@@ -110,7 +111,7 @@ function useSignInFlow() {
         () =>
           authClient.signIn.social({
             provider: "google",
-            callbackURL: googleCallbackURL(search.redirect),
+            callbackURL: chooserPath(search.redirect),
             errorCallbackURL: "/sign-in",
           }),
         verifyAuthSession,

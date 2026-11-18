@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
-import { loadArea, pageAllowed, signInDestination } from "./area-guard";
+import { allowedDestination, loadArea, pageAllowed, signInDestination } from "./area-guard";
 import type { SessionContextDto } from "../contracts";
 
 const { getSessionContext } = vi.hoisted(() => ({ getSessionContext: vi.fn() }));
@@ -60,5 +60,34 @@ describe("signInDestination", () => {
     );
     expect(signInDestination(many, undefined)).toBe("/workspaces");
     expect(signInDestination(context, "/app/staff/team")).toBe("/app/staff/team");
+  });
+});
+describe("allowedDestination", () => {
+  const staff: SessionContextDto = {
+    ...context,
+    active: {
+      kind: "company",
+      companyId: "40000000-0000-4000-8000-000000000001",
+      companyName: "Salon",
+      businessType: "salon",
+      role: "staff",
+      branchId: null,
+      branchName: null,
+    },
+    permissions: [],
+  };
+  it("resolves a legacy bookmark for the active workspace and keeps its query", () => {
+    expect(allowedDestination(staff, "/phone?x=1")).toBe("/me/phone?x=1");
+    expect(allowedDestination(staff, "/settings")).toBe("/me/settings");
+    expect(allowedDestination(context, "/phone?x=1")).toBe("/app/staff/phones?x=1");
+  });
+  it("opens attendance scanning for any company workspace but not the platform", () => {
+    expect(allowedDestination(context, "/attend?t=abc")).toBe("/me/attend?t=abc");
+    expect(
+      allowedDestination(
+        { ...context, active: { kind: "platform" }, permissions: [] },
+        "/me/attend?t=abc",
+      ),
+    ).toBeNull();
   });
 });

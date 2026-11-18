@@ -23,10 +23,10 @@ async function redirectFor(context: SessionContextDto | null) {
   try {
     await beforeLoad({
       context: { queryClient: { fetchQuery: async () => context } },
-      location: { href: "/phone?x=1", searchStr: "?x=1" },
+      location: { href: "/phone?x=1", pathname: "/phone", searchStr: "?x=1" },
     });
   } catch (thrown) {
-    return (thrown as { options: { href?: string; to?: string } }).options;
+    return (thrown as { options: { href?: string; to?: string; search?: unknown } }).options;
   }
   throw new Error("expected a redirect");
 }
@@ -38,6 +38,13 @@ describe("legacy /phone", () => {
     ["branch_manager", "/app/staff/phones?x=1"],
   ] as const)("sends a %s workspace to its own phone page", async (role, href) => {
     expect((await redirectFor(session(company(role)))).href).toBe(href);
+  });
+  it("keeps the path when the user must choose a workspace first", async () => {
+    const none = { ...session(company("staff")), active: null };
+    expect(await redirectFor(none)).toMatchObject({
+      to: "/workspaces",
+      search: { redirect: "/phone?x=1" },
+    });
   });
   it("sends a signed-out visitor to sign-in", async () => {
     expect((await redirectFor(null)).to).toBe("/sign-in");

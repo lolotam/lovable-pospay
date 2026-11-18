@@ -1,7 +1,12 @@
 import { redirect } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
 import type { Area, SessionContextDto } from "../contracts";
-import { canEnterArea, landingPath, safeRedirectPath } from "../domain/workspace";
+import {
+  canEnterArea,
+  landingPath,
+  resolveLegacyPath,
+  safeRedirectPath,
+} from "../domain/workspace";
 import { sessionContextQuery } from "./use-session-context";
 import { visibleNavigation } from "./navigation";
 import { serviceSessionRecordingAvailable } from "@/modules/services";
@@ -15,6 +20,8 @@ export async function loadArea(cache: QueryClient, href: string, area: Area) {
 
 export function pageAllowed(session: SessionContextDto, path: string) {
   if (!session.active) return false;
+  // المسح نفسه يتحقق من أهلية الموظفة (سجل موظفة + تليفون مربوط)، فأي مساحة شركة تفتح الصفحة.
+  if (path === "/me/attend") return session.active.kind === "company";
   const area = path.split("/")[1] as Area;
   if (
     !["admin", "app", "pos", "me"].includes(area) ||
@@ -26,15 +33,32 @@ export function pageAllowed(session: SessionContextDto, path: string) {
   );
 }
 
+/** صفحة اختيار المساحة مع حمل المسار المطلوب إن كان آمناً. */
+export function chooserPath(redirect: string | undefined): string {
+  const requested = safeRedirectPath(redirect);
+  return requested ? `/workspaces?redirect=${encodeURIComponent(requested)}` : "/workspaces";
+}
+
+/** يرجع المسار المطلوب (بعد تحويل القديم منه) لو المساحة النشطة تسمح به، وإلا null. */
+export function allowedDestination(
+  session: SessionContextDto,
+  redirect: string | undefined,
+): string | null {
+  const requested = safeRedirectPath(redirect);
+  if (!requested || !session.active) return null;
+  const queryAt = requested.search(/[?#]/);
+  const path = queryAt < 0 ? requested : requested.slice(0, queryAt);
+  const target = resolveLegacyPath(path, session.active);
+  return pageAllowed(session, target) ? target + requested.slice(path.length) : null;
+}
+
 /** وجهة ما بعد الدخول: المسار المطلوب لو مسموح، وإلا الاختيار مع حمل المسار، وإلا بيت المساحة. */
 export function signInDestination(
   context: SessionContextDto | null,
   redirect: string | undefined,
 ): string {
-  const requested = safeRedirectPath(redirect);
-  if (context && requested && pageAllowed(context, requested.split("?")[0] ?? "")) return requested;
+  const allowed = context && allowedDestination(context, redirect);
+  if (allowed) return allowed;
   const landing = landingPath(context?.workspaces ?? [], context?.active ?? null);
-  return landing === "/workspaces" && requested
-    ? `/workspaces?redirect=${encodeURIComponent(requested)}`
-    : landing;
+  return landing === "/workspaces" ? chooserPath(redirect) : landing;
 }

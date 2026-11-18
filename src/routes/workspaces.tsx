@@ -2,8 +2,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { sessionContextQuery } from "@/modules/permissions/ui/use-session-context";
 import { WorkspacesPage } from "@/modules/permissions/ui/workspaces-page";
 import { RouteError, RouteNotFound } from "@/modules/permissions/ui/route-feedback";
-import { landingPath, safeRedirectPath } from "@/modules/permissions";
-import { pageAllowed } from "@/modules/permissions/ui/area-guard";
+import { landingPath } from "@/modules/permissions";
+import { allowedDestination } from "@/modules/permissions/ui/area-guard";
 import { t } from "@/i18n";
 export const Route = createFileRoute("/workspaces")({
   ssr: false,
@@ -12,9 +12,8 @@ export const Route = createFileRoute("/workspaces")({
   beforeLoad: async ({ context, search }) => {
     const session = await context.queryClient.fetchQuery(sessionContextQuery);
     if (!session) throw redirect({ to: "/sign-in", search: { redirect: "/workspaces" } });
-    const requested = safeRedirectPath(search.redirect);
-    if (requested && pageAllowed(session, requested.split("?")[0] ?? ""))
-      throw redirect({ href: requested });
+    const requested = allowedDestination(session, search.redirect);
+    if (requested) throw redirect({ href: requested });
     const target = landingPath(session.workspaces, session.active);
     if (target !== "/workspaces") throw redirect({ to: target });
     return { session };

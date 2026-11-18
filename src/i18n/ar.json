@@ -385,5 +385,9 @@
   "dashboard.attendanceOpen": "تم الحضور",
   "dashboard.attendanceClosed": "تم الانصراف",
   "dashboard.attendanceForgotten": "الانصراف يحتاج تصحيح",
-  "dashboard.attendanceNone": "لم يتم الحضور"
+  "dashboard.attendanceNone": "لم يتم الحضور",
+  "qr.chooseBranch": "اختاري الفرع",
+  "qr.noBranches": "لا توجد فروع متاحة لعرض QR",
+  "qr.failed": "تعذّر تحميل الفروع، أعيدي المحاولة",
+  "qr.loadingBranches": "جارٍ تحميل الفروع…"
 }

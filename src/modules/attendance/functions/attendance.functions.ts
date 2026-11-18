@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import {
   branchQrInputSchema,
+  qrBranchesInputSchema,
   protectedScanSchema,
   scanQrBranchId,
   type BranchQrDto,
+  type QrBranchDto,
   type ScanResultDto,
 } from "../contracts";
 
@@ -72,5 +74,22 @@ export const getBranchQrFn = createServerFn({ method: "GET" })
       if (!rows[0] || !signer) throw new Error("FORBIDDEN");
       const token = await issueQrToken(data.branchId, Math.floor(Date.now() / 1000), signer);
       return { token, branchName: rows[0].name as string, expiresInSeconds: QR_TTL_SECONDS };
+    });
+  });
+
+export const listQrBranchesFn = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) => qrBranchesInputSchema.parse(input))
+  .handler(async ({ data }): Promise<QrBranchDto[]> => {
+    const { requireUserId } = await import("@/lib/server/session.server");
+    const { withUser } = await import("@/lib/server/db.server");
+    const userId = await requireUserId();
+    return withUser(userId, async (db) => {
+      const { rows } = await db.query(
+        `select b.id, b.name from public.branches b
+          where b.company_id = $1 and public.has_permission(b.company_id, 'pos.access') and (public.is_company_admin(b.company_id) or public.has_company_role(b.company_id, 'reception'))
+          order by b.name`,
+        [data.companyId],
+      );
+      return rows as QrBranchDto[];
     });
   });

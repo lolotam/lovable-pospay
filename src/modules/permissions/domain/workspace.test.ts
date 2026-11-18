@@ -1,6 +1,12 @@
 // workspace.test.ts
 import { describe, it, expect } from "vitest";
-import { areaForWorkspace, canEnterArea, landingPath, safeRedirectPath } from "./workspace";
+import {
+  areaForWorkspace,
+  canEnterArea,
+  landingPath,
+  resolveLegacyPath,
+  safeRedirectPath,
+} from "./workspace";
 import type { WorkspaceDto } from "../contracts";
 
 const company = (role: "owner" | "branch_manager" | "reception" | "staff"): WorkspaceDto => ({
@@ -50,5 +56,18 @@ describe("workspace rules", () => {
   });
   it("blocks reception when pos.access is denied", () => {
     expect(canEnterArea(company("reception"), [], "pos")).toBe(false);
+  });
+});
+
+describe("resolveLegacyPath", () => {
+  it.each([
+    ["/phone", "staff", "/me/phone"],
+    ["/phone", "owner", "/app/staff/phones"],
+    ["/settings", "reception", "/pos/settings"],
+    ["/reports", "owner", "/app/attendance/reports"],
+    ["/attend", "staff", "/me/attend"],
+    ["/app/staff/team", "owner", "/app/staff/team"],
+  ] as const)("maps %s for %s to %s", (path, role, expected) => {
+    expect(resolveLegacyPath(path, company(role))).toBe(expected);
   });
 });

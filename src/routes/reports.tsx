@@ -1,6 +1,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { LEGACY_PATHS } from "@/modules/permissions";
 export const Route = createFileRoute("/reports")({
   beforeLoad: ({ location }) => {
-    throw redirect({ href: "/app/attendance/reports" + location.searchStr, statusCode: 307 });
+    throw redirect({
+      href: LEGACY_PATHS["/reports"] + location.searchStr,
+      statusCode: 307,
+    });
   },
 });
