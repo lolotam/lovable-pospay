@@ -21,7 +21,7 @@ Better Auth, PostgreSQL RLS through `withUser()`, Vitest.
 
 - Branches: `lovable` for Part A (Lovable), `feat/p1-016-app-structure` for Part B. Never push
   to `main`, never force push, never `git commit -a`.
-- No `.env`, secret, server or production change. Migration `0017` is applied to production only
+- No `.env`, secret, server or production change. Migration `0018` is applied to production only
   after Waleed approves; Lovable does not apply it.
 - All UI text through `t("key")` with keys added to both `src/i18n/ar.json` and `en.json`.
   Logical CSS only (`ms-`, `me-`, `ps-`, `pe-`, `start-`, `end-`). Colours from tokens only.
@@ -61,7 +61,7 @@ src/routes/
   me/{attend,phone}.tsx, {admin,app,pos,me}/settings.tsx                          (Task 6)
   reports.tsx, attend.tsx, … old paths become redirects                          (Task 6)
   s/$slug.tsx                       reserved                                      (Task 5)
-db/migrations/0017_app_structure.sql                                             (Task 8)
+db/migrations/0018_app_structure.sql                                             (Task 8)
 db/tests/isolation.sql              permission_overrides negative case            (Task 8)
 ```
 
@@ -532,9 +532,9 @@ preview, and the commit list is reported.
 
 # Part B — backend (branch `feat/p1-016-app-structure`, after Part A is merged into it)
 
-### Task 8: Migration 0017 and isolation
+### Task 8: Migration 0018 and isolation
 
-**Files:** create `db/migrations/0017_app_structure.sql`; modify `db/tests/isolation.sql`.
+**Files:** create `db/migrations/0018_app_structure.sql`; modify `db/tests/isolation.sql`.
 
 - [ ] Write the migration.
 
@@ -678,7 +678,7 @@ export interface SessionContextRepository {
 - [ ] Update `roadmap.md`; add one line to `AGENTS.md` under "PosPay architecture": areas,
   workspace cookie, `has_permission`.
 - [ ] Open the PR to `main` with checks output and what waits on Waleed: approval to apply
-  migration `0017` in production and to deploy.
+  migration `0018` in production and to deploy.
 
 ## Not in this plan (016-C)
 
