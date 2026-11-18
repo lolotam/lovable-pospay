@@ -29,3 +29,12 @@
 - [x] Micro responsive pass for phone/tablet
 - [x] 0007 `pospay_server` login role (RLS-bound, no bypass) applied on supabase-pospay; Dokploy `pospay-app` env has DATABASE_URL via pooler. Deploy waits on Waleed.
 - [ ] Pooler port 5432/6543 is public on the host — consider firewalling (needs Waleed).
+
+## First production deploy (2026-11-18)
+- [x] Waleed approved deploy + free temporary domain (sslip.io)
+- [x] pospay-app linked to GitHub `lolotam/lovable-pospay` branch `lovable`, Dockerfile build, autoDeploy OFF
+- [x] Domain `pospay-app-7dcc5d-82-29-164-194.sslip.io` created; env saved (DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, PLATFORM_SECRETS_KEY)
+- [x] First build succeeded; site serves HTTP 200
+- [x] Fixed runtime crash: better-auth needs zod v4 (`(void 0) is not a function`) — upgraded zod to 4.6.5, 34 tests pass, typecheck clean, committed 369b843
+- [ ] Redeploy pospay-app after the zod fix reaches GitHub (platform push), then re-test /api/auth/sign-in/email
+- [ ] After auth works: Waleed registers dr.vet.waleedtam@gmail.com, then run db/seeds/super-admin.sql
