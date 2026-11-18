@@ -71,6 +71,7 @@ export async function loadCredential(
 ): Promise<Credential> {
   return withUser(userId, async (db) => {
     await requireSuperAdmin(db);
+    await db.query("set local lock_timeout = '3s'");
     // Wait for any refresh of this provider, then use the committed row.
     const { rows } = await db.query(
       "select * from public.platform_credentials where provider=$1 for update",

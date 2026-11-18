@@ -122,12 +122,49 @@ describe("reception QR validity", () => {
     expect(result.current.image).toBeNull();
   });
 
-  it("does not overlap requests while one refresh is unresolved", async () => {
-    rpc.mockResolvedValueOnce(response).mockImplementation(() => new Promise(() => {}));
-    renderHook(() => useReceptionQr(branch, rpc));
-    await advance(150_000);
-    // Number of real RPC boundary requests, not an internal helper call.
+  it("cancels a hung refresh, retries, and ignores its late response", async () => {
+    let complete: (value: typeof response) => void = () => {};
+    rpc
+      .mockResolvedValueOnce(response)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            complete = resolve;
+          }),
+      )
+      .mockResolvedValue({ ...response, branchName: "Recovered" });
+    const { result } = renderHook(() => useReceptionQr(branch, rpc));
+    await advance(74_999);
     expect(rpc).toHaveBeenCalledTimes(2);
+    const signal = rpc.mock.calls[1]?.[0].signal as AbortSignal;
+    expect(signal.aborted).toBe(false);
+    await advance(1);
+    expect(signal.aborted).toBe(true);
+    await advance(25_000);
+    expect(rpc).toHaveBeenCalledTimes(3);
+    expect(result.current.branchName).toBe("Recovered");
+    await act(async () => complete(response));
+    expect(result.current.branchName).toBe("Recovered");
+  });
+
+  it("expires a QR when the timer delay includes a fractional millisecond", async () => {
+    const now = performance.now.bind(performance);
+    let offset = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => now() + offset);
+    try {
+      rpc.mockResolvedValueOnce(response).mockImplementation(() => new Promise(() => {}));
+      bitmap.mockImplementationOnce(async () => {
+        offset = 0.5;
+        return "fractional-image";
+      });
+      const { result } = renderHook(() => useReceptionQr(branch, rpc));
+      await advance(58_999);
+      expect(result.current.image).toBe("fractional-image");
+      await advance(1);
+      expect(result.current.image).toBeNull();
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 
   it("does not resurrect a previous QR when returning to its branch", async () => {

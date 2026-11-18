@@ -10,7 +10,7 @@ let authPool: pg.Pool | undefined;
 function createPool(max: number): pg.Pool {
   const connectionString = process.env["DATABASE_URL"];
   if (!connectionString) throw new Error("DATABASE_URL is not set");
-  return new pg.Pool({ connectionString, max });
+  return new pg.Pool({ connectionString, max, connectionTimeoutMillis: 5_000 });
 }
 
 export function getPool(): pg.Pool {

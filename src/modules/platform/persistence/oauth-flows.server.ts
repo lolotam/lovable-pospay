@@ -262,14 +262,16 @@ export function pollLogin(p: AccountProvider, s: Json): Promise<PollResult> {
 async function zaiJson(url: string, init: RequestInit) {
   const res = await fetch(url, init);
   const j = await readJson(res);
+  init.signal?.throwIfAborted();
   if (res.status === 401 || res.status === 403) throw new AuthRejected("ZAI_EXPIRED");
   if (!res.ok || (j?.code !== undefined && ![0, 200, "0", "200"].includes(j.code)))
     throw new Error(`ZAI_${res.status}`);
   return j?.data;
 }
-async function zaiLocation(biz: string): Promise<Json> {
+async function zaiLocation(biz: string, signal: AbortSignal): Promise<Json> {
   const cust = await zaiJson(`${ZAI}/api/biz/customer/getCustomerInfo`, {
     headers: { Authorization: biz },
+    signal,
   });
   const orgs: Json[] = cust?.organizations ?? [];
   const org =
@@ -279,21 +281,31 @@ async function zaiLocation(biz: string): Promise<Json> {
     org?.projects?.find((p: Json) => p.projectName?.includes("默认项目")) ?? org?.projects?.[0];
   if (!org?.organizationId || !proj?.projectId) throw new Error("ZAI_NO_PROJECT");
   const path = `${ZAI}/api/biz/v1/organization/${encodeURIComponent(org.organizationId)}/projects/${encodeURIComponent(proj.projectId)}/api_keys`;
-  const keys = await zaiJson(path, { headers: { Authorization: `Bearer ${biz}` } });
+  const keys = await zaiJson(path, { headers: { Authorization: `Bearer ${biz}` }, signal });
   const key =
     (Array.isArray(keys) ? keys.find((k: Json) => k.name === "pospay-coding-plan") : null) ??
-    (await zaiJson(path, postJson({ name: "pospay-coding-plan", usageScene: 1 }, biz)));
+    (await zaiJson(path, {
+      ...postJson({ name: "pospay-coding-plan", usageScene: 1 }, biz),
+      signal,
+    }));
   if (!key?.apiKey) throw new Error("ZAI_NO_KEY");
   return { organizationId: org.organizationId, projectId: proj.projectId, apiKeyId: key.apiKey };
 }
-async function zaiProjectToken(oauth: string, extras: Json): Promise<Credential> {
-  const login = await zaiJson(`${ZAI}/api/auth/z/login`, postJson({ token: oauth }));
+async function zaiProjectToken(
+  oauth: string,
+  extras: Json,
+  signal = AbortSignal.timeout(10_000),
+): Promise<Credential> {
+  const login = await zaiJson(`${ZAI}/api/auth/z/login`, { ...postJson({ token: oauth }), signal });
   const biz = login?.access_token || login?.accessToken;
   if (!biz) throw new Error("ZAI_NO_ACCOUNT_TOKEN");
-  const loc = extras.location ?? (await zaiLocation(biz));
+  const loc = extras.location ?? (await zaiLocation(biz, signal));
   const path = `${ZAI}/api/biz/v1/organization/${encodeURIComponent(loc.organizationId)}/projects/${encodeURIComponent(loc.projectId)}/api_keys/${encodeURIComponent(loc.apiKeyId)}/access_tokens`;
   const started = Date.now();
-  const tok = await zaiJson(path, postJson({ clientType: "pospay", clientVersion: "1.0.0" }, biz));
+  const tok = await zaiJson(path, {
+    ...postJson({ clientType: "pospay", clientVersion: "1.0.0" }, biz),
+    signal,
+  });
   if (tok?.enable === false) throw new Error("ZAI_TOKENS_DISABLED");
   if (!tok?.accessToken) throw new Error("ZAI_NO_ACCESS_TOKEN");
   const expires = Math.min(
@@ -310,13 +322,15 @@ const REFRESH: Record<Exclude<AccountProvider, "zai_coding">, [string, string]> 
 };
 export async function refreshCredential(p: AccountProvider, c: Credential): Promise<Credential> {
   if (!c.refresh) throw new AuthRejected("EXPIRED");
-  if (p === "zai_coding") return zaiProjectToken(c.refresh, c.extras ?? {});
+  const signal = AbortSignal.timeout(10_000);
+  if (p === "zai_coding") return zaiProjectToken(c.refresh, c.extras ?? {}, signal);
   const [url, client_id] = REFRESH[p];
-  const res = await fetch(
-    url,
-    form({ grant_type: "refresh_token", client_id, refresh_token: c.refresh }),
-  );
+  const res = await fetch(url, {
+    ...form({ grant_type: "refresh_token", client_id, refresh_token: c.refresh }),
+    signal,
+  });
   const j = await readJson(res);
+  signal.throwIfAborted();
   if (!res.ok) {
     const code = oauthError(j);
     if (

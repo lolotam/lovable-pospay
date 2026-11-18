@@ -3,7 +3,8 @@ import QRCode from "qrcode";
 import type { BranchQrDto } from "../contracts";
 import { isAuthNotConfigured } from "@/lib/auth-errors";
 
-type FetchQr = (input: { data: { branchId: string } }) => Promise<BranchQrDto>;
+type FetchQr = (input: { data: { branchId: string }; signal: AbortSignal }) => Promise<BranchQrDto>;
+const QR_ATTEMPT_TIMEOUT_MS = 25_000;
 type Failure = false | "forbidden" | "notConfigured" | "expired";
 interface QrState {
   branchId: string;
@@ -18,7 +19,7 @@ function emptyState(branchId: string, failed: Failure = false): QrState {
 
 class QrPolling {
   private active = true;
-  private loading = false;
+  private attempt: AbortController | undefined;
   private deadline = 0;
   private expiryTimer: ReturnType<typeof setTimeout> | undefined;
   private interval: ReturnType<typeof setInterval> | undefined;
@@ -39,6 +40,7 @@ class QrPolling {
 
   stop() {
     this.active = false;
+    this.attempt?.abort();
     clearInterval(this.interval);
     clearTimeout(this.expiryTimer);
     window.removeEventListener("focus", this.resume);
@@ -52,16 +54,38 @@ class QrPolling {
     }
   };
 
+  private expire = () => {
+    const remaining = this.deadline - performance.now();
+    if (remaining > 0) {
+      this.expiryTimer = setTimeout(this.expire, Math.ceil(remaining));
+      return;
+    }
+    this.resume();
+  };
+
   private async load() {
-    if (!this.active || this.loading) return;
-    this.loading = true;
+    if (!this.active || this.attempt) return;
+    const attempt = new AbortController();
+    this.attempt = attempt;
+    const { signal } = attempt;
+    const timeout = setTimeout(() => attempt.abort(), QR_ATTEMPT_TIMEOUT_MS);
+    const cancelled = new Promise<never>((_, reject) => {
+      signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+    });
     const requestedAt = performance.now();
     try {
-      const qr = await this.fetchQr({ data: { branchId: this.branchId } });
+      const qr = await Promise.race([
+        this.fetchQr({ data: { branchId: this.branchId }, signal }),
+        cancelled,
+      ]);
       // وقت الإصدار على السيرفر مقرب للثانية؛ نحجز ثانية لعدم عرض كود منتهٍ.
       const deadline = requestedAt + Math.max(0, qr.expiresInSeconds - 1) * 1000;
       const url = `${window.location.origin}/attend?t=${encodeURIComponent(qr.token)}`;
-      const image = await QRCode.toDataURL(url, { width: 480, margin: 1 });
+      const image = await Promise.race([
+        QRCode.toDataURL(url, { width: 480, margin: 1 }),
+        cancelled,
+      ]);
+      signal.throwIfAborted();
       if (!this.active) return;
       if (!Number.isFinite(deadline) || performance.now() >= deadline) {
         this.publish(emptyState(this.branchId, "expired"));
@@ -69,10 +93,12 @@ class QrPolling {
       }
       this.deadline = deadline;
       clearTimeout(this.expiryTimer);
-      this.expiryTimer = setTimeout(() => this.resume(), deadline - performance.now());
+      this.expiryTimer = setTimeout(this.expire, Math.ceil(deadline - performance.now()));
       this.publish({ branchId: this.branchId, image, branchName: qr.branchName, failed: false });
     } catch (error) {
-      if (this.active) {
+      if (this.active && signal.aborted) {
+        if (performance.now() >= this.deadline) this.publish(emptyState(this.branchId, "expired"));
+      } else if (this.active) {
         clearTimeout(this.expiryTimer);
         this.deadline = 0;
         this.publish(
@@ -80,7 +106,8 @@ class QrPolling {
         );
       }
     } finally {
-      this.loading = false;
+      clearTimeout(timeout);
+      this.attempt = undefined;
     }
   }
 }
