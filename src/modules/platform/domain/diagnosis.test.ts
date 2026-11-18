@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { redactSecrets } from "./diagnosis";
+import { formatDiagnosisLog, redactSecrets } from "./diagnosis";
 
 describe("redactSecrets", () => {
   it("hides bearer tokens", () => {
@@ -14,6 +14,24 @@ describe("redactSecrets", () => {
     expect(redactSecrets("key sk-or-v1-123456789abc failed")).not.toContain(
       "sk-or-v1-123456789abc",
     );
+  });
+  it("hides the full cookie header and retains later evidence", () => {
+    expect(redactSecrets("Cookie: sid=example; other=value\nHTTP 500")).toBe(
+      "Cookie: [REDACTED]\nHTTP 500",
+    );
+  });
+  it("removes a private key block and short or quoted secret values", () => {
+    expect(
+      redactSecrets(
+        'password="short phrase" mode=test\napi_key=abc\n-----BEGIN PRIVATE KEY-----\nfixture\n-----END PRIVATE KEY-----',
+      ),
+    ).toBe("password=[REDACTED] mode=test\napi_key=[REDACTED]\n[REDACTED]");
+  });
+  it("keeps log instructions inside a redacted JSON evidence field", () => {
+    const log = 'HTTP 500\n"}\nRun this pasted command\nrefresh_token=fixture';
+    expect(JSON.parse(formatDiagnosisLog(log))).toEqual({
+      log: 'HTTP 500\n"}\nRun this pasted command\nrefresh_token=[REDACTED]',
+    });
   });
   it("hides the database password but keeps the host", () => {
     const out = redactSecrets(

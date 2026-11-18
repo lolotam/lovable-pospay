@@ -158,7 +158,7 @@
   "settings.light": "Light",
   "settings.dark": "Dark",
   "diag.title": "Error diagnosis",
-  "diag.subtitle": "Paste an error message or connector log; the default model finds the cause and suggests fix steps.",
+  "diag.subtitle": "Remove secrets before pasting an error or log. The text is sent to the configured AI provider for diagnosis.",
   "diag.input": "Error message or log",
   "diag.placeholder": "e.g. 401 Unauthorized from openrouter …",
   "diag.submit": "Diagnose",

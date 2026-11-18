@@ -14,14 +14,14 @@ export const diagnoseFn = createServerFn({ method: "POST" })
       return store.listStatus(db);
     });
     if (!defaultProvider || !defaultModel) throw new Error("NO_DEFAULT_AI");
-    const { DIAGNOSIS_SYSTEM_PROMPT, redactSecrets } = await import("../domain/diagnosis");
+    const { DIAGNOSIS_SYSTEM_PROMPT, formatDiagnosisLog } = await import("../domain/diagnosis");
     const { callConnector } = await import("../persistence/ai-call.server");
     const answer = await callConnector(
       userId,
       defaultProvider,
       defaultModel,
       DIAGNOSIS_SYSTEM_PROMPT,
-      redactSecrets(data.text),
+      formatDiagnosisLog(data.text),
     );
     await withUser(userId, (db) => store.audit(db, userId, "diagnosis.run", defaultProvider));
     return { provider: defaultProvider, model: defaultModel, answer: answer.slice(0, 12_000) };

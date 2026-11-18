@@ -1,6 +1,6 @@
 # Safe reception QR Implementation Plan
 
-> **For agentic workers:** Use executing-plans inline and fresh Standards/Spec review.
+> The original verification plan used inline execution and fresh Standards and Spec reviews.
 
 **Goal:** Prevent stale or wrong-branch QR display and malformed-link crashes.
 **Architecture:** Keep RPC auth unchanged. Isolate browser lifecycle in a hook using

@@ -2,11 +2,19 @@
 
 1. In Dokploy create an Application from the GitHub repo, build type **Dockerfile**, port 3000.
 2. Set environment variables from `.env.example` (DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, WhatsApp).
-3. Create the auth tables once: `DATABASE_URL=... bunx @better-auth/cli migrate --config src/lib/server/auth.server.ts`
-4. Apply app SQL in order: `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0001_tenancy_foundation.sql`
-5. Grant the app role to the connection user: `grant pospay_app to <db_user>;`
-6. Run the isolation test: `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/isolation.sql` → `isolation: PASS`
-7. Backups (D-11): daily `pg_dump` via Dokploy scheduled backup.
+3. Verify all migrations and isolation scripts using disposable local PostgreSQL. The isolation scripts insert fixtures and belong on the disposable database.
+4. After migration approval, the database administrator applies all numbered migrations in order before switching the application role or deploying the matching application revision. Migration 0006 creates the Better Auth tables. Run from the repository root using the approved migration connection:
+
+   ```sh
+   for migration in db/migrations/*.sql; do
+     psql "$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f "$migration" || exit 1
+   done
+   ```
+
+5. Verify the dedicated application login and its `pospay_app` membership. Migration 0007 grants this membership to `pospay_server`. Complete the approved activation steps below before switching the pooler username.
+6. Backups (D-11): daily `pg_dump` via Dokploy scheduled backup.
+
+Database provisioning is a separate approved operation. Run `db/seeds/super-admin.sql` as the database owner only after all migrations and after the intended Better Auth account has verified its email.
 
 ## Password recovery through Resend
 

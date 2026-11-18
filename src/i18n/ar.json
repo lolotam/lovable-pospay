@@ -158,7 +158,7 @@
   "settings.light": "فاتح",
   "settings.dark": "داكن",
   "diag.title": "تشخيص الأخطاء",
-  "diag.subtitle": "الصق رسالة الخطأ أو سجل الموصل، والنموذج الافتراضي هيحدد السبب ويقترح خطوات إصلاح.",
+  "diag.subtitle": "احذف الأسرار قبل لصق رسالة خطأ أو سجل. يُرسل النص إلى مزوّد الذكاء الاصطناعي المُعدّ للتشخيص.",
   "diag.input": "رسالة الخطأ أو السجل",
   "diag.placeholder": "مثال: 401 Unauthorized from openrouter …",
   "diag.submit": "شخّص",
