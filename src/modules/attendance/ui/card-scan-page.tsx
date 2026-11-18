@@ -162,10 +162,11 @@ function useScanner(companyId: string, userId: string) {
 }
 
 function tallyScanMessage(response: Awaited<ReturnType<typeof scanCardFn>>, retry: boolean) {
+  if (response.status === "clock_invalid") return t("cards.scanClockInvalid");
   if (response.status === "recorded" && response.scan.result.outcome !== "needs_intent")
     return scanResultMessage(response.scan);
-  if (response.status === "cancelled" || response.status === "recorded")
-    return t("cards.scanCancelled");
+  if (response.status === "recorded") return t("cards.scanIntentRescan");
+  if (response.status === "cancelled") return t("cards.scanCancelled");
   return t(retry ? "cards.statusDiscontinued" : "cards.scanError");
 }
 

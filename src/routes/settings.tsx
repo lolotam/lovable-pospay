@@ -17,10 +17,11 @@ export const Route = createFileRoute("/settings")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  loader: ({ context: { queryClient } }) =>
-    preloadOperatorCompanies(queryClient, (companyId, userId) =>
+  loader: ({ context: { queryClient } }) => {
+    void preloadOperatorCompanies(queryClient, (companyId, userId) =>
       queryClient.ensureQueryData(cardQuery(companyId, userId)),
-    ),
+    );
+  },
   component: SettingsPage,
 });
 

@@ -248,9 +248,9 @@ describe.skipIf(!url)("card/report real RLS", () => {
       [company, user, expiredId],
     );
     const resolve = (db: pg.PoolClient) => pgCardScanReceipts<string>(db, company, user, requestId);
-    await expect(withUser(user, (db) => settleCardRequest(resolve(db), "cancelled"))).resolves.toBe(
-      "cancelled",
-    );
+    await expect(
+      withUser(user, (db) => settleCardRequest(resolve(db), () => "cancelled")),
+    ).resolves.toBe("cancelled");
     await expect(
       withUser(user, (db) =>
         recordCardRequest(resolve(db), "a".repeat(64), async () => "unexpected"),

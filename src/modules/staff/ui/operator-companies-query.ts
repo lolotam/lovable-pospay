@@ -5,6 +5,7 @@ import { isAuthNotConfigured } from "@/lib/auth-errors";
 export const operatorCompaniesQuery = (userId: string) =>
   queryOptions({
     queryKey: ["operator-companies", userId],
+    refetchOnMount: "always",
     retry: 1,
     queryFn: async () => {
       try {

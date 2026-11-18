@@ -6,12 +6,13 @@ import { duringAccountChange } from "@/lib/account-change";
 import { CompanyScope } from "./company-scope";
 import { preloadOperatorCompanies } from "./operator-companies-query";
 
-const { useSession, getMyCompanies, requireUserId } = vi.hoisted(() => ({
+const { useSession, verifyAuthSession, getMyCompanies, requireUserId } = vi.hoisted(() => ({
   useSession: vi.fn(),
+  verifyAuthSession: vi.fn(),
   getMyCompanies: vi.fn(),
   requireUserId: vi.fn(),
 }));
-vi.mock("@/lib/auth-client", () => ({ authClient: { useSession } }));
+vi.mock("@/lib/auth-client", () => ({ authClient: { useSession }, verifyAuthSession }));
 vi.mock("@/lib/tenancy.functions", () => ({ getMyCompanies }));
 vi.mock("@/lib/server/session.server", () => ({ requireUserId }));
 vi.mock("@tanstack/react-start", () => ({
@@ -26,9 +27,11 @@ it("uses the new account's companies when the query client survives an account s
   const secondResponse = new Promise<typeof second>((resolve) => {
     finishSecond = resolve;
   });
-  getMyCompanies
-    .mockResolvedValueOnce([{ id: "first-company", name: "First company", role: "owner" }])
-    .mockReturnValueOnce(secondResponse);
+  getMyCompanies.mockImplementation(async ({ data }) =>
+    data.expectedUserId === "second"
+      ? secondResponse
+      : [{ id: "first-company", name: "First company", role: "owner" }],
+  );
   const screenForAccount = () => (
     <QueryClientProvider client={cache}>
       <CompanyScope title="reports.title">
@@ -46,7 +49,7 @@ it("uses the new account's companies when the query client survives an account s
   await act(async () => {
     view = render(screenForAccount());
   });
-  expect(screen.getByText("first-company")).toBeVisible();
+  expect(await screen.findByRole("combobox")).toHaveValue("first-company");
   let finishChange!: () => void;
   const changing = new Promise<void>((resolve) => {
     finishChange = resolve;
@@ -58,8 +61,8 @@ it("uses the new account's companies when the query client survives an account s
       async () => undefined,
     );
   });
-  expect(screen.queryByText("first-company")).not.toBeInTheDocument();
-  expect(screen.queryByText("Export report")).not.toBeInTheDocument();
+  expect(screen.getByText("first-company")).not.toBeVisible();
+  expect(screen.queryByRole("button", { name: "Export report" })).toBeNull();
   await act(async () => {
     finishChange();
     await transition;
@@ -71,8 +74,8 @@ it("uses the new account's companies when the query client survives an account s
     isRefetching: true,
   });
   view.rerender(screenForAccount());
-  expect(screen.queryByText("first-company")).not.toBeInTheDocument();
-  expect(screen.queryByText("Export report")).not.toBeInTheDocument();
+  expect(screen.getByText("first-company")).not.toBeVisible();
+  expect(screen.queryByRole("button", { name: "Export report" })).toBeNull();
 
   useSession.mockReturnValue({
     data: { user: { id: "first" } },
@@ -80,14 +83,14 @@ it("uses the new account's companies when the query client survives an account s
     error: new Error("Session check failed"),
   });
   view.rerender(screenForAccount());
-  expect(screen.queryByText("first-company")).not.toBeInTheDocument();
-  expect(screen.queryByText("Export report")).not.toBeInTheDocument();
+  expect(screen.getByText("first-company")).not.toBeVisible();
+  expect(screen.queryByRole("button", { name: "Export report" })).toBeNull();
 
   useSession.mockReturnValue({ data: { user: { id: "second" } }, isPending: false });
   view.rerender(screenForAccount());
   expect(screen.queryByText("first-company")).not.toBeInTheDocument();
   await act(async () => finishSecond(second));
-  expect(screen.getByText("second-company")).toBeInTheDocument();
+  expect(await screen.findByRole("combobox")).toHaveValue("second-company");
   expect(getMyCompanies).toHaveBeenLastCalledWith({ data: { expectedUserId: "second" } });
 });
 
@@ -119,6 +122,7 @@ it("keeps the default company selected when the refreshed list is reordered", as
   const added = { id: "added-company", name: "Added", role: "owner" };
   const key = ["operator-companies", "manager"];
   useSession.mockReturnValue({ data: { user: { id: "manager" } }, isPending: false });
+  getMyCompanies.mockResolvedValue([first]);
   cache.setQueryData(key, { companies: [first], error: null });
   render(
     <QueryClientProvider client={cache}>
@@ -127,7 +131,7 @@ it("keeps the default company selected when the refreshed list is reordered", as
       </CompanyScope>
     </QueryClientProvider>,
   );
-  expect(screen.getByText(first.id)).toBeInTheDocument();
+  expect(await screen.findByRole("combobox")).toHaveValue(first.id);
   act(() => {
     cache.setQueryData(key, { companies: [added, first], error: null });
   });
@@ -141,6 +145,10 @@ it("offers session re-verification after an unexpected network failure", async (
   const refetch = vi.fn().mockResolvedValue(undefined);
   const session = { data: { user: { id: "manager" } }, isPending: false, refetch };
   useSession.mockReturnValue(session);
+  verifyAuthSession
+    .mockRejectedValueOnce(new Error("Unavailable"))
+    .mockResolvedValueOnce(undefined);
+  getMyCompanies.mockResolvedValue([{ id: "company", name: "Company", role: "owner" }]);
   cache.setQueryData(["operator-companies", "manager"], {
     companies: [{ id: "company", name: "Company", role: "owner" }],
     error: null,
@@ -158,8 +166,38 @@ it("offers session re-verification after an unexpected network failure", async (
       },
     ),
   );
-  expect(screen.queryByText("Company data")).not.toBeInTheDocument();
+  expect(screen.getByText("Company data")).not.toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: t("auth.retrySession") }));
-  expect(await screen.findByText("Company data")).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: t("auth.retrySession") })).toBeVisible();
+  expect(screen.getByText("Company data")).not.toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: t("auth.retrySession") }));
+  expect(await screen.findByRole("combobox")).toBeVisible();
+  expect(screen.getByText("Company data")).toBeVisible();
   expect(refetch).toHaveBeenCalledWith({ query: { disableCookieCache: true } });
+});
+
+it("keeps cached company details hidden while membership is being checked", async () => {
+  const cache = new QueryClient();
+  const userId = "revoked";
+  useSession.mockReturnValue({ data: { user: { id: userId } }, isPending: false });
+  cache.setQueryData(["operator-companies", userId], {
+    companies: [{ id: "previous-company", name: "Previous company", role: "owner" }],
+    error: null,
+  });
+  let finish!: (companies: []) => void;
+  getMyCompanies.mockReturnValueOnce(
+    new Promise<[]>((resolve) => {
+      finish = resolve;
+    }),
+  );
+  render(
+    <QueryClientProvider client={cache}>
+      <CompanyScope title="reports.title">{() => <p>Cached company details</p>}</CompanyScope>
+    </QueryClientProvider>,
+  );
+  expect(screen.queryByRole("combobox")).toBeNull();
+  expect(screen.getByText("Cached company details")).not.toBeVisible();
+  await act(async () => finish([]));
+  expect(await screen.findByText(t("phone.noCompanies"))).toBeVisible();
+  expect(screen.queryByText("Cached company details")).toBeNull();
 });

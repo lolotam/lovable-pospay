@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { duringAccountChange } from "@/lib/account-change";
-import { authClient } from "@/lib/auth-client";
+import { authClient, verifyAuthSession } from "@/lib/auth-client";
+import { isAuthNotConfigured } from "@/lib/auth-errors";
 import { getSignInOptions } from "@/lib/auth-options.functions";
 import { t } from "@/i18n";
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,6 @@ export const Route = createFileRoute("/sign-in")({
 
 function useSignInFlow() {
   const navigate = useNavigate();
-  const { refetch } = authClient.useSession();
-  const verifySession = () => refetch({ query: { disableCookieCache: true } });
   const search = Route.useSearch();
   const [step, setStep] = useState<Step>("login");
   const [email, setEmail] = useState("");
@@ -98,7 +97,7 @@ function useSignInFlow() {
             callbackURL: "/",
             errorCallbackURL: "/sign-in",
           }),
-        verifySession,
+        verifyAuthSession,
       );
       if (result.error) throw result.error;
       return;
@@ -110,7 +109,7 @@ function useSignInFlow() {
           : step === "totp"
             ? authClient.twoFactor.verifyTotp({ code: totp })
             : authClient.signIn.email({ email, password }),
-      verifySession,
+      verifyAuthSession,
     );
     if (result.error) throw result.error;
     await finish(result.data);
@@ -133,7 +132,7 @@ function useSignInFlow() {
         t(
           status === 429
             ? "auth.rateLimited"
-            : status === 503
+            : isAuthNotConfigured(error)
               ? "auth.notConfigured"
               : step === "request"
                 ? "auth.resetUnavailable"

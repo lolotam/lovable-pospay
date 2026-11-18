@@ -32,8 +32,7 @@ export function CatalogPage() {
     </CompanyScope>
   );
 }
-function usePendingCreate(drafts: PendingCreates, companyId: string, userId: string) {
-  const key = JSON.stringify([userId, companyId]);
+function usePendingCreate(drafts: PendingCreates, key: string) {
   const [pendingCreate, setPending] = useState(() => drafts.get(key));
   const mounted = useRef(false);
   useLayoutEffect(() => {
@@ -120,15 +119,12 @@ function useCatalog(companyId: string, userId: string, drafts: PendingCreates) {
   const query = useQuery(catalogQuery(companyId, userId));
   const cache = useQueryClient();
   const save = useServerFn(saveServiceFn);
-  const { pendingCreate, remember, complete, confirm } = usePendingCreate(
-    drafts,
-    companyId,
-    userId,
-  );
+  const scope = JSON.stringify([userId, companyId]);
+  const { pendingCreate, remember, complete, confirm } = usePendingCreate(drafts, scope);
   const state = useCatalogForm(pendingCreate);
   const { edit, name, price, staffIds, busy, setBusy, setForm, setMessage } = state;
   async function submit() {
-    if (busy || query.isFetching || pendingCreate?.confirmedId) return;
+    if (busy || query.fetchStatus !== "idle" || pendingCreate?.confirmedId) return;
     const recovering = !!pendingCreate;
     const parsed = saveServiceInput.safeParse(
       pendingCreate ?? {
@@ -190,17 +186,18 @@ function Catalog({
 }) {
   const state = useCatalog(companyId, userId, pendingCreates);
   const { data, busy, open, message, pendingCreate, complete, query } = state;
+  const checking = !query.isFetchedAfterMount || query.fetchStatus !== "idle";
   const confirmed = data?.services.find((service) => service.id === pendingCreate?.confirmedId);
   useEffect(() => {
-    if (!confirmed || query.isError) return;
+    if (!confirmed || checking || query.isError) return;
     complete(pendingCreate?.requestId);
     open(confirmed);
-  }, [complete, confirmed, open, pendingCreate?.requestId, query.isError]);
+  }, [checking, complete, confirmed, open, pendingCreate?.requestId, query.isError]);
   useEffect(() => {
     onSwitchLockChange(busy || !!pendingCreate);
     return () => onSwitchLockChange(false);
   }, [busy, pendingCreate, onSwitchLockChange]);
-  if (query.isPending || data === null || query.isError || pendingCreate?.confirmedId) {
+  if (checking || data === null || query.isError || pendingCreate?.confirmedId) {
     return <CatalogReadStatus query={query} confirmed={!!pendingCreate?.confirmedId} />;
   }
   if (!data) return null;
@@ -229,7 +226,8 @@ function CatalogReadStatus({
   confirmed: boolean;
 }) {
   if (query.isFetching) return <p role="status">{t("phone.loading")}</p>;
-  if (!query.isError && query.data === null) return <p role="alert">{t("ops.denied")}</p>;
+  if (!confirmed && !query.isError && query.data === null && query.isFetchedAfterMount)
+    return <p role="alert">{t("ops.denied")}</p>;
   return (
     <div className="space-y-2">
       <p role="alert">{t(confirmed ? "services.savedRefreshFailed" : "ops.forbidden")}</p>

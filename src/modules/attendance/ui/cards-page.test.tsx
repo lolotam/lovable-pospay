@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { expect, it, vi } from "vitest";
 import { t } from "@/i18n";
@@ -28,7 +28,13 @@ it("keeps an issued card recoverable after same-account session revalidation", a
     canApprove: true,
     staff: [{ id: "staff", name: "Employee", branchName: "Branch", cardId: null, canIssue: true }],
   });
-  issue.mockResolvedValueOnce({ cardId: "new-card", name: "Employee", token: "c".repeat(48) });
+  const issued = { cardId: "new-card", name: "Employee", token: "c".repeat(48) };
+  let finishIssue!: (card: typeof issued) => void;
+  issue.mockReturnValueOnce(
+    new Promise((resolve) => {
+      finishIssue = resolve;
+    }),
+  );
   const cache = new QueryClient();
   const page = () => (
     <QueryClientProvider client={cache}>
@@ -37,12 +43,15 @@ it("keeps an issued card recoverable after same-account session revalidation", a
   );
   const view = render(page());
   fireEvent.click(await screen.findByRole("button", { name: t("cards.issue") }));
-  await screen.findByRole("button", { name: t("cards.print") });
   scope.revalidating = true;
   view.rerender(page());
   expect(screen.queryByRole("button", { name: t("cards.print") })).not.toBeInTheDocument();
   scope.revalidating = false;
   view.rerender(page());
+  const issueButton = await screen.findByRole("button", { name: t("cards.issue") });
+  expect(issueButton).toBeDisabled();
+  fireEvent.click(issueButton);
+  await act(async () => finishIssue(issued));
   expect(await screen.findByRole("button", { name: t("cards.print") })).toBeInTheDocument();
   expect(issue).toHaveBeenCalledTimes(1);
   expect(issue).toHaveBeenCalledWith({

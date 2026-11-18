@@ -1,14 +1,9 @@
-import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
-import { CatchBoundary } from "@tanstack/react-router";
-import { QueryErrorResetBoundary, useSuspenseQuery } from "@tanstack/react-query";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { isAuthNotConfigured } from "@/lib/auth-errors";
-import {
-  clearAccountVerificationFailure,
-  duringAccountChange,
-  useAccountChangeStatus,
-} from "@/lib/account-change";
+import { duringAccountChange, useAccountChangeStatus } from "@/lib/account-change";
 import { Button } from "@/components/ui/button";
-import { authClient } from "@/lib/auth-client";
+import { authClient, verifyAuthSession } from "@/lib/auth-client";
 import { operatorCompaniesQuery } from "./operator-companies-query";
 import { t, type MessageKey } from "@/i18n";
 export interface CompanyScopeProps {
@@ -20,34 +15,37 @@ export function CompanyScope(props: CompanyScopeProps) {
   const { data, error, isPending, isRefetching, refetch } = authClient.useSession();
   const accountChange = useAccountChangeStatus();
   const [selection, setSelection] = useState<{ userId: string; companyId: string } | null>(null);
-  const sawRefresh = useRef(false);
-  useEffect(() => {
-    if (accountChange !== "unverified") {
-      sawRefresh.current = false;
-    } else if (isRefetching) {
-      sawRefresh.current = true;
-    } else if (sawRefresh.current && !error && !isPending) {
-      clearAccountVerificationFailure();
-    }
-  }, [accountChange, error, isPending, isRefetching]);
-  if (isPending || isRefetching || accountChange === "pending")
-    return <p role="status">{t("phone.loading")}</p>;
   const retry = () =>
     void duringAccountChange(
-      async () => undefined,
       () => refetch({ query: { disableCookieCache: true } }),
+      verifyAuthSession,
     );
-  if (isAuthNotConfigured(error)) return <p role="status">{t("auth.notConfigured")}</p>;
-  if (accountChange === "unverified" || error) return <SessionVerificationError retry={retry} />;
+  const loading = isPending || isRefetching || accountChange === "pending";
+  const failed = accountChange === "unverified" || !!error;
   const userId = data?.user.id;
-  if (!userId) return <p role="status">{t("attend.signInFirst")}</p>;
   return (
-    <AuthenticatedCompanies
-      {...props}
-      userId={userId}
-      selected={selection?.userId === userId ? selection.companyId : ""}
-      setSelected={(companyId) => setSelection({ userId, companyId })}
-    />
+    <>
+      {loading ? (
+        <p role="status">{t("phone.loading")}</p>
+      ) : isAuthNotConfigured(error) ? (
+        <p role="status">{t("auth.notConfigured")}</p>
+      ) : failed ? (
+        <SessionVerificationError retry={retry} />
+      ) : !userId ? (
+        <p role="status">{t("attend.signInFirst")}</p>
+      ) : null}
+      {userId && (
+        <div hidden={loading || failed} inert={loading || failed}>
+          <SignedInCompanyScope
+            key={userId}
+            {...props}
+            userId={userId}
+            selected={selection?.userId === userId ? selection.companyId : ""}
+            setSelected={(companyId) => setSelection({ userId, companyId })}
+          />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -68,30 +66,6 @@ type SignedInProps = CompanyScopeProps & {
   setSelected: (companyId: string) => void;
 };
 
-function AuthenticatedCompanies(props: SignedInProps) {
-  return (
-    <QueryErrorResetBoundary>
-      {({ reset }) => (
-        <CatchBoundary
-          getResetKey={() => props.userId}
-          errorComponent={({ reset: resetView }) => (
-            <CompanyLookupError
-              retry={() => {
-                reset();
-                resetView();
-              }}
-            />
-          )}
-        >
-          <Suspense key={props.userId} fallback={<p role="status">{t("phone.loading")}</p>}>
-            <SignedInCompanyScope {...props} />
-          </Suspense>
-        </CatchBoundary>
-      )}
-    </QueryErrorResetBoundary>
-  );
-}
-
 function CompanyLookupError({ retry }: { retry: () => void }) {
   return (
     <div className="space-y-2">
@@ -111,24 +85,26 @@ function SignedInCompanyScope({
   selected,
   setSelected,
 }: SignedInProps) {
-  const { data, isError, refetch } = useSuspenseQuery(operatorCompaniesQuery(userId));
-  const companyId = data.companies.some(({ id }) => id === selected)
+  const { data, isError, isFetchedAfterMount, fetchStatus, refetch } = useQuery(
+    operatorCompaniesQuery(userId),
+  );
+  const checking = !isFetchedAfterMount || fetchStatus !== "idle";
+  const companies = data?.companies ?? [];
+  const companyId = companies.some(({ id }) => id === selected)
     ? selected
-    : (data.companies[0]?.id ?? "");
+    : (companies[0]?.id ?? "");
   useEffect(() => {
-    if (companyId && companyId !== selected) setSelected(companyId);
-  }, [companyId, selected, setSelected]);
+    if (!checking && !isError && companyId && companyId !== selected) setSelected(companyId);
+  }, [checking, companyId, isError, selected, setSelected]);
   return (
     <section className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold">{t(title)}</h1>
-      {isError ? (
-        <CompanyLookupError retry={() => void refetch()} />
-      ) : data.error ? (
+      {checking && !isError && <p role="status">{t("phone.loading")}</p>}
+      {isError && <CompanyLookupError retry={() => void refetch()} />}
+      {!isError && data?.error && !checking ? (
         <p role="status">{t(data.error)}</p>
-      ) : !companyId ? (
-        <p>{t("phone.noCompanies")}</p>
-      ) : (
-        <>
+      ) : companyId ? (
+        <div hidden={checking || isError} inert={checking || isError} className="space-y-6">
           <label className="block space-y-2">
             <span>{t("phone.companyName")}</span>
             <select
@@ -137,7 +113,7 @@ function SignedInCompanyScope({
               disabled={switchLocked}
               onChange={(e) => setSelected(e.target.value)}
             >
-              {data.companies
+              {companies
                 .filter((c, i, a) => a.findIndex((v) => v.id === c.id) === i)
                 .map((c) => (
                   <option key={c.id} value={c.id}>
@@ -149,8 +125,10 @@ function SignedInCompanyScope({
           <Suspense fallback={<p role="status">{t("phone.loading")}</p>}>
             <div key={companyId}>{children(companyId, userId)}</div>
           </Suspense>
-        </>
-      )}
+        </div>
+      ) : !checking && !isError && !data?.error ? (
+        <p>{t("phone.noCompanies")}</p>
+      ) : null}
     </section>
   );
 }

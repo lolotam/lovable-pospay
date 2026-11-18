@@ -4,6 +4,7 @@ import { getCardsFn } from "../functions/card.functions";
 export const cardQuery = (companyId: string, userId: string) =>
   queryOptions({
     queryKey: ["cards", userId, companyId],
+    refetchOnMount: "always",
     queryFn: async () => {
       try {
         return {

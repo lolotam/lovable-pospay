@@ -24,12 +24,13 @@ export async function recordCardRequest<Result>(
 /** يسترجع نتيجة طلب المسح، أو يحفظ إلغاءه إذا لم يُسجَّل بعد، لمنع تسجيل حركة جديدة. */
 export async function settleCardRequest<Result>(
   receipts: CardScanReceipts<Result>,
-  cancelled: Result,
+  missing: () => Result,
 ): Promise<Result> {
   const previous = await receipts.lockAndRead();
   if (previous) return previous.result;
-  await receipts.save({ fingerprint: null, result: cancelled });
-  return cancelled;
+  const result = missing();
+  await receipts.save({ fingerprint: null, result });
+  return result;
 }
 
 /** يحسب صلاحية الاسترجاع مع سماح بخمس دقائق لفارق ساعة المتصفح. */

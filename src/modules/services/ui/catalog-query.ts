@@ -4,6 +4,7 @@ import { getCatalogFn } from "../functions/catalog.functions";
 export const catalogQuery = (companyId: string, userId: string) =>
   queryOptions({
     queryKey: ["catalog", userId, companyId],
+    refetchOnMount: "always",
     queryFn: () => getCatalogFn({ data: { companyId, expectedUserId: userId } }),
     retry: 1,
   });
