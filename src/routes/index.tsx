@@ -78,7 +78,7 @@ function Index() {
             <Row label="status.whatsapp" ok={data.whatsapp} />
           </ul>
         </section>
-        <section className="rounded-lg border border-border bg-accent/40 p-6">
+        <section className="rounded-lg border border-border bg-muted p-6">
           <h2 className="text-lg font-bold">{t("modules.title")}</h2>
           <ol className="mt-3 space-y-2 text-sm">
             {modules.map((m, i) => (

@@ -55,5 +55,12 @@
   "attend.invalidQr": "The code expired or is invalid. Scan again.",
   "attend.notStaff": "Your account is not linked to a staff profile in this company.",
   "attend.signInFirst": "Sign in first",
-  "attend.error": "Something went wrong. Try again."
+  "attend.error": "Something went wrong. Try again.",
+  "nav.home": "Home",
+  "nav.section.attendance": "Attendance",
+  "nav.reception": "Reception QR",
+  "nav.phone": "Phone binding",
+  "nav.insights": "Attendance questions",
+  "nav.section.account": "Account",
+  "nav.signIn": "Sign in"
 }

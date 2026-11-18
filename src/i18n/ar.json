@@ -55,5 +55,12 @@
   "attend.invalidQr": "الكود منتهي أو غير صالح. امسحي الكود من جديد.",
   "attend.notStaff": "حسابك غير مربوط بملف موظفة في هذه الشركة.",
   "attend.signInFirst": "سجّلي الدخول أولاً",
-  "attend.error": "حدث خطأ. حاولي مرة أخرى."
+  "attend.error": "حدث خطأ. حاولي مرة أخرى.",
+  "nav.home": "الرئيسية",
+  "nav.section.attendance": "الحضور",
+  "nav.reception": "رمز الاستقبال",
+  "nav.phone": "ربط الهاتف",
+  "nav.insights": "أسئلة الحضور",
+  "nav.section.account": "الحساب",
+  "nav.signIn": "تسجيل الدخول"
 }
