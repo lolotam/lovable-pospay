@@ -4,7 +4,8 @@ export async function sendWhatsAppOtp(phone: string, code: string): Promise<void
   const url = process.env["WHATSAPP_API_URL"];
   const token = process.env["WHATSAPP_API_TOKEN"];
   if (!url || !token) {
-    if (process.env["NODE_ENV"] === "production") throw new Error("WhatsApp provider not configured");
+    if (process.env["NODE_ENV"] === "production")
+      throw new Error("WhatsApp provider not configured");
     console.info(`[dev] WhatsApp OTP for ${phone.slice(-3).padStart(phone.length, "*")}: ${code}`);
     return;
   }

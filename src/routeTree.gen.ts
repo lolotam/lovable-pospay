@@ -10,7 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AttendRouteImport } from './routes/attend'
+import { Route as AttendanceCorrectionsRouteImport } from './routes/attendance-corrections'
+import { Route as AttendanceQuestionsRouteImport } from './routes/attendance-questions'
+import { Route as PhoneRouteImport } from './routes/phone'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as AdminConnectorsRouteImport } from './routes/admin/connectors'
+import { Route as AdminDiagnoseRouteImport } from './routes/admin/diagnose'
+import { Route as ReceptionQrRouteImport } from './routes/reception/qr'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -18,9 +27,54 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AttendRoute = AttendRouteImport.update({
+  id: '/attend',
+  path: '/attend',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AttendanceCorrectionsRoute = AttendanceCorrectionsRouteImport.update({
+  id: '/attendance-corrections',
+  path: '/attendance-corrections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AttendanceQuestionsRoute = AttendanceQuestionsRouteImport.update({
+  id: '/attendance-questions',
+  path: '/attendance-questions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PhoneRoute = PhoneRouteImport.update({
+  id: '/phone',
+  path: '/phone',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminConnectorsRoute = AdminConnectorsRouteImport.update({
+  id: '/admin/connectors',
+  path: '/admin/connectors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDiagnoseRoute = AdminDiagnoseRouteImport.update({
+  id: '/admin/diagnose',
+  path: '/admin/diagnose',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReceptionQrRoute = ReceptionQrRouteImport.update({
+  id: '/reception/qr',
+  path: '/reception/qr',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -31,31 +85,104 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/attend': typeof AttendRoute
+  '/attendance-corrections': typeof AttendanceCorrectionsRoute
+  '/attendance-questions': typeof AttendanceQuestionsRoute
+  '/phone': typeof PhoneRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
+  '/admin/connectors': typeof AdminConnectorsRoute
+  '/admin/diagnose': typeof AdminDiagnoseRoute
+  '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/attend': typeof AttendRoute
+  '/attendance-corrections': typeof AttendanceCorrectionsRoute
+  '/attendance-questions': typeof AttendanceQuestionsRoute
+  '/phone': typeof PhoneRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
+  '/admin/connectors': typeof AdminConnectorsRoute
+  '/admin/diagnose': typeof AdminDiagnoseRoute
+  '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/attend': typeof AttendRoute
+  '/attendance-corrections': typeof AttendanceCorrectionsRoute
+  '/attendance-questions': typeof AttendanceQuestionsRoute
+  '/phone': typeof PhoneRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
+  '/admin/connectors': typeof AdminConnectorsRoute
+  '/admin/diagnose': typeof AdminDiagnoseRoute
+  '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/attend'
+    | '/attendance-corrections'
+    | '/attendance-questions'
+    | '/phone'
+    | '/reset-password'
+    | '/settings'
+    | '/sign-in'
+    | '/admin/connectors'
+    | '/admin/diagnose'
+    | '/reception/qr'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sign-in' | '/api/auth/$'
-  id: '__root__' | '/' | '/sign-in' | '/api/auth/$'
+  to:
+    | '/'
+    | '/attend'
+    | '/attendance-corrections'
+    | '/attendance-questions'
+    | '/phone'
+    | '/reset-password'
+    | '/settings'
+    | '/sign-in'
+    | '/admin/connectors'
+    | '/admin/diagnose'
+    | '/reception/qr'
+    | '/api/auth/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/attend'
+    | '/attendance-corrections'
+    | '/attendance-questions'
+    | '/phone'
+    | '/reset-password'
+    | '/settings'
+    | '/sign-in'
+    | '/admin/connectors'
+    | '/admin/diagnose'
+    | '/reception/qr'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AttendRoute: typeof AttendRoute
+  AttendanceCorrectionsRoute: typeof AttendanceCorrectionsRoute
+  AttendanceQuestionsRoute: typeof AttendanceQuestionsRoute
+  PhoneRoute: typeof PhoneRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SettingsRoute: typeof SettingsRoute
   SignInRoute: typeof SignInRoute
+  AdminConnectorsRoute: typeof AdminConnectorsRoute
+  AdminDiagnoseRoute: typeof AdminDiagnoseRoute
+  ReceptionQrRoute: typeof ReceptionQrRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -68,11 +195,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/attend': {
+      id: '/attend'
+      path: '/attend'
+      fullPath: '/attend'
+      preLoaderRoute: typeof AttendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/attendance-corrections': {
+      id: '/attendance-corrections'
+      path: '/attendance-corrections'
+      fullPath: '/attendance-corrections'
+      preLoaderRoute: typeof AttendanceCorrectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/attendance-questions': {
+      id: '/attendance-questions'
+      path: '/attendance-questions'
+      fullPath: '/attendance-questions'
+      preLoaderRoute: typeof AttendanceQuestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/phone': {
+      id: '/phone'
+      path: '/phone'
+      fullPath: '/phone'
+      preLoaderRoute: typeof PhoneRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-in': {
       id: '/sign-in'
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/connectors': {
+      id: '/admin/connectors'
+      path: '/admin/connectors'
+      fullPath: '/admin/connectors'
+      preLoaderRoute: typeof AdminConnectorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/diagnose': {
+      id: '/admin/diagnose'
+      path: '/admin/diagnose'
+      fullPath: '/admin/diagnose'
+      preLoaderRoute: typeof AdminDiagnoseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reception/qr': {
+      id: '/reception/qr'
+      path: '/reception/qr'
+      fullPath: '/reception/qr'
+      preLoaderRoute: typeof ReceptionQrRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -87,7 +277,16 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AttendRoute: AttendRoute,
+  AttendanceCorrectionsRoute: AttendanceCorrectionsRoute,
+  AttendanceQuestionsRoute: AttendanceQuestionsRoute,
+  PhoneRoute: PhoneRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SettingsRoute: SettingsRoute,
   SignInRoute: SignInRoute,
+  AdminConnectorsRoute: AdminConnectorsRoute,
+  AdminDiagnoseRoute: AdminDiagnoseRoute,
+  ReceptionQrRoute: ReceptionQrRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

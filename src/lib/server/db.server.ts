@@ -5,14 +5,22 @@
 import pg from "pg";
 
 let pool: pg.Pool | undefined;
+let authPool: pg.Pool | undefined;
+
+function createPool(max: number): pg.Pool {
+  const connectionString = process.env["DATABASE_URL"];
+  if (!connectionString) throw new Error("DATABASE_URL is not set");
+  return new pg.Pool({ connectionString, max, connectionTimeoutMillis: 5_000 });
+}
 
 export function getPool(): pg.Pool {
-  if (!pool) {
-    const connectionString = process.env["DATABASE_URL"];
-    if (!connectionString) throw new Error("DATABASE_URL is not set");
-    pool = new pg.Pool({ connectionString, max: 10 });
-  }
-  return pool;
+  return (pool ??= createPool(8));
+}
+
+export function getAuthPool(): pg.Pool {
+  // Phone proof uses Better Auth while holding an app transaction.
+  // Reserve connections for the adapter so app transactions can always finish.
+  return (authPool ??= createPool(2));
 }
 
 export async function withUser<T>(
