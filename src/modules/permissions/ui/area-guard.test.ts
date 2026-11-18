@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest";
-import { pageAllowed } from "./area-guard";
+import { QueryClient } from "@tanstack/react-query";
+import { describe, expect, it, vi } from "vitest";
+import { loadArea, pageAllowed } from "./area-guard";
 import type { SessionContextDto } from "../contracts";
+
+const { getSessionContext } = vi.hoisted(() => ({ getSessionContext: vi.fn() }));
+vi.mock("../functions/session-context.functions", () => ({
+  getSessionContext,
+  selectWorkspace: vi.fn(),
+}));
 
 const context: SessionContextDto = {
   user: { id: "user", name: "Mona", email: "mona@example.test" },
@@ -30,5 +37,14 @@ describe("pageAllowed", () => {
   it("keeps sessions gated and permits team management", () => {
     expect(pageAllowed({ ...context, permissions: ["pos.access"] }, "/pos/sessions")).toBe(false);
     expect(pageAllowed(context, "/app/staff/team")).toBe(true);
+  });
+});
+describe("loadArea", () => {
+  it("sends a signed-in user without a workspace to the chooser with the requested path", async () => {
+    const cache = new QueryClient();
+    getSessionContext.mockResolvedValue({ ...context, active: null });
+    await expect(loadArea(cache, "/app/attendance/reports?day=1", "app")).rejects.toMatchObject({
+      options: { to: "/workspaces", search: { redirect: "/app/attendance/reports?day=1" } },
+    });
   });
 });

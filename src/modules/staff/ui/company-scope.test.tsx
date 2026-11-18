@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { t } from "@/i18n";
 import { duringAccountChange } from "@/lib/account-change";
+import { ActiveCompanyProvider } from "@/lib/active-company";
 import { CompanyScope } from "./company-scope";
 import { preloadOperatorCompanies } from "./operator-companies-query";
 
@@ -201,4 +202,29 @@ it("keeps cached company details hidden while membership is being checked", asyn
   await act(async () => finish([]));
   expect(await screen.findByText(t("phone.noCompanies"))).toBeVisible();
   expect(screen.queryByText("Cached company details")).toBeNull();
+});
+
+it.each([
+  ["active-company", "active-company"],
+  [null, null],
+])("inside an area, uses only the workspace company (%s)", async (pinned, shown) => {
+  const cache = new QueryClient();
+  const companies = [
+    { id: "first-company", name: "First", role: "owner" },
+    { id: "active-company", name: "Active", role: "owner" },
+  ];
+  useSession.mockReturnValue({ data: { user: { id: "owner" } }, isPending: false });
+  getMyCompanies.mockResolvedValue(companies);
+  cache.setQueryData(["operator-companies", "owner"], { companies, error: null });
+  render(
+    <QueryClientProvider client={cache}>
+      <ActiveCompanyProvider value={pinned}>
+        <CompanyScope title="reports.title">{(companyId) => <p>shown:{companyId}</p>}</CompanyScope>
+      </ActiveCompanyProvider>
+    </QueryClientProvider>,
+  );
+  const expected = shown ? `shown:${shown}` : t("phone.noCompanies");
+  await waitFor(() => expect(screen.getByText(expected)).toBeVisible());
+  expect(screen.queryByText("shown:first-company")).toBeNull();
+  expect(screen.queryByRole("combobox")).toBeNull();
 });

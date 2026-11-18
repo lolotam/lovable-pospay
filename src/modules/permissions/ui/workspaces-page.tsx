@@ -5,14 +5,16 @@ import { Building2, ArrowUpLeft, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import type { SessionContextDto, WorkspaceDto } from "../contracts";
-import { areaForWorkspace } from "../domain/workspace";
-import { chooseWorkspace } from "./use-session-context";
+import { areaForWorkspace, safeRedirectPath } from "../domain/workspace";
+import { pageAllowed } from "./area-guard";
+import { chooseWorkspace, sessionContextQuery } from "./use-session-context";
 import { UserMenu } from "./user-menu";
 
 export interface WorkspacesPageProps {
   context: SessionContextDto;
+  redirect?: string | undefined;
 }
-export function WorkspacesPage({ context }: WorkspacesPageProps) {
+export function WorkspacesPage({ context, redirect }: WorkspacesPageProps) {
   const cache = useQueryClient();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -20,7 +22,11 @@ export function WorkspacesPage({ context }: WorkspacesPageProps) {
     setBusy(true);
     try {
       await chooseWorkspace(cache, context, ws);
-      await navigate({ to: `/${areaForWorkspace(ws)}` });
+      const requested = safeRedirectPath(redirect);
+      const session = requested ? await cache.fetchQuery(sessionContextQuery) : null;
+      if (requested && session && pageAllowed(session, requested.split("?")[0] ?? ""))
+        await navigate({ href: requested });
+      else await navigate({ to: `/${areaForWorkspace(ws)}` });
     } finally {
       setBusy(false);
     }

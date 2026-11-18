@@ -5,6 +5,7 @@ import { duringAccountChange, useAccountChangeStatus } from "@/lib/account-chang
 import { Button } from "@/components/ui/button";
 import { authClient, verifyAuthSession } from "@/lib/auth-client";
 import { operatorCompaniesQuery } from "./operator-companies-query";
+import { useActiveCompany } from "@/lib/active-company";
 import { t, type MessageKey } from "@/i18n";
 export interface CompanyScopeProps {
   title: MessageKey;
@@ -104,10 +105,16 @@ function SignedInCompanyScope({
     operatorCompaniesQuery(userId),
   );
   const checking = !isFetchedAfterMount || fetchStatus !== "idle";
+  const pinned = useActiveCompany();
   const companies = data?.companies ?? [];
-  const companyId = companies.some(({ id }) => id === selected)
-    ? selected
-    : (companies[0]?.id ?? "");
+  const companyId =
+    pinned !== undefined
+      ? companies.some(({ id }) => id === pinned)
+        ? (pinned ?? "")
+        : ""
+      : companies.some(({ id }) => id === selected)
+        ? selected
+        : (companies[0]?.id ?? "");
   useEffect(() => {
     if (!checking && !isError && companyId && companyId !== selected) setSelected(companyId);
   }, [checking, companyId, isError, selected, setSelected]);
@@ -120,7 +127,7 @@ function SignedInCompanyScope({
         <p role="status">{t(data.error)}</p>
       ) : companyId ? (
         <div hidden={checking || isError} inert={checking || isError} className="space-y-6">
-          <label className="block space-y-2">
+          <label className="block space-y-2" hidden={pinned !== undefined}>
             <span>{t("phone.companyName")}</span>
             <select
               className="h-11 w-full max-w-md rounded-md border border-input bg-background px-3"

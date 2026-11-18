@@ -36,5 +36,6 @@ export const Route = createFileRoute("/workspaces")({
 });
 function Workspaces() {
   const { session } = Route.useRouteContext();
-  return <WorkspacesPage context={session} />;
+  const { redirect } = Route.useSearch();
+  return <WorkspacesPage context={session} redirect={redirect} />;
 }

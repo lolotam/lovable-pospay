@@ -9,7 +9,7 @@ import { serviceSessionRecordingAvailable } from "@/modules/services";
 export async function loadArea(cache: QueryClient, href: string, area: Area) {
   const session = await cache.fetchQuery(sessionContextQuery);
   if (!session) throw redirect({ to: "/sign-in", search: { redirect: href } });
-  if (!session.active) throw redirect({ to: "/workspaces" });
+  if (!session.active) throw redirect({ to: "/workspaces", search: { redirect: href } });
   return { session, allowed: canEnterArea(session.active, session.permissions, area) };
 }
 

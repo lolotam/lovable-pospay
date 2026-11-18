@@ -9,6 +9,7 @@ import type { Area, SessionContextDto } from "../contracts";
 import { visibleNavigation, type NavGroup, type NavLeaf } from "./navigation";
 import { WorkspaceSwitcher, workspaceLabel } from "./workspace-switcher";
 import { UserMenu } from "./user-menu";
+import { ActiveCompanyProvider } from "@/lib/active-company";
 
 export interface AreaShellProps {
   area: Area;
@@ -107,54 +108,57 @@ export function AreaShell({ area, context, children }: AreaShellProps) {
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   useEffect(() => setOpen(false), [pathname, context.active]);
+  const activeCompany = context.active?.kind === "company" ? context.active.companyId : null;
   return (
-    <div className="flex min-h-dvh bg-background text-foreground">
-      <aside className="sticky top-0 hidden h-dvh w-52 shrink-0 border-e border-sidebar-border bg-sidebar md:block lg:w-60">
-        <SidebarContents area={area} context={context} close={() => setOpen(false)} />
-      </aside>
-      <div className="min-w-0 flex-1">
-        <Dialog.Root open={open} onOpenChange={setOpen}>
-          <header className="sticky top-0 z-30 flex min-h-16 items-center gap-2 border-b border-border bg-sidebar px-3 md:hidden">
-            <Dialog.Trigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-11 shrink-0"
-                aria-label={t("nav.menu")}
-                aria-controls="area-drawer"
-              >
-                <Menu />
-              </Button>
-            </Dialog.Trigger>
-            <p className="min-w-0 flex-1 break-words text-sm font-medium">
-              {context.active ? workspaceLabel(context.active) : t("ws.title")}
-            </p>
-            <UserMenu user={context.user} compact />
-          </header>
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-40 bg-foreground/30" />
-            <Dialog.Content
-              id="area-drawer"
-              aria-describedby={undefined}
-              className="fixed inset-y-0 start-0 z-50 w-72 max-w-[90%] border-e border-sidebar-border bg-sidebar pt-12 shadow-lg"
-            >
-              <Dialog.Title className="sr-only">{t("nav.menu")}</Dialog.Title>
-              <Dialog.Close asChild>
+    <ActiveCompanyProvider value={activeCompany}>
+      <div className="flex min-h-dvh bg-background text-foreground">
+        <aside className="sticky top-0 hidden h-dvh w-52 shrink-0 border-e border-sidebar-border bg-sidebar md:block lg:w-60">
+          <SidebarContents area={area} context={context} close={() => setOpen(false)} />
+        </aside>
+        <div className="min-w-0 flex-1">
+          <Dialog.Root open={open} onOpenChange={setOpen}>
+            <header className="sticky top-0 z-30 flex min-h-16 items-center gap-2 border-b border-border bg-sidebar px-3 md:hidden">
+              <Dialog.Trigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute end-3 top-2 size-11"
-                  aria-label={t("nav.close")}
+                  className="size-11 shrink-0"
+                  aria-label={t("nav.menu")}
+                  aria-controls="area-drawer"
                 >
-                  <X />
+                  <Menu />
                 </Button>
-              </Dialog.Close>
-              <SidebarContents area={area} context={context} close={() => setOpen(false)} />
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
-        <div className="min-w-0 pb-[env(safe-area-inset-bottom)]">{children}</div>
+              </Dialog.Trigger>
+              <p className="min-w-0 flex-1 break-words text-sm font-medium">
+                {context.active ? workspaceLabel(context.active) : t("ws.title")}
+              </p>
+              <UserMenu user={context.user} compact />
+            </header>
+            <Dialog.Portal>
+              <Dialog.Overlay className="fixed inset-0 z-40 bg-foreground/30" />
+              <Dialog.Content
+                id="area-drawer"
+                aria-describedby={undefined}
+                className="fixed inset-y-0 start-0 z-50 w-72 max-w-[90%] border-e border-sidebar-border bg-sidebar pt-12 shadow-lg"
+              >
+                <Dialog.Title className="sr-only">{t("nav.menu")}</Dialog.Title>
+                <Dialog.Close asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute end-3 top-2 size-11"
+                    aria-label={t("nav.close")}
+                  >
+                    <X />
+                  </Button>
+                </Dialog.Close>
+                <SidebarContents area={area} context={context} close={() => setOpen(false)} />
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
+          <div className="min-w-0 pb-[env(safe-area-inset-bottom)]">{children}</div>
+        </div>
       </div>
-    </div>
+    </ActiveCompanyProvider>
   );
 }
