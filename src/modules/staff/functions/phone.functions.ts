@@ -1,6 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { phoneScopeSchema, phoneProofSchema, unbindSchema } from "../phone.contracts";
 
+export const getPhoneManagementFn = createServerFn({ method: "GET" })
+  .inputValidator((v: unknown) => phoneScopeSchema.parse(v))
+  .handler(async ({ data }) => {
+    const { requireUserId } = await import("@/lib/server/session.server");
+    const { withUser } = await import("@/lib/server/db.server");
+    const { readPhoneManagement } = await import("../persistence/phone-management.server");
+    const userId = await requireUserId();
+    return withUser(userId, (db) => readPhoneManagement(db, userId, data.companyId));
+  });
+
 export const startBindingFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => phoneScopeSchema.parse(v))
   .handler(async ({ data }) => {

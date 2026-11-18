@@ -1,5 +1,9 @@
 # Roadmap
 
+## Continuation (2026-11-18)
+- [ ] 002 phone management selectors — replace manual company/user IDs with authorized company and staff choices; verify repository through disposable PostgreSQL and UI.
+- [ ] Production connection remains blocked: latest Dokploy logs show ENOIDENTIFIER; SSH read refused (`read-command only accepts read-only commands, got: safe`). No production settings changed.
+
 ## Approved authentication update (2026-11-18)
 - [ ] Correct production pooler configuration and configure Resend in Dokploy — approved; blocked by redacted Dokploy env and SSH APPROVAL_UNAVAILABLE; no environment overwritten; production sign-in still HTTP 500
 - [x] Six-digit email OTP recovery with a choice to continue sign-in or change password; hashed, single-use, expiry/attempt/concurrency/session tests pass; existing TOTP gate preserved

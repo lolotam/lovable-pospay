@@ -18,3 +18,17 @@ export const phoneProofSchema = phoneScopeSchema.extend({
   }),
 });
 export const unbindSchema = phoneScopeSchema.extend({ userId: z.string().min(1).max(200) });
+
+export interface PhoneStaffOption {
+  userId: string;
+  displayName: string;
+  branchName: string;
+  isBound: boolean;
+}
+
+export interface PhoneManagementDto {
+  canBind: boolean;
+  isBound: boolean;
+  canManage: boolean;
+  staff: PhoneStaffOption[];
+}
