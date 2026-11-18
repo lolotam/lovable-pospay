@@ -2,7 +2,7 @@
 
 ## Continuation (2026-11-18)
 - [x] 002 phone management selector implementation — company/staff names replace manual IDs; 4 repository permission tests pass on disposable PostgreSQL; authenticated browser acceptance remains open.
-- [ ] 002 selector authenticated acceptance — preview has no configured Better Auth; only unavailable state checked at 390/820/1280, no horizontal overflow.
+- [ ] 002 selector authenticated acceptance — preview has no configured Better Auth; unavailable state and phone → home → sign-in navigation checked at 390/820/1280 in light and dark (6 combinations), no horizontal overflow. Authenticated selection/unbinding not verified.
 - [x] Continuation checks — 61 tests pass, 0 skipped (11 files); migrations 0001–0003 applied twice locally; changed-file ESLint passes; latest preview build OK. Full lint terminated after 180 seconds (SIGTERM), not a pass.
 - [x] Code-review against 015dd57 — Standards: no confirmed violation; Spec: read error state improved. Permissions mirror existing D-40 RLS; unbinding already writes phone.unbound audit. Physical-device acceptance stays open; no PR/CI gate run from this sandbox.
 - [ ] Production connection remains blocked: latest Dokploy logs show ENOIDENTIFIER; SSH read refused (`read-command only accepts read-only commands, got: safe`). No production settings changed.
