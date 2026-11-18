@@ -7,6 +7,9 @@
 - [ ] Slice 003 barcode fallback — TODO(spec): operator authorization, card issuance/revocation and no-phone eligibility decisions
 - [x] Password recovery UI + Better Auth policy: expiry/reuse protection, session revocation, origin validation; 6 API tests pass
 - [ ] Enable password-recovery delivery — needs verified sender domain and Dokploy mail configuration
+- [x] Link official Resend connection; sending DKIM/SPF verified for pospay.systems
+- [x] Wire Better Auth reset sender through Resend connector gateway
+- [ ] Resend production acceptance — Dokploy connector credentials + working DB + deploy required
 
 - [x] Phase 1 foundation (DB + RLS, Better Auth, server functions, Dokploy)
 - [x] AGENTS.md rules + app-architecture.md

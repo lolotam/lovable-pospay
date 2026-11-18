@@ -7,6 +7,7 @@ import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getPool } from "./db.server";
 import { sendWhatsAppOtp } from "./whatsapp.server";
 import { passwordRecoveryOptions } from "./password-recovery.server";
+import { getResendPasswordSender } from "./resend.server";
 
 function createAuth() {
   const baseURL = process.env["BETTER_AUTH_URL"];
@@ -15,7 +16,7 @@ function createAuth() {
     baseURL,
     secret: process.env["BETTER_AUTH_SECRET"],
     database: getPool(),
-    emailAndPassword: passwordRecoveryOptions(),
+    emailAndPassword: passwordRecoveryOptions(getResendPasswordSender()),
     rateLimit: {
       enabled: true,
       customRules: {
