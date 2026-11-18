@@ -1,10 +1,14 @@
 import { z } from "zod";
+import { phoneProofSchema } from "../staff";
 
 export const scanInputSchema = z.object({
   token: z.string().min(10).max(300),
-  location: z.object({ latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180) }).nullable(),
+  location: z
+    .object({ latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180) })
+    .nullable(),
   intent: z.enum(["new_shift", "check_out"]).nullable(),
 });
+export const protectedScanSchema = scanInputSchema.merge(phoneProofSchema);
 export type ScanInputDto = z.infer<typeof scanInputSchema>;
 
 export type ScanResultDto =

@@ -1,10 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
-import { branchQrInputSchema, scanInputSchema, type BranchQrDto, type ScanResultDto } from "../contracts";
+import {
+  branchQrInputSchema,
+  protectedScanSchema,
+  type BranchQrDto,
+  type ScanResultDto,
+} from "../contracts";
 
 const UUID_RE = /^[0-9a-f-]{36}$/i;
 
 export const scanAttendanceFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => scanInputSchema.parse(input))
+  .inputValidator((input: unknown) => protectedScanSchema.parse(input))
   .handler(async ({ data }): Promise<ScanResultDto> => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
@@ -14,14 +19,40 @@ export const scanAttendanceFn = createServerFn({ method: "POST" })
     const { systemClock } = await import("@/shared/kernel/clock");
     const { cryptoIds } = await import("@/shared/kernel/ids");
     const userId = await requireUserId();
-    return withUser(userId, (db) =>
-      scanAttendance(data, {
+    const { prove, requirePhone } = await import("@/modules/staff/index.server");
+    return withUser(userId, async (db) => {
+      const credentialId = await prove(db, userId, data, "scan");
+      await requirePhone(db, userId, data.companyId, credentialId);
+      const branchId = data.token.split(".")[0];
+      const branch = await db.query("select company_id from public.branches where id=$1", [
+        branchId,
+      ]);
+      if (branch.rows[0]?.company_id !== data.companyId) throw new Error("FORBIDDEN");
+      return scanAttendance(data, {
         repo: pgAttendanceRepository(db, userId),
         clock: systemClock,
         ids: cryptoIds,
-        signerFor: (branchId) => (UUID_RE.test(branchId) ? branchSigner(db, branchId) : Promise.resolve(null)),
-      }),
-    );
+        signerFor: (branchId) =>
+          UUID_RE.test(branchId) ? branchSigner(db, branchId) : Promise.resolve(null),
+      });
+    });
+  });
+
+export const scanChallengeFn = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => branchQrInputSchema.parse(v))
+  .handler(async ({ data }) => {
+    const { requireUserId } = await import("@/lib/server/session.server");
+    const { withUser } = await import("@/lib/server/db.server");
+    const { challenge } = await import("@/modules/staff/index.server");
+    const userId = await requireUserId();
+    return withUser(userId, async (db) => {
+      const r = await db.query("select company_id from public.branches where id=$1", [
+        data.branchId,
+      ]);
+      if (!r.rows[0]) throw new Error("FORBIDDEN");
+      const companyId = r.rows[0].company_id as string;
+      return { ...(await challenge(db, userId, companyId, "scan")), companyId };
+    });
   });
 
 export const getBranchQrFn = createServerFn({ method: "GET" })

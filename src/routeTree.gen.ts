@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AttendRouteImport } from './routes/attend'
+import { Route as AttendanceQuestionsRouteImport } from './routes/attendance-questions'
+import { Route as PhoneRouteImport } from './routes/phone'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ReceptionQrRouteImport } from './routes/reception/qr'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -23,6 +25,16 @@ const IndexRoute = IndexRouteImport.update({
 const AttendRoute = AttendRouteImport.update({
   id: '/attend',
   path: '/attend',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AttendanceQuestionsRoute = AttendanceQuestionsRouteImport.update({
+  id: '/attendance-questions',
+  path: '/attendance-questions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PhoneRoute = PhoneRouteImport.update({
+  id: '/phone',
+  path: '/phone',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignInRoute = SignInRouteImport.update({
@@ -44,6 +56,8 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/attend': typeof AttendRoute
+  '/attendance-questions': typeof AttendanceQuestionsRoute
+  '/phone': typeof PhoneRoute
   '/sign-in': typeof SignInRoute
   '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -51,6 +65,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/attend': typeof AttendRoute
+  '/attendance-questions': typeof AttendanceQuestionsRoute
+  '/phone': typeof PhoneRoute
   '/sign-in': typeof SignInRoute
   '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -59,22 +75,47 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/attend': typeof AttendRoute
+  '/attendance-questions': typeof AttendanceQuestionsRoute
+  '/phone': typeof PhoneRoute
   '/sign-in': typeof SignInRoute
   '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/attend' | '/sign-in' | '/reception/qr' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/attend'
+    | '/attendance-questions'
+    | '/phone'
+    | '/sign-in'
+    | '/reception/qr'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/attend' | '/sign-in' | '/reception/qr' | '/api/auth/$'
+  to:
+    | '/'
+    | '/attend'
+    | '/attendance-questions'
+    | '/phone'
+    | '/sign-in'
+    | '/reception/qr'
+    | '/api/auth/$'
   id:
-    '__root__' | '/' | '/attend' | '/sign-in' | '/reception/qr' | '/api/auth/$'
+    | '__root__'
+    | '/'
+    | '/attend'
+    | '/attendance-questions'
+    | '/phone'
+    | '/sign-in'
+    | '/reception/qr'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AttendRoute: typeof AttendRoute
+  AttendanceQuestionsRoute: typeof AttendanceQuestionsRoute
+  PhoneRoute: typeof PhoneRoute
   SignInRoute: typeof SignInRoute
   ReceptionQrRoute: typeof ReceptionQrRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -94,6 +135,20 @@ declare module '@tanstack/react-router' {
       path: '/attend'
       fullPath: '/attend'
       preLoaderRoute: typeof AttendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/attendance-questions': {
+      id: '/attendance-questions'
+      path: '/attendance-questions'
+      fullPath: '/attendance-questions'
+      preLoaderRoute: typeof AttendanceQuestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/phone': {
+      id: '/phone'
+      path: '/phone'
+      fullPath: '/phone'
+      preLoaderRoute: typeof PhoneRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sign-in': {
@@ -123,6 +178,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AttendRoute: AttendRoute,
+  AttendanceQuestionsRoute: AttendanceQuestionsRoute,
+  PhoneRoute: PhoneRoute,
   SignInRoute: SignInRoute,
   ReceptionQrRoute: ReceptionQrRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
