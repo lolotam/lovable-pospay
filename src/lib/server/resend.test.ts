@@ -30,7 +30,9 @@ describe("Resend password reset delivery", () => {
     const request = vi.fn().mockResolvedValue(new Response('{"id":"sent"}', { status: 200 }));
     vi.stubGlobal("fetch", request);
     await createResendPasswordSender(config)(data);
-    const [url, init] = request.mock.calls[0];
+    const call = request.mock.calls[0];
+    if (!call) throw new Error("Expected delivery request");
+    const [url, init] = call;
     expect(url).toBe("https://connector-gateway.lovable.dev/resend/emails");
     expect(JSON.parse(init.body).to).toEqual(["test@example.com"]);
     expect(JSON.parse(init.body).from).toBe("PosPay <noreply@pospay.systems>");
