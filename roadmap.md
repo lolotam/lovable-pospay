@@ -27,3 +27,5 @@
 - [x] Super admin error/log diagnosis with default model (/admin/diagnose)
 - [x] Micro dark mode + settings toggle (/settings)
 - [x] Micro responsive pass for phone/tablet
+- [x] 0007 `pospay_server` login role (RLS-bound, no bypass) applied on supabase-pospay; Dokploy `pospay-app` env has DATABASE_URL via pooler. Deploy waits on Waleed.
+- [ ] Pooler port 5432/6543 is public on the host — consider firewalling (needs Waleed).
