@@ -40,7 +40,7 @@ export function ReceptionQr({ branchId }: { branchId: string }) {
     <div className="flex flex-col items-center gap-6 text-center">
       <h1 className="text-3xl font-bold">{t("qr.title")}</h1>
       <p className="text-lg text-muted-foreground">{branchName}</p>
-      {image && <img src={image} alt={t("qr.title")} className="size-80 rounded-lg bg-card p-3" />}
+      {image && <img src={image} alt={t("qr.title")} className="aspect-square w-full max-w-80 rounded-lg bg-card p-3" />}
       <p className="text-sm text-muted-foreground">{t("qr.refreshes")}</p>
     </div>
   );

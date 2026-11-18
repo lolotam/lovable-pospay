@@ -49,7 +49,7 @@ function Row({ label, ok }: { label: MessageKey; ok: boolean }) {
 function Index() {
   const { data } = useSuspenseQuery(statusQuery);
   return (
-    <main className="mx-auto max-w-4xl px-6 py-16">
+    <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-16 lg:py-20">
       <p className="text-sm font-medium text-primary">{t("app.tagline")}</p>
       <h1 className="mt-3 text-4xl font-bold leading-tight md:text-5xl">{t("app.name")}</h1>
       <p className="mt-4 max-w-2xl text-lg text-muted-foreground">{t("app.description")}</p>

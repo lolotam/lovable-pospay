@@ -32,7 +32,7 @@ function SignIn() {
   }
 
   return (
-    <main className="mx-auto max-w-sm px-6 py-20">
+    <main className="mx-auto max-w-sm px-4 py-10 sm:px-6 sm:py-20">
       <h1 className="text-2xl font-bold">{t("auth.adminTitle")}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{t("auth.staffNote")}</p>
       <form onSubmit={onSubmit} className="mt-8 space-y-4">

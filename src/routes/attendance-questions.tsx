@@ -19,7 +19,7 @@ export const Route = createFileRoute("/attendance-questions")({
 function QuestionsPage() {
   const [question, setQuestion] = useState("");
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16 space-y-6">
+    <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-16 space-y-6">
       <Link to="/">{t("app.name")}</Link>
       <h1 className="text-2xl font-bold">{t("insights.title")}</h1>
       <p role="status" className="text-muted-foreground">

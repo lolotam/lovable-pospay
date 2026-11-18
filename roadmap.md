@@ -24,3 +24,6 @@
 - [x] Document supabase-pospay / ssh / dokploy rules in AGENTS.md
 - [x] List all DB variables in `.env.example`
 - [x] Applied migrations 0001-0005 on supabase-pospay (security advisors: 0)
+- [x] Super admin error/log diagnosis with default model (/admin/diagnose)
+- [x] Micro dark mode + settings toggle (/settings)
+- [x] Micro responsive pass for phone/tablet

@@ -23,7 +23,7 @@ export const Route = createFileRoute("/attend")({
 function AttendPage() {
   const { t: token } = Route.useSearch();
   return (
-    <main className="mx-auto max-w-sm px-6 py-16">
+    <main className="mx-auto max-w-sm px-4 py-8 sm:px-6 sm:py-16">
       <h1 className="mb-8 text-2xl font-bold">{t("attend.title")}</h1>
       {token ? <AttendScan token={token} /> : <p className="text-destructive">{t("attend.invalidQr")}</p>}
     </main>

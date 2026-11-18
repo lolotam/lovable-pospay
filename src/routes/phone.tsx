@@ -55,7 +55,7 @@ function PhonePage() {
     }
   }
   return (
-    <main className="mx-auto max-w-lg px-6 py-16 space-y-6">
+    <main className="mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-16 space-y-6">
       <Link to="/">{t("app.name")}</Link>
       <h1 className="text-2xl font-bold">{t("phone.title")}</h1>
       <label className="block">

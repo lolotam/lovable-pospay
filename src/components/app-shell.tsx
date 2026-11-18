@@ -20,8 +20,12 @@ const sections: { title: MessageKey | null; items: NavItem[] }[] = [
   },
   {
     title: "nav.section.platform",
-    items: [{ to: "/admin/connectors", label: "nav.connectors", icon: "⚙" }],
+    items: [
+      { to: "/admin/connectors", label: "nav.connectors", icon: "⚙" },
+      { to: "/admin/diagnose", label: "nav.diagnose", icon: "✚" },
+    ],
   },
+  { title: "nav.section.settings", items: [{ to: "/settings", label: "nav.settings", icon: "◐" }] },
   { title: "nav.section.account", items: [{ to: "/sign-in", label: "nav.signIn", icon: "→" }] },
 ];
 
@@ -32,7 +36,7 @@ export interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="hidden w-56 shrink-0 border-e border-sidebar-border bg-sidebar md:block">
+      <aside className="sticky top-0 hidden h-screen w-52 shrink-0 overflow-y-auto border-e border-sidebar-border bg-sidebar md:block lg:w-60">
         <div className="px-4 py-4 text-sm font-bold">{t("app.name")}</div>
         <nav className="flex flex-col gap-4 px-2 pb-4">
           {sections.map((s, i) => (
@@ -63,7 +67,7 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
       </aside>
       <div className="min-w-0 flex-1">
-        <nav className="flex gap-1 overflow-x-auto border-b border-border bg-sidebar px-2 py-2 md:hidden">
+        <nav className="sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-border bg-sidebar/95 px-2 py-1.5 backdrop-blur md:hidden">
           {sections
             .flatMap((s) => s.items)
             .map((item) => (
@@ -71,7 +75,7 @@ export function AppShell({ children }: AppShellProps) {
                 key={item.to}
                 to={item.to}
                 activeOptions={{ exact: true }}
-                className="shrink-0 rounded-md px-2 py-1 text-xs text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring data-[status=active]:bg-sidebar-accent data-[status=active]:font-medium data-[status=active]:text-sidebar-foreground"
+                className="inline-flex min-h-11 shrink-0 items-center rounded-md px-3 text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring data-[status=active]:bg-sidebar-accent data-[status=active]:font-medium data-[status=active]:text-sidebar-foreground"
               >
                 {t(item.label)}
               </Link>

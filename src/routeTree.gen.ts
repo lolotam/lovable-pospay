@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AttendRouteImport } from './routes/attend'
 import { Route as AttendanceQuestionsRouteImport } from './routes/attendance-questions'
 import { Route as PhoneRouteImport } from './routes/phone'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AdminConnectorsRouteImport } from './routes/admin/connectors'
+import { Route as AdminDiagnoseRouteImport } from './routes/admin/diagnose'
 import { Route as ReceptionQrRouteImport } from './routes/reception/qr'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -38,6 +40,11 @@ const PhoneRoute = PhoneRouteImport.update({
   path: '/phone',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
@@ -46,6 +53,11 @@ const SignInRoute = SignInRouteImport.update({
 const AdminConnectorsRoute = AdminConnectorsRouteImport.update({
   id: '/admin/connectors',
   path: '/admin/connectors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDiagnoseRoute = AdminDiagnoseRouteImport.update({
+  id: '/admin/diagnose',
+  path: '/admin/diagnose',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReceptionQrRoute = ReceptionQrRouteImport.update({
@@ -64,8 +76,10 @@ export interface FileRoutesByFullPath {
   '/attend': typeof AttendRoute
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/phone': typeof PhoneRoute
+  '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/admin/connectors': typeof AdminConnectorsRoute
+  '/admin/diagnose': typeof AdminDiagnoseRoute
   '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -74,8 +88,10 @@ export interface FileRoutesByTo {
   '/attend': typeof AttendRoute
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/phone': typeof PhoneRoute
+  '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/admin/connectors': typeof AdminConnectorsRoute
+  '/admin/diagnose': typeof AdminDiagnoseRoute
   '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -85,8 +101,10 @@ export interface FileRoutesById {
   '/attend': typeof AttendRoute
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/phone': typeof PhoneRoute
+  '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/admin/connectors': typeof AdminConnectorsRoute
+  '/admin/diagnose': typeof AdminDiagnoseRoute
   '/reception/qr': typeof ReceptionQrRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -97,8 +115,10 @@ export interface FileRouteTypes {
     | '/attend'
     | '/attendance-questions'
     | '/phone'
+    | '/settings'
     | '/sign-in'
     | '/admin/connectors'
+    | '/admin/diagnose'
     | '/reception/qr'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -107,8 +127,10 @@ export interface FileRouteTypes {
     | '/attend'
     | '/attendance-questions'
     | '/phone'
+    | '/settings'
     | '/sign-in'
     | '/admin/connectors'
+    | '/admin/diagnose'
     | '/reception/qr'
     | '/api/auth/$'
   id:
@@ -117,8 +139,10 @@ export interface FileRouteTypes {
     | '/attend'
     | '/attendance-questions'
     | '/phone'
+    | '/settings'
     | '/sign-in'
     | '/admin/connectors'
+    | '/admin/diagnose'
     | '/reception/qr'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -128,8 +152,10 @@ export interface RootRouteChildren {
   AttendRoute: typeof AttendRoute
   AttendanceQuestionsRoute: typeof AttendanceQuestionsRoute
   PhoneRoute: typeof PhoneRoute
+  SettingsRoute: typeof SettingsRoute
   SignInRoute: typeof SignInRoute
   AdminConnectorsRoute: typeof AdminConnectorsRoute
+  AdminDiagnoseRoute: typeof AdminDiagnoseRoute
   ReceptionQrRoute: typeof ReceptionQrRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -164,6 +190,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PhoneRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-in': {
       id: '/sign-in'
       path: '/sign-in'
@@ -176,6 +209,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/connectors'
       fullPath: '/admin/connectors'
       preLoaderRoute: typeof AdminConnectorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/diagnose': {
+      id: '/admin/diagnose'
+      path: '/admin/diagnose'
+      fullPath: '/admin/diagnose'
+      preLoaderRoute: typeof AdminDiagnoseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reception/qr': {
@@ -200,8 +240,10 @@ const rootRouteChildren: RootRouteChildren = {
   AttendRoute: AttendRoute,
   AttendanceQuestionsRoute: AttendanceQuestionsRoute,
   PhoneRoute: PhoneRoute,
+  SettingsRoute: SettingsRoute,
   SignInRoute: SignInRoute,
   AdminConnectorsRoute: AdminConnectorsRoute,
+  AdminDiagnoseRoute: AdminDiagnoseRoute,
   ReceptionQrRoute: ReceptionQrRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

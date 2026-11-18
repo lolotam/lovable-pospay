@@ -36,3 +36,12 @@ export interface LoginStartDto {
 }
 export type LoginPollDto =
   { status: "pending" | "complete" } | { status: "failed"; message: string };
+
+/** أقصى طول لنص الخطأ أو السجل المرسل للتشخيص. */
+export const DIAGNOSIS_MAX_CHARS = 20_000;
+export const diagnoseSchema = z.object({ text: z.string().trim().min(3).max(DIAGNOSIS_MAX_CHARS) });
+export interface DiagnosisDto {
+  provider: string;
+  model: string;
+  answer: string;
+}

@@ -23,7 +23,7 @@ export const Route = createFileRoute("/reception/qr")({
 function ReceptionQrPage() {
   const { branch } = Route.useSearch();
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-10">
+    <main className="flex min-h-screen items-center justify-center px-4 py-6 sm:px-6 sm:py-10">
       {branch ? <ReceptionQr branchId={branch} /> : <p>{t("qr.missingBranch")}</p>}
     </main>
   );
