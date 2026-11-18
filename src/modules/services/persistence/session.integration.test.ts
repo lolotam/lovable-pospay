@@ -95,6 +95,7 @@ describe.skipIf(!url)("service sessions real RLS", () => {
         company,
         new Date(Date.now() - 86400_000).toISOString(),
         new Date(Date.now() + 60_000).toISOString(),
+        20,
       ),
     );
     expect(rows).toHaveLength(1);

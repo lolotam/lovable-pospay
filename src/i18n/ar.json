@@ -251,5 +251,7 @@
   "cards.scanOutcomeReviewed": "راجعت سجل الحضور",
   "cards.dismissIssued": "إغلاق الكارت الصادر",
   "services.savedRefreshFailed": "اتحفظت الخدمة. حدّث الكتالوج عشان تشوف التعديل.",
-  "export.printBlocked": "المتصفح منع فتح نافذة الطباعة."
+  "export.printBlocked": "المتصفح منع فتح نافذة الطباعة.",
+  "reports.narrowRange": "التقرير أكبر من ٢٠٠٠ صف. اختر فترة أقصر.",
+  "cards.issueUnconfirmed": "تعذّر تأكيد إصدار الكارت. راجع القائمة بعد التحديث. لو الكارت نشط ومش قادر تطبعه، الغيه قبل إصدار بديل."
 }

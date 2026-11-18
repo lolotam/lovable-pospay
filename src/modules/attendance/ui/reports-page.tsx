@@ -85,9 +85,9 @@ function ReportRows({
       },
     }),
   );
-  const [printBlocked, setPrintBlocked] = useState(false);
   const [tab, setTab] = useState<"attendance" | "corrected" | "services">("attendance");
   if (!data) return <p role="alert">{t("ops.forbidden")}</p>;
+  if (data === "REPORT_TOO_LARGE") return <p role="alert">{t("reports.narrowRange")}</p>;
   const rows = tab === "corrected" ? data.attendance.filter((r) => r.corrected) : data.attendance;
   return (
     <section className="space-y-4">
@@ -110,6 +110,24 @@ function ReportRows({
           </Button>
         ))}
       </div>
+      <ReportExports data={data} tab={tab} range={range} />
+      {tab === "services" ? <SessionRows rows={data.sessions} /> : <AttendanceRows rows={rows} />}
+    </section>
+  );
+}
+
+function ReportExports({
+  data,
+  tab,
+  range,
+}: {
+  data: OperationalReport;
+  tab: "attendance" | "corrected" | "services";
+  range: { from: string; until: string; fromDate: string };
+}) {
+  const [printBlocked, setPrintBlocked] = useState(false);
+  return (
+    <>
       <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
@@ -132,8 +150,7 @@ function ReportRows({
         </Button>
       </div>
       {printBlocked && <p role="alert">{t("export.printBlocked")}</p>}
-      {tab === "services" ? <SessionRows rows={data.sessions} /> : <AttendanceRows rows={rows} />}
-    </section>
+    </>
   );
 }
 

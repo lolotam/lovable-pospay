@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { serviceSessionRecordingAvailable } from "@/modules/services/contracts";
+import { serviceSessionRecordingAvailable } from "@/modules/services";
 import { SessionsPage } from "@/modules/services/ui/sessions-page";
 import { operatorCompaniesQuery } from "@/modules/staff";
 import { t } from "@/i18n";

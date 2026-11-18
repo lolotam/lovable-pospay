@@ -1,4 +1,9 @@
-import { issueCardUseCase, revokeCardUseCase } from "../use-cases/card-actions";
+import {
+  approveCardPolicy,
+  issueCardUseCase,
+  loadCardManagement,
+  revokeCardUseCase,
+} from "../use-cases/card-actions";
 import { recordCard } from "../use-cases/card-scan";
 import { systemClock } from "@/shared/kernel/clock";
 import { cryptoIds } from "@/shared/kernel/ids";
@@ -9,17 +14,27 @@ export const getCardsFn = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
-    const { readCards } = await import("../persistence/card-repository.server");
-    return withUser(await requireUserId(), (db) => readCards(db, data.companyId));
+    const { readCardAccess, readCards } = await import("../persistence/card-repository.server");
+    return withUser(await requireUserId(), (db) =>
+      loadCardManagement({
+        access: () => readCardAccess(db, data.companyId),
+        read: () => readCards(db, data.companyId),
+      }),
+    );
   });
 export const approveCardsFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => cardScope.parse(v))
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
-    const { approveCards } = await import("../persistence/card-repository.server");
+    const { cardAudit, insertCardPolicy } = await import("../persistence/card-repository.server");
     const id = await requireUserId();
-    return withUser(id, (db) => approveCards(db, id, data.companyId));
+    return withUser(id, (db) =>
+      approveCardPolicy({
+        insert: () => insertCardPolicy(db, id, data.companyId),
+        audit: () => cardAudit(db, id, data.companyId, "cards.policy_approved", data.companyId, {}),
+      }),
+    );
   });
 export const issueCardFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => cardStaffInput.parse(v))

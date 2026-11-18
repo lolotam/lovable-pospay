@@ -51,12 +51,12 @@ function useCards({ companyId, policyOnly = false }: { companyId: string; policy
       if (action === "approve") await approve({ data: { companyId } });
       else if (action === "issue") setIssued(await issue({ data: { companyId, staffId: id } }));
       else await revoke({ data: { companyId, cardId: id } });
-      await cache.invalidateQueries({ queryKey: ["cards", companyId] });
       setConfirm(null);
       setMessage(t("ops.saved"));
     } catch {
-      setMessage(t("cards.error"));
+      setMessage(t(action === "issue" ? "cards.issueUnconfirmed" : "cards.error"));
     } finally {
+      await cache.invalidateQueries({ queryKey: ["cards", companyId] }).catch(() => undefined);
       setBusy(false);
     }
   }

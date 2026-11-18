@@ -4,12 +4,18 @@ export async function cardHash(token: string): Promise<string> {
   const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
   return Buffer.from(hash).toString("hex");
 }
-export async function readCards(db: pg.PoolClient, companyId: string): Promise<CardManagement> {
-  const access = await db.query(
+export async function readCardAccess(db: pg.PoolClient, companyId: string) {
+  const access = await db.query<{ member: boolean; manager: boolean }>(
     `select public.is_member($1) as member, public.card_manager($1) as manager`,
     [companyId],
   );
-  if (!access.rows[0]?.member) throw new Error("FORBIDDEN");
+  return access.rows[0];
+}
+
+export async function readCards(
+  db: pg.PoolClient,
+  companyId: string,
+): Promise<Omit<CardManagement, "canApprove">> {
   const policy = await db.query(
     `select approved_at from public.card_policies where company_id=$1`,
     [companyId],
@@ -25,17 +31,15 @@ export async function readCards(db: pg.PoolClient, companyId: string): Promise<C
   );
   return {
     approvedAt: policy.rows[0]?.approved_at?.toISOString() ?? null,
-    canApprove: access.rows[0].manager,
     staff: staff.rows,
   };
 }
-export async function approveCards(db: pg.PoolClient, userId: string, companyId: string) {
+export async function insertCardPolicy(db: pg.PoolClient, userId: string, companyId: string) {
   const result = await db.query(
     `insert into public.card_policies(company_id,approved_by) values($1,$2) on conflict do nothing returning company_id`,
     [companyId, userId],
   );
-  if (result.rowCount)
-    await cardAudit(db, userId, companyId, "cards.policy_approved", companyId, {});
+  return !!result.rowCount;
 }
 export async function cardAudit(
   db: pg.PoolClient,

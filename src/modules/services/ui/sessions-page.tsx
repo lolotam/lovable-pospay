@@ -6,6 +6,7 @@ import { CompanyScope } from "@/modules/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
+import type { SessionFormDto } from "../contracts";
 import { getSessionFormFn, recordSessionFn } from "../functions/session.functions";
 
 const formQuery = (companyId: string) =>
@@ -86,60 +87,20 @@ function SessionForm({ companyId }: { companyId: string }) {
         submit();
       }}
     >
-      <label className="block space-y-2">
-        <span>{t("sessions.service")}</span>
-        <select
-          className={selectClass}
-          value={f.serviceId}
-          onChange={(e) => set("serviceId")(e.target.value)}
-          required
-        >
-          <option value="">{t("sessions.choose")}</option>
-          {data.services.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block space-y-2">
-        <span>{t("sessions.staff")}</span>
-        <select
-          className={selectClass}
-          value={f.staffId}
-          onChange={(e) => set("staffId")(e.target.value)}
-          required
-          disabled={!service}
-        >
-          <option value="">{t("sessions.choose")}</option>
-          {staff.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block space-y-2">
-        <span>{t("sessions.clientName")}</span>
-        <Input
-          value={f.clientName}
-          onChange={(e) => set("clientName")(e.target.value)}
-          required
-          maxLength={120}
-        />
-      </label>
-      <label className="block space-y-2">
-        <span>{t("sessions.clientPhone")}</span>
-        <Input
-          dir="ltr"
-          inputMode="tel"
-          value={f.clientPhone}
-          onChange={(e) => set("clientPhone")(e.target.value)}
-          required
-          minLength={8}
-          maxLength={24}
-        />
-      </label>
+      <SessionSelectors
+        services={data.services}
+        staff={staff}
+        serviceId={f.serviceId}
+        staffId={f.staffId}
+        onService={set("serviceId")}
+        onStaff={set("staffId")}
+      />
+      <SessionClientFields
+        name={f.clientName}
+        phone={f.clientPhone}
+        onName={set("clientName")}
+        onPhone={set("clientPhone")}
+      />
       <label className="block space-y-2">
         <span>
           {t("sessions.at")} {selectedStaff && <bdi>{selectedStaff.timeZone}</bdi>}
@@ -164,5 +125,92 @@ function SessionForm({ companyId }: { companyId: string }) {
       </Button>
       <p role="status">{message}</p>
     </form>
+  );
+}
+
+function SessionSelectors({
+  services,
+  staff,
+  serviceId,
+  staffId,
+  onService,
+  onStaff,
+}: {
+  services: SessionFormDto["services"];
+  staff: SessionFormDto["staff"];
+  serviceId: string;
+  staffId: string;
+  onService: (id: string) => void;
+  onStaff: (id: string) => void;
+}) {
+  return (
+    <>
+      <label className="block space-y-2">
+        <span>{t("sessions.service")}</span>
+        <select
+          className={selectClass}
+          value={serviceId}
+          onChange={(e) => onService(e.target.value)}
+          required
+        >
+          <option value="">{t("sessions.choose")}</option>
+          {services.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block space-y-2">
+        <span>{t("sessions.staff")}</span>
+        <select
+          className={selectClass}
+          value={staffId}
+          onChange={(e) => onStaff(e.target.value)}
+          required
+          disabled={!serviceId}
+        >
+          <option value="">{t("sessions.choose")}</option>
+          {staff.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    </>
+  );
+}
+
+function SessionClientFields({
+  name,
+  phone,
+  onName,
+  onPhone,
+}: {
+  name: string;
+  phone: string;
+  onName: (value: string) => void;
+  onPhone: (value: string) => void;
+}) {
+  return (
+    <>
+      <label className="block space-y-2">
+        <span>{t("sessions.clientName")}</span>
+        <Input value={name} onChange={(e) => onName(e.target.value)} required maxLength={120} />
+      </label>
+      <label className="block space-y-2">
+        <span>{t("sessions.clientPhone")}</span>
+        <Input
+          dir="ltr"
+          inputMode="tel"
+          value={phone}
+          onChange={(e) => onPhone(e.target.value)}
+          required
+          minLength={8}
+          maxLength={24}
+        />
+      </label>
+    </>
   );
 }

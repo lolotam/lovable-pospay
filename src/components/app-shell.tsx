@@ -3,7 +3,7 @@ import type { FileRoutesByTo } from "@/routeTree.gen";
 import { useEffect, useRef, type ReactNode } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { t, type MessageKey } from "@/i18n";
-import { serviceSessionRecordingAvailable } from "@/modules/services/contracts";
+import { serviceSessionRecordingAvailable } from "@/modules/services";
 
 interface NavItem {
   to: keyof FileRoutesByTo;

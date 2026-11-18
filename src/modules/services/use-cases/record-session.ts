@@ -1,3 +1,4 @@
+import { serviceSessionRecordingAvailable, type SessionFormDto } from "../contracts";
 import { normalizePhone } from "../domain/client-phone";
 import type { SessionRepository } from "../ports/session-repository";
 
@@ -46,4 +47,10 @@ export async function recordSession(
     priceMills: service.priceMills.toString(),
   });
   return { id };
+}
+
+export function loadSessionForm(read: () => Promise<SessionFormDto>): Promise<SessionFormDto> {
+  return serviceSessionRecordingAvailable
+    ? read()
+    : Promise.resolve({ canRecord: false, services: [], staff: [] });
 }

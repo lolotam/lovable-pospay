@@ -1,59 +1,93 @@
 import type pg from "pg";
-import type { z } from "zod";
-import type { saveServiceInput, ServiceCatalogDto } from "../contracts";
+import type {
+  CatalogDetails,
+  CatalogReader,
+  CatalogSnapshot,
+  CatalogWriter,
+} from "../ports/catalog-repository";
 
-export async function readCatalog(
-  db: pg.PoolClient,
-  companyId: string,
-): Promise<ServiceCatalogDto> {
-  const access = await db.query(
-    `select public.is_member($1) as member,public.catalog_manager($1) as manager`,
-    [companyId],
-  );
-  if (!access.rows[0]?.member) throw new Error("FORBIDDEN");
-  const services = await db.query(
-    `select c.id,c.name,c.price_mills::text as "priceMills",c.version,
- coalesce((select json_agg(a.staff_id) from public.service_assignments a where a.company_id=c.company_id and a.service_id=c.id and a.active),'[]') as "staffIds" from public.service_catalog c where company_id=$1 order by name`,
-    [companyId],
-  );
-  const staff = await db.query(
-    `select id,display_name as name from public.staff_members where company_id=$1 order by display_name`,
-    [companyId],
-  );
-  return { canManage: access.rows[0].manager, services: services.rows, staff: staff.rows };
+export function pgCatalogReader(db: pg.PoolClient, companyId: string): CatalogReader {
+  return {
+    async access() {
+      const { rows } = await db.query<{ member: boolean; manager: boolean }>(
+        `select public.is_member($1) as member,public.catalog_manager($1) as manager`,
+        [companyId],
+      );
+      return rows[0];
+    },
+    async read() {
+      const { rows: services } = await db.query(
+        `select c.id,c.name,c.price_mills::text as "priceMills",c.version,
+         coalesce((select json_agg(a.staff_id) from public.service_assignments a
+          where a.company_id=c.company_id and a.service_id=c.id and a.active),'[]') as "staffIds"
+         from public.service_catalog c where c.company_id=$1 order by c.name`,
+        [companyId],
+      );
+      const { rows: staff } = await db.query(
+        "select id,display_name as name from public.staff_members where company_id=$1 order by display_name",
+        [companyId],
+      );
+      return { services, staff };
+    },
+  };
 }
-export async function saveService(
+
+export function pgCatalogWriter(
   db: pg.PoolClient,
   userId: string,
-  input: z.infer<typeof saveServiceInput>,
-  priceMills: bigint,
-) {
-  const access = await db.query(`select public.catalog_manager($1) as manager`, [input.companyId]);
-  if (!access.rows[0]?.manager) throw new Error("FORBIDDEN");
-  const price = priceMills.toString();
-  const staffIds = [...new Set(input.staffIds)];
-  const prior = input.id
-    ? await db.query(
-        `select name,price_mills::text,version from public.service_catalog where company_id=$1 and id=$2 for update`,
-        [input.companyId, input.id],
-      )
-    : null;
-  if (input.id && (!prior?.rows[0] || prior.rows[0].version !== input.version))
-    throw new Error("SERVICE_CONFLICT");
-  const result = input.id
-    ? await db.query(
-        `update public.service_catalog set name=$3,price_mills=$4,version=version+1 where company_id=$1 and id=$2 returning id`,
-        [input.companyId, input.id, input.name, price],
-      )
-    : await db.query(
+  companyId: string,
+): CatalogWriter {
+  return {
+    async canManage() {
+      const { rows } = await db.query<{ manager: boolean }>(
+        "select public.catalog_manager($1) as manager",
+        [companyId],
+      );
+      return !!rows[0]?.manager;
+    },
+    async lock(id) {
+      const { rows } = await db.query<CatalogSnapshot>(
+        "select name,price_mills::text,version from public.service_catalog where company_id=$1 and id=$2 for update",
+        [companyId, id],
+      );
+      return rows[0];
+    },
+    async update(id, details) {
+      await db.query(
+        "update public.service_catalog set name=$3,price_mills=$4,version=version+1 where company_id=$1 and id=$2",
+        [companyId, id, details.name, details.priceMills],
+      );
+    },
+    async create(details, requestId) {
+      const { rows } = await db.query<{ id: string }>(
         `insert into public.service_catalog(company_id,name,price_mills,id)
          values($1,$2,$3,coalesce($4::uuid,gen_random_uuid()))
          on conflict(company_id,id) do nothing returning id`,
-        [input.companyId, input.name, price, input.requestId ?? null],
+        [companyId, details.name, details.priceMills, requestId ?? null],
       );
-  if (!input.id && input.requestId && !result.rowCount) {
-    const { rows } = await db.query<{ matches: boolean }>(
-      `select exists (
+      return rows[0]?.id ?? null;
+    },
+    matchesCreation: (id, details) => matchesCreation(db, companyId, userId, id, details),
+    replaceAssignments: (id, staffIds) => replaceAssignments(db, companyId, id, staffIds),
+    async audit(id, previous, details) {
+      await db.query(
+        `insert into public.audit_log(company_id,actor_user_id,action,entity,entity_id,details)
+         values($1,$2,'service.saved','service',$3,$4)`,
+        [companyId, userId, id, JSON.stringify({ previous, ...details })],
+      );
+    },
+  };
+}
+
+async function matchesCreation(
+  db: pg.PoolClient,
+  companyId: string,
+  userId: string,
+  id: string,
+  details: CatalogDetails,
+) {
+  const { rows } = await db.query<{ matches: boolean }>(
+    `select exists (
         select 1 from public.audit_log
         where company_id=$1 and actor_user_id=$2 and entity_id=$3
           and entity='service' and action='service.saved'
@@ -61,40 +95,31 @@ export async function saveService(
           and details->>'name'=$4 and details->>'priceMills'=$5
           and (details->'staffIds') @> $6::jsonb and $6::jsonb @> (details->'staffIds')
       ) as matches`,
-      [input.companyId, userId, input.requestId, input.name, price, JSON.stringify(staffIds)],
-    );
-    if (!rows[0]?.matches) throw new Error("SERVICE_REQUEST_CONFLICT");
-    return { id: input.requestId };
-  }
-  const id = result.rows[0].id;
-  const selected = await db.query(
-    `select id from public.staff_members where company_id=$1 and id=any($2::uuid[])`,
-    [input.companyId, staffIds],
+    [companyId, userId, id, details.name, details.priceMills, JSON.stringify(details.staffIds)],
   );
-  if (selected.rowCount !== staffIds.length) throw new Error("FORBIDDEN");
+  return !!rows[0]?.matches;
+}
+
+async function replaceAssignments(
+  db: pg.PoolClient,
+  companyId: string,
+  id: string,
+  staffIds: string[],
+) {
+  const selected = await db.query(
+    "select id from public.staff_members where company_id=$1 and id=any($2::uuid[])",
+    [companyId, staffIds],
+  );
+  if (selected.rowCount !== staffIds.length) return false;
   await db.query(
-    `update public.service_assignments set active=false where company_id=$1 and service_id=$2`,
-    [input.companyId, id],
+    "update public.service_assignments set active=false where company_id=$1 and service_id=$2",
+    [companyId, id],
   );
   await db.query(
     `insert into public.service_assignments(company_id,service_id,staff_id)
-     select $1,$2,staff_id from unnest($3::uuid[]) as assigned(staff_id)
-     on conflict(company_id,service_id,staff_id) do update set active=true`,
-    [input.companyId, id, staffIds],
+       select $1,$2,staff_id from unnest($3::uuid[]) as assigned(staff_id)
+       on conflict(company_id,service_id,staff_id) do update set active=true`,
+    [companyId, id, staffIds],
   );
-  await db.query(
-    `insert into public.audit_log(company_id,actor_user_id,action,entity,entity_id,details) values($1,$2,'service.saved','service',$3,$4)`,
-    [
-      input.companyId,
-      userId,
-      id,
-      JSON.stringify({
-        previous: prior?.rows[0] ?? null,
-        name: input.name,
-        priceMills: price,
-        staffIds,
-      }),
-    ],
-  );
-  return { id };
+  return true;
 }

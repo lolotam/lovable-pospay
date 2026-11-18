@@ -7,7 +7,12 @@ import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
 import { scanCardFn } from "../functions/card.functions";
 export function CardScanPage() {
-  return <CompanyScope title="cards.scanTitle">{(id) => <Scanner companyId={id} />}</CompanyScope>;
+  const [switchLocked, setSwitchLocked] = useState(false);
+  return (
+    <CompanyScope title="cards.scanTitle" switchLocked={switchLocked}>
+      {(id) => <Scanner companyId={id} onSwitchLockChange={setSwitchLocked} />}
+    </CompanyScope>
+  );
 }
 function useScanner({ companyId }: { companyId: string }) {
   const scan = useServerFn(scanCardFn);
@@ -43,10 +48,19 @@ function useScanner({ companyId }: { companyId: string }) {
   }
   return { token, setToken, busy, prompt, setPrompt, message, uncertain, setUncertain, run };
 }
-function Scanner({ companyId }: { companyId: string }) {
+function Scanner({
+  companyId,
+  onSwitchLockChange,
+}: {
+  companyId: string;
+  onSwitchLockChange: (locked: boolean) => void;
+}) {
   const { token, setToken, busy, prompt, setPrompt, message, uncertain, setUncertain, run } =
     useScanner({ companyId });
   const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    onSwitchLockChange(busy || uncertain || !!prompt);
+  }, [busy, uncertain, prompt, onSwitchLockChange]);
   useEffect(() => {
     if (!busy && !prompt && !uncertain) input.current?.focus();
   }, [busy, prompt, uncertain]);

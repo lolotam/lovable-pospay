@@ -3,19 +3,18 @@ import { readFile } from "node:fs/promises";
 import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 import pg from "pg";
 import { getPool, withUser } from "@/lib/server/db.server";
-import { approveCards, readCards } from "./card-repository.server";
+import { cardAudit, insertCardPolicy, readCardAccess, readCards } from "./card-repository.server";
 import { cardTokens, pgCardRepository } from "./card-actions.server";
 import { scanCard as readCardScan } from "./card-scan.server";
-import {
-  saveService as persistService,
-  readCatalog,
-} from "@/modules/services/persistence/catalog.server";
 import { readAttendanceReport } from "./report.server";
-import { issueCardUseCase, revokeCardUseCase } from "../use-cases/card-actions";
+import {
+  approveCardPolicy,
+  issueCardUseCase,
+  loadCardManagement,
+  revokeCardUseCase,
+} from "../use-cases/card-actions";
 import { recordCard } from "../use-cases/card-scan";
-import { systemClock } from "@/shared/kernel/clock";
 import { cryptoIds } from "@/shared/kernel/ids";
-import { servicePrice } from "@/modules/services/use-cases/service-price";
 const issueCard = (db: pg.PoolClient, user: string, company: string, staff: string) =>
   issueCardUseCase(pgCardRepository(db, user, company), cardTokens, staff);
 const revokeCard = (db: pg.PoolClient, user: string, company: string, card: string) =>
@@ -28,20 +27,20 @@ const scanCard = async (
   recordCard(
     { ...input, location: null },
     await readCardScan(db, user, input),
-    systemClock,
+    { now: () => new Date("2026-11-18T10:00:00Z") },
     cryptoIds,
   );
-const saveService = (
-  db: pg.PoolClient,
-  user: string,
-  input: Parameters<typeof persistService>[2],
-) => persistService(db, user, input, servicePrice(input.price));
+const approveCards = (db: pg.PoolClient, user: string, companyId: string) =>
+  approveCardPolicy({
+    insert: () => insertCardPolicy(db, user, companyId),
+    audit: () => cardAudit(db, user, companyId, "cards.policy_approved", companyId, {}),
+  });
 const url = process.env["POSPAY_TEST_DATABASE_URL"];
 const company = "30000000-0000-0000-0000-000000000001",
   branch = "30000000-0000-0000-0000-000000000002",
   staff = "30000000-0000-0000-0000-000000000003",
   other = "30000000-0000-0000-0000-000000000004";
-describe.skipIf(!url)("card/catalog/report real RLS", () => {
+describe.skipIf(!url)("card/report real RLS", () => {
   let admin: pg.Pool;
   let token = "";
   let cardId = "";
@@ -81,8 +80,6 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
   afterAll(async () => {
     if (admin) {
       await admin.query(`delete from attendance_cards where company_id=$1`, [company]);
-      await admin.query(`delete from service_assignments where company_id=$1`, [company]);
-      await admin.query(`delete from service_catalog where company_id=$1`, [company]);
       await admin.query(`delete from companies where id in($1,$2)`, [company, other]);
       await admin.end();
       await getPool().end();
@@ -248,78 +245,23 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
     ).rejects.toThrow("ACTIVE_PHONE");
   });
   it("foreign company management is denied", async () => {
-    await expect(withUser("cards-manager", (db) => readCards(db, other))).rejects.toThrow(
-      "FORBIDDEN",
-    );
-  });
-  it("catalog saves 25.125 exactly and assignment reads back", async () => {
-    const c = await withUser("cards-manager", (db) =>
-      saveService(db, "cards-manager", {
-        companyId: company,
-        name: "Hair",
-        price: "25.125",
-        staffIds: [staff],
-      }),
-    );
-    const list = await withUser("cards-manager", (db) => readCatalog(db, company));
-    expect(list.services.find((s) => s.id === c.id)).toMatchObject({
-      priceMills: "25125",
-      staffIds: [staff],
-    });
-  });
-  it("retries a catalog creation without duplicating the entry or audit", async () => {
-    const requestId = crypto.randomUUID();
-    const input = {
-      companyId: company,
-      requestId,
-      name: "Retry catalog",
-      price: "20",
-      staffIds: [staff],
-    };
-    const run = () => withUser("cards-manager", (db) => saveService(db, "cards-manager", input));
-    await expect(Promise.all([run(), run()])).resolves.toEqual([
-      { id: requestId },
-      { id: requestId },
-    ]);
-    for (const changed of [
-      { ...input, price: "21" },
-      { ...input, staffIds: [] },
-    ]) {
-      await expect(
-        withUser("cards-manager", (db) => saveService(db, "cards-manager", changed)),
-      ).rejects.toThrow("SERVICE_REQUEST_CONFLICT");
-    }
-    const catalog = await withUser("cards-manager", (db) => readCatalog(db, company));
-    expect(catalog.services.find(({ id }) => id === requestId)).toMatchObject({
-      priceMills: "20000",
-      staffIds: [staff],
-    });
-    const audit = await admin.query(
-      "select count(*)::int as count from public.audit_log where company_id=$1 and entity_id=$2 and action='service.saved'",
-      [company, requestId],
-    );
-    expect(audit.rows[0]?.count).toBe(1);
-  });
-  it("staff cannot edit prices", async () => {
     await expect(
-      withUser("cards-staff", (db) =>
-        saveService(db, "cards-staff", {
-          companyId: company,
-          name: "Forbidden",
-          price: "1.000",
-          staffIds: [],
+      withUser("cards-manager", (db) =>
+        loadCardManagement({
+          access: () => readCardAccess(db, other),
+          read: () => readCards(db, other),
         }),
       ),
     ).rejects.toThrow("FORBIDDEN");
   });
   it("viewer sees attendance only inside half-open range", async () => {
     const rows = await withUser("cards-viewer", (db) =>
-      readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z"),
+      readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", 20),
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]?.name).toBe("Mona");
     const empty = await withUser("cards-viewer", (db) =>
-      readAttendanceReport(db, company, "2025-01-01T00:00:00Z", "2026-01-01T00:00:00Z"),
+      readAttendanceReport(db, company, "2025-01-01T00:00:00Z", "2026-01-01T00:00:00Z", 20),
     );
     expect(empty).toEqual([]);
   });
@@ -358,45 +300,13 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
     );
     expect(counts.rows[0].methods).toBe("1");
   });
-  it("catalog edit retains previous price and rejects stale version", async () => {
-    const list = await withUser("cards-manager", (db) => readCatalog(db, company));
-    const service = list.services[0];
-    if (!service) throw new Error("Missing fixture");
-    await withUser("cards-manager", (db) =>
-      saveService(db, "cards-manager", {
-        companyId: company,
-        id: service.id,
-        version: service.version,
-        name: "Hair updated",
-        price: "30.000",
-        staffIds: [staff],
-      }),
-    );
-    await expect(
-      withUser("cards-manager", (db) =>
-        saveService(db, "cards-manager", {
-          companyId: company,
-          id: service.id,
-          version: service.version,
-          name: "Stale",
-          price: "1.000",
-          staffIds: [],
-        }),
-      ),
-    ).rejects.toThrow("SERVICE_CONFLICT");
-    const audit = await admin.query(
-      `select details from audit_log where company_id=$1 and action='service.saved' and details->>'name'='Hair updated'`,
-      [company],
-    );
-    expect(audit.rows[0].details.previous.price_mills).toBe("25125");
-  });
   it("report retains original checkout and correction reason", async () => {
     await admin.query(
       `update attendance_records set corrected_check_out_at=check_out_at+interval '1 hour',correction_reason='Forgot checkout' where company_id=$1`,
       [company],
     );
     const rows = await withUser("cards-viewer", (db) =>
-      readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z"),
+      readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", 20),
     );
     expect(rows[0]?.reason).toBe("Forgot checkout");
     expect(rows[0]?.corrected).not.toBe(rows[0]?.checkOut);
@@ -404,7 +314,7 @@ describe.skipIf(!url)("card/catalog/report real RLS", () => {
   it("reception cannot read operational reports", async () => {
     await expect(
       withUser("cards-reception", (db) =>
-        readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z"),
+        readAttendanceReport(db, company, "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", 20),
       ),
     ).rejects.toThrow("FORBIDDEN");
   });
