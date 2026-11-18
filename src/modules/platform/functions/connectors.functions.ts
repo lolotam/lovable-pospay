@@ -52,8 +52,9 @@ export const pollAccountLoginFn = createServerFn({ method: "POST" })
     asSuperAdmin(async (db, userId) => {
       const { pollLogin } = await import("../persistence/oauth-flows.server");
       const store = await import("../persistence/credentials.server");
-      const login = await store.readLogin(db, data.loginId);
-      if (!login) return { status: "failed", message: "EXPIRED" };
+      const login = await store.lockActiveLogin(db, data.loginId);
+      if (login.status === "busy") return { status: "pending" };
+      if (login.status === "expired") return { status: "failed", message: "EXPIRED" };
       const r = await pollLogin(login.provider, login.state);
       if (r.status === "pending") return r;
       await store.dropLogin(db, data.loginId);

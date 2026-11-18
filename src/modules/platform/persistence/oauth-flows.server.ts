@@ -27,6 +27,7 @@ const MINIMAX_AUTH = "https://account.minimax.io";
 const MINIMAX_CLIENT_ID = "659cf4c1-615c-45f6-a5f6-4bf15eb476e5";
 const ZCODE = "https://zcode.z.ai/api/v1";
 const ZAI = "https://api.z.ai";
+const PROVIDER_TIMEOUT_MS = 10_000;
 
 const form = (body: Record<string, string>): RequestInit => ({
   method: "POST",
@@ -41,10 +42,11 @@ const postJson = (body: unknown, token?: string): RequestInit => ({
   },
   body: JSON.stringify(body),
 });
-async function readJson(res: Response): Promise<Json | null> {
+async function readJson(res: Response, signal?: AbortSignal): Promise<Json | null> {
   try {
     return (await res.json()) as Json;
   } catch {
+    signal?.throwIfAborted();
     return null;
   }
 }
@@ -169,43 +171,43 @@ function codexCredential(t: Json, prev: Credential | null = null): Credential {
     extras: { ...(prev?.extras ?? {}), accountId },
   };
 }
-async function pollCodex(s: Json): Promise<PollResult> {
-  const res = await fetch(
-    `${OPENAI_AUTH}/api/accounts/deviceauth/token`,
-    postJson({ device_auth_id: s.deviceAuthId, user_code: s.userCode }),
-  );
+async function pollCodex(s: Json, signal: AbortSignal): Promise<PollResult> {
+  const res = await fetch(`${OPENAI_AUTH}/api/accounts/deviceauth/token`, {
+    ...postJson({ device_auth_id: s.deviceAuthId, user_code: s.userCode }),
+    signal,
+  });
   if (res.status === 403 || res.status === 404) return { status: "pending" };
-  const j = await readJson(res);
+  const j = await readJson(res, signal);
   if (!res.ok) {
     const c = oauthError(j);
     return c === "deviceauth_authorization_pending" || c === "slow_down"
       ? { status: "pending" }
       : { status: "failed", message: `HTTP ${res.status}` };
   }
-  const tok = await fetch(
-    `${OPENAI_AUTH}/oauth/token`,
-    form({
+  const tok = await fetch(`${OPENAI_AUTH}/oauth/token`, {
+    ...form({
       grant_type: "authorization_code",
       client_id: CODEX_CLIENT_ID,
       code: j?.authorization_code,
       code_verifier: j?.code_verifier,
       redirect_uri: `${OPENAI_AUTH}/deviceauth/callback`,
     }),
-  );
-  const t = await readJson(tok);
+    signal,
+  });
+  const t = await readJson(tok, signal);
   if (!tok.ok || !t?.access_token) return { status: "failed", message: `HTTP ${tok.status}` };
   return { status: "complete", credential: codexCredential(t) };
 }
-async function pollKimi(s: Json): Promise<PollResult> {
-  const res = await fetch(
-    `${KIMI_AUTH}/api/oauth/token`,
-    form({
+async function pollKimi(s: Json, signal: AbortSignal): Promise<PollResult> {
+  const res = await fetch(`${KIMI_AUTH}/api/oauth/token`, {
+    ...form({
       client_id: KIMI_CLIENT_ID,
       device_code: s.deviceCode,
       grant_type: "urn:ietf:params:oauth:grant-type:device_code",
     }),
-  );
-  const j = await readJson(res);
+    signal,
+  });
+  const j = await readJson(res, signal);
   if (res.ok && j?.access_token)
     return {
       status: "complete",
@@ -219,17 +221,17 @@ async function pollKimi(s: Json): Promise<PollResult> {
   if (c === "authorization_pending" || c === "slow_down") return { status: "pending" };
   return { status: "failed", message: c ?? `HTTP ${res.status}` };
 }
-async function pollMinimax(s: Json): Promise<PollResult> {
-  const res = await fetch(
-    `${MINIMAX_AUTH}/oauth2/token`,
-    form({
+async function pollMinimax(s: Json, signal: AbortSignal): Promise<PollResult> {
+  const res = await fetch(`${MINIMAX_AUTH}/oauth2/token`, {
+    ...form({
       grant_type: "urn:ietf:params:oauth:grant-type:device_code",
       client_id: MINIMAX_CLIENT_ID,
       user_code: s.userCode,
       code_verifier: s.verifier,
     }),
-  );
-  const j = await readJson(res);
+    signal,
+  });
+  const j = await readJson(res, signal);
   if (!res.ok) return { status: "failed", message: `HTTP ${res.status}` };
   if (j?.status === "pending") return { status: "pending" };
   if (j?.status !== "success" || !j.access_token) return { status: "failed", message: "denied" };
@@ -238,16 +240,20 @@ async function pollMinimax(s: Json): Promise<PollResult> {
     credential: { access: j.access_token, refresh: j.refresh_token, expires: Number(j.expired_in) },
   };
 }
-async function pollZai(s: Json): Promise<PollResult> {
+async function pollZai(s: Json, signal: AbortSignal): Promise<PollResult> {
   const res = await fetch(`${ZCODE}/oauth/cli/poll/${encodeURIComponent(s.flowId)}`, {
     headers: { Authorization: `Bearer ${s.pollToken}` },
+    signal,
   });
-  const d = (await readJson(res))?.data;
+  const d = (await readJson(res, signal))?.data;
   if (!res.ok) return { status: "failed", message: `HTTP ${res.status}` };
   if (d?.status === "pending") return { status: "pending" };
   const oauth = d?.zai?.access_token || d?.zai?.accessToken;
   if (d?.status !== "ready" || !oauth) return { status: "failed", message: "denied" };
-  return { status: "complete", credential: await zaiProjectToken(oauth, { email: d.user?.email }) };
+  return {
+    status: "complete",
+    credential: await zaiProjectToken(oauth, { email: d.user?.email }, signal),
+  };
 }
 
 export function pollLogin(p: AccountProvider, s: Json): Promise<PollResult> {
@@ -256,13 +262,12 @@ export function pollLogin(p: AccountProvider, s: Json): Promise<PollResult> {
     kimi_coding: pollKimi,
     minimax_coding: pollMinimax,
     zai_coding: pollZai,
-  }[p](s);
+  }[p](s, AbortSignal.timeout(PROVIDER_TIMEOUT_MS));
 }
 
 async function zaiJson(url: string, init: RequestInit) {
   const res = await fetch(url, init);
-  const j = await readJson(res);
-  init.signal?.throwIfAborted();
+  const j = await readJson(res, init.signal ?? undefined);
   if (res.status === 401 || res.status === 403) throw new AuthRejected("ZAI_EXPIRED");
   if (!res.ok || (j?.code !== undefined && ![0, 200, "0", "200"].includes(j.code)))
     throw new Error(`ZAI_${res.status}`);
@@ -294,7 +299,7 @@ async function zaiLocation(biz: string, signal: AbortSignal): Promise<Json> {
 async function zaiProjectToken(
   oauth: string,
   extras: Json,
-  signal = AbortSignal.timeout(10_000),
+  signal: AbortSignal = AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
 ): Promise<Credential> {
   const login = await zaiJson(`${ZAI}/api/auth/z/login`, { ...postJson({ token: oauth }), signal });
   const biz = login?.access_token || login?.accessToken;
@@ -322,15 +327,14 @@ const REFRESH: Record<Exclude<AccountProvider, "zai_coding">, [string, string]> 
 };
 export async function refreshCredential(p: AccountProvider, c: Credential): Promise<Credential> {
   if (!c.refresh) throw new AuthRejected("EXPIRED");
-  const signal = AbortSignal.timeout(10_000);
+  const signal = AbortSignal.timeout(PROVIDER_TIMEOUT_MS);
   if (p === "zai_coding") return zaiProjectToken(c.refresh, c.extras ?? {}, signal);
   const [url, client_id] = REFRESH[p];
   const res = await fetch(url, {
     ...form({ grant_type: "refresh_token", client_id, refresh_token: c.refresh }),
     signal,
   });
-  const j = await readJson(res);
-  signal.throwIfAborted();
+  const j = await readJson(res, signal);
   if (!res.ok) {
     const code = oauthError(j);
     if (

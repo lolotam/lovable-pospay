@@ -107,13 +107,20 @@ export async function saveLogin(
   );
   return r.rows[0].id as string;
 }
-export async function readLogin(db: pg.PoolClient, loginId: string) {
+export async function lockActiveLogin(db: pg.PoolClient, loginId: string) {
   const r = await db.query(
-    "select provider,state from public.platform_logins where id=$1 and expires_at>now()",
+    "select provider,state from public.platform_logins where id=$1 and expires_at>now() for update skip locked",
     [loginId],
   );
-  if (!r.rows[0]) return null;
+  if (!r.rows[0]) {
+    const active = await db.query(
+      "select 1 from public.platform_logins where id=$1 and expires_at>now()",
+      [loginId],
+    );
+    return active.rows.length ? { status: "busy" as const } : { status: "expired" as const };
+  }
   return {
+    status: "locked" as const,
     provider: r.rows[0].provider as AccountProvider,
     state: JSON.parse(await open(r.rows[0].state)),
   };

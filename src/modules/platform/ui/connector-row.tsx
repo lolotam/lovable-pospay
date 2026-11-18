@@ -32,17 +32,27 @@ export function ConnectorRow({ def, status, onChange }: ConnectorRowProps) {
 
   useEffect(() => {
     if (!login) return;
-    const id = setInterval(async () => {
-      const r = await pollAccountLoginFn({ data: { loginId: login.loginId } }).catch(() => ({
+    const { loginId } = login;
+    const controller = new AbortController();
+    const { signal } = controller;
+    const poll = async () => {
+      const r = await pollAccountLoginFn({ data: { loginId }, signal }).catch(() => ({
         status: "failed" as const,
-        message: "",
       }));
-      if (r.status === "pending") return;
+      if (signal.aborted) return;
+      if (r.status === "pending") {
+        timer = setTimeout(() => void poll(), 3000);
+        return;
+      }
       setLogin(null);
       setMsg(r.status === "complete" ? t("conn.done") : t("conn.failed"));
       onChange();
-    }, 3000);
-    return () => clearInterval(id);
+    };
+    let timer = setTimeout(() => void poll(), 3000);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [login, onChange]);
 
   const run = async (fn: () => Promise<unknown>, ok?: string) => {

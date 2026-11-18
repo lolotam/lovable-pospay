@@ -4,7 +4,13 @@ import pg from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getPool, withUser } from "@/lib/server/db.server";
 import { callConnector } from "./ai-call.server";
-import { loadCredential, saveCredential } from "./credentials.server";
+import {
+  dropLogin,
+  loadCredential,
+  lockActiveLogin,
+  saveCredential,
+  saveLogin,
+} from "./credentials.server";
 
 const url = process.env["POSPAY_TEST_DATABASE_URL"];
 const userId = "credential-refresh-admin";
@@ -41,6 +47,7 @@ describe.skipIf(!url)("connector credential refresh under PostgreSQL", () => {
 
   afterAll(async () => {
     if (!admin) return;
+    await admin.query("delete from public.platform_logins where created_by=$1", [userId]);
     await admin.query("delete from public.platform_credentials where updated_by=$1", [userId]);
     await admin.query("delete from public.platform_admins where user_id=$1", [userId]);
     await admin.end();
@@ -127,4 +134,18 @@ describe.skipIf(!url)("connector credential refresh under PostgreSQL", () => {
       client.release();
     }
   }, 7_000);
+
+  it("allows only one transaction to consume a connector login", async () => {
+    const loginId = await withUser(userId, (db) => saveLogin(db, userId, provider, {}, 60));
+    await withUser(userId, async (db) => {
+      expect(await lockActiveLogin(db, loginId)).toMatchObject({ status: "locked", provider });
+      await expect(withUser(userId, (other) => lockActiveLogin(other, loginId))).resolves.toEqual({
+        status: "busy",
+      });
+      await dropLogin(db, loginId);
+    });
+    await expect(withUser(userId, (db) => lockActiveLogin(db, loginId))).resolves.toEqual({
+      status: "expired",
+    });
+  });
 });
