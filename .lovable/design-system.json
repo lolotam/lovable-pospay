@@ -461,7 +461,18 @@
     {
       "name": "ReceptionQr",
       "file": "src/modules/attendance/ui/reception-qr",
-      "import_path": ""
+      "import_path": "",
+      "usage": "Show the authorized branch attendance code at reception. Codes disappear when expired or a refresh fails.",
+      "examples": [
+        {
+          "label": "Selected salon branch",
+          "code": "<ReceptionQr branchId={selectedBranch.id} />"
+        }
+      ],
+      "antipatterns": [
+        "Do not cache or persist the generated code image.",
+        "Do not use this display as an authorization check; the server validates access and tokens."
+      ]
     },
     {
       "name": "AuthRejected",

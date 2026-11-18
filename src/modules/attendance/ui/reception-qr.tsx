@@ -1,50 +1,26 @@
-import { useEffect, useState } from "react";
-import QRCode from "qrcode";
+import { forwardRef, type HTMLAttributes } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getBranchQrFn } from "../functions/attendance.functions";
 import { t } from "@/i18n";
-import { isAuthNotConfigured } from "@/lib/auth-errors";
+import { useReceptionQr } from "./use-reception-qr";
+import { cn } from "@/lib/utils";
 
-const REFRESH_MS = 50_000;
+export interface ReceptionQrProps extends HTMLAttributes<HTMLDivElement> {
+  branchId: string;
+}
 
-export function ReceptionQr({ branchId }: { branchId: string }) {
+export const ReceptionQr = forwardRef<HTMLDivElement, ReceptionQrProps>(function ReceptionQr(
+  { branchId, className, ...props },
+  ref,
+) {
   const fetchQr = useServerFn(getBranchQrFn);
-  const [image, setImage] = useState<string | null>(null);
-  const [branchName, setBranchName] = useState("");
-  const [failed, setFailed] = useState<false | "forbidden" | "notConfigured">(false);
-
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const qr = await fetchQr({ data: { branchId } });
-        const url = `${window.location.origin}/attend?t=${encodeURIComponent(qr.token)}`;
-        const dataUrl = await QRCode.toDataURL(url, { width: 480, margin: 1 });
-        if (active) {
-          setImage(dataUrl);
-          setBranchName(qr.branchName);
-          setFailed(false);
-        }
-      } catch (e) {
-        if (active) setFailed(isAuthNotConfigured(e) ? "notConfigured" : "forbidden");
-      }
-    }
-    load();
-    const id = setInterval(load, REFRESH_MS);
-    return () => {
-      active = false;
-      clearInterval(id);
-    };
-  }, [branchId, fetchQr]);
-
-  if (failed)
-    return (
-      <p className="text-destructive">
-        {t(failed === "notConfigured" ? "auth.notConfigured" : "qr.forbidden")}
-      </p>
-    );
+  const { image, branchName, failed } = useReceptionQr(branchId, fetchQr);
   return (
-    <div className="flex flex-col items-center gap-6 text-center">
+    <div
+      ref={ref}
+      className={cn("flex flex-col items-center gap-6 text-center", className)}
+      {...props}
+    >
       <h1 className="text-3xl font-bold">{t("qr.title")}</h1>
       <p className="text-lg text-muted-foreground">{branchName}</p>
       {image && (
@@ -54,7 +30,19 @@ export function ReceptionQr({ branchId }: { branchId: string }) {
           className="aspect-square w-full max-w-80 rounded-lg bg-card p-3"
         />
       )}
-      <p className="text-sm text-muted-foreground">{t("qr.refreshes")}</p>
+      <p role="status" className={failed ? "text-destructive" : "text-sm text-muted-foreground"}>
+        {t(
+          failed === "notConfigured"
+            ? "auth.notConfigured"
+            : failed === "forbidden"
+              ? "qr.forbidden"
+              : failed === "expired"
+                ? "qr.expired"
+                : image
+                  ? "qr.refreshes"
+                  : "qr.loading",
+        )}
+      </p>
     </div>
   );
-}
+});

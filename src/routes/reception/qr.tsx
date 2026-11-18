@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod";
+import { receptionQrSearchSchema } from "@/modules/attendance";
 import { ReceptionQr } from "@/modules/attendance/ui/reception-qr";
 import { t } from "@/i18n";
 
 export const Route = createFileRoute("/reception/qr")({
-  validateSearch: z.object({ branch: z.string().uuid().optional() }),
+  validateSearch: receptionQrSearchSchema,
   ssr: false,
   head: () => ({
     meta: [
