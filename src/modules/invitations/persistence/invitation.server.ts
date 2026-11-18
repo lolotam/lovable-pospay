@@ -41,7 +41,7 @@ export async function insertInvite(
   },
 ): Promise<{ id: string; companyName: string }> {
   await db.query(
-    `update public.invitations set revoked_at=now() where company_id=$1 and email=$2 and accepted_at is null and revoked_at is null and expires_at<=now()`,
+    `update public.invitations set revoked_at=now() where company_id=$1 and email=$2 and accepted_at is null and revoked_at is null`,
     [v.companyId, v.email],
   );
   const r = await db.query(

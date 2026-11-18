@@ -32,6 +32,11 @@ insert into public.discount_grants(company_id,user_id,max_percent,granted_by) va
 insert into public.invitations(company_id,email,role,token_hash,expires_at,invited_by)
  values ('00000000-0000-0000-0000-00000000000b','invite-b@example.test','staff',repeat('b',64),now()+interval '1 day','user-b');
 select set_config('test.b_branch' , (select id::text from public.branches where name='B-1'), true);
+select set_config('test.a_branch' , (select id::text from public.branches where name='A-1'), true);
+insert into public.memberships (company_id, user_id, role, branch_id)
+ values ('00000000-0000-0000-0000-00000000000b','user-bm','branch_manager',current_setting('test.b_branch')::uuid);
+insert into public."user"(id,email,name,"emailVerified") values
+ ('user-invited','invite-b@example.test','Invited',true),('user-other','other@example.test','Other',true);
 set local role pospay_app;
 select set_config('app.user_id','user-b',true);
 do $$ begin
@@ -49,6 +54,40 @@ do $$ begin
     raise exception 'Discount grant accepted a non-member';
   exception when insufficient_privilege then null;
   end;
+end $$;
+do $$ begin
+  begin
+    insert into public.invitations(company_id,email,role,branch_id,token_hash,expires_at,invited_by)
+      values ('00000000-0000-0000-0000-00000000000b','cross@example.test','staff',current_setting('test.a_branch')::uuid,repeat('c',64),now()+interval '1 day','user-b');
+    raise exception 'Invitation accepted another company branch';
+  exception when foreign_key_violation then null;
+  end;
+end $$;
+select set_config('app.user_id','user-bm',true);
+do $$ begin
+  begin
+    insert into public.invitations(company_id,email,role,token_hash,expires_at,invited_by)
+      values ('00000000-0000-0000-0000-00000000000b','wide@example.test','reception',repeat('d',64),now()+interval '1 day','user-bm');
+    raise exception 'Branch manager invited outside the branch scope';
+  exception when insufficient_privilege then null;
+  end;
+  insert into public.invitations(company_id,email,role,branch_id,token_hash,expires_at,invited_by)
+    values ('00000000-0000-0000-0000-00000000000b','scoped@example.test','reception',current_setting('test.b_branch')::uuid,repeat('e',64),now()+interval '1 day','user-bm');
+end $$;
+select set_config('app.user_id','user-other',true);
+do $$ begin
+  begin
+    perform public.accept_invitation(repeat('b',64),'invite-b@example.test');
+    raise exception 'Invitation accepted by a different signed-in email';
+  exception when raise_exception then
+    if sqlerrm <> 'INVITE_EMAIL_MISMATCH' then raise; end if;
+  end;
+end $$;
+select set_config('app.user_id','user-invited',true);
+do $$ begin
+  perform public.accept_invitation(repeat('b',64),'invite-b@example.test');
+  if not exists(select 1 from public.memberships where user_id='user-invited' and role='staff')
+    then raise exception 'Invited user did not become a member'; end if;
 end $$;
 select set_config('app.user_id','user-former',true);
 do $$ begin

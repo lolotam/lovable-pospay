@@ -168,6 +168,8 @@ function ReportExports({
                 `${new Date(range.from).toLocaleString("ar-KW")} — ${new Date(range.until).toLocaleString("ar-KW")}`,
                 `pospay-${tab}-${range.fromDate}`,
               );
+            } catch {
+              setPdfError(true);
             } finally {
               setPdfBusy(false);
             }
