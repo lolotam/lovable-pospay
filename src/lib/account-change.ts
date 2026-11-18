@@ -33,9 +33,8 @@ export async function duringAccountChange<T>(
     try {
       await verify();
       verificationFailed = false;
-    } catch (error) {
+    } catch {
       verificationFailed = true;
-      throw error;
     } finally {
       pending--;
       notify();
