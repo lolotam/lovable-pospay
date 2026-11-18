@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useEffect, useState } from "react";
-import { CompanyScope } from "@/modules/staff";
+import { CompanyScope, preloadOperatorCompanies } from "@/modules/staff";
 import { CardActions } from "@/modules/attendance/ui/cards-page";
 import { t } from "@/i18n";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme/theme";
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/settings")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  loader: ({ context }) => preloadOperatorCompanies(context.queryClient),
   component: SettingsPage,
 });
 
