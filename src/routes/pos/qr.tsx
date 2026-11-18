@@ -6,10 +6,9 @@ import { receptionQrSearchSchema } from "@/modules/attendance";
 import { ReceptionQr } from "@/modules/attendance/ui/reception-qr";
 import { QrBranchPicker } from "@/modules/attendance/ui/qr-branch-picker";
 import { t } from "@/i18n";
-import { z } from "zod";
 
 export const Route = createFileRoute("/pos/qr")({
-  validateSearch: z.object({ branch: z.string().optional() }),
+  validateSearch: receptionQrSearchSchema,
   ssr: false,
   errorComponent: RouteError,
   notFoundComponent: RouteNotFound,
@@ -28,7 +27,7 @@ export const Route = createFileRoute("/pos/qr")({
 });
 
 function ReceptionQrPage() {
-  const { branch } = receptionQrSearchSchema.parse(Route.useSearch());
+  const { branch } = Route.useSearch();
   const { session } = Route.useRouteContext();
   const active = session.active?.kind === "company" ? session.active : null;
   const branchId = branch ?? active?.branchId;

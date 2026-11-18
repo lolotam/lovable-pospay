@@ -10,12 +10,12 @@ export const Route = createFileRoute("/app/attendance/corrections")({
   notFoundComponent: RouteNotFound,
   head: () => ({
     meta: [
-      { title: "تصحيح الانصراف المنسي — PosPay" },
-      { name: "description", content: "مراجعة المدير للانصراف المنسي مع حفظ الأصل وسبب التصحيح." },
-      { property: "og:title", content: "تصحيح الانصراف المنسي — PosPay" },
+      { title: t("meta.corrections.title") },
+      { name: "description", content: t("meta.corrections.description") },
+      { property: "og:title", content: t("meta.corrections.title") },
       {
         property: "og:description",
-        content: "مراجعة المدير للانصراف المنسي مع حفظ الأصل وسبب التصحيح.",
+        content: t("meta.corrections.description"),
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

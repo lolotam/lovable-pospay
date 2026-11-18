@@ -24,11 +24,11 @@ export async function recordCardRequest<Result>(
 /** يسترجع نتيجة طلب المسح، أو يحفظ إلغاءه إذا لم يُسجَّل بعد، لمنع تسجيل حركة جديدة. */
 export async function settleCardRequest<Result>(
   receipts: CardScanReceipts<Result>,
-  missing: () => Result,
+  missing: () => Result | Promise<Result>,
 ): Promise<Result> {
   const previous = await receipts.lockAndRead();
   if (previous) return previous.result;
-  const result = missing();
+  const result = await missing();
   await receipts.save({ fingerprint: null, result });
   return result;
 }

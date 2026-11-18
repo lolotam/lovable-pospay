@@ -9,15 +9,15 @@ import { t, type MessageKey } from "@/i18n";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "PosPay — الحضور والعمولات للصالون" },
+      { title: t("meta.home.title") },
       {
         name: "description",
-        content: "حضور رقمي للموظفات وعمولات تُحسب تلقائياً من الجلسات المسجّلة.",
+        content: t("meta.home.description"),
       },
-      { property: "og:title", content: "PosPay — الحضور والعمولات للصالون" },
+      { property: "og:title", content: t("meta.home.title") },
       {
         property: "og:description",
-        content: "حضور رقمي للموظفات وعمولات تُحسب تلقائياً من الجلسات المسجّلة.",
+        content: t("meta.home.description"),
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

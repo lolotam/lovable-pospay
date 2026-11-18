@@ -389,5 +389,19 @@
   "qr.chooseBranch": "Choose a branch",
   "qr.noBranches": "No branches available for a QR",
   "qr.failed": "Could not load branches, try again",
-  "qr.loadingBranches": "Loading branches…"
+  "qr.loadingBranches": "Loading branches…",
+  "ws.switchFailed": "Could not open that workspace. The list was refreshed, please try again.",
+  "meta.corrections.title": "Forgotten check-out corrections — PosPay",
+  "meta.corrections.description": "Manager review of forgotten check-outs, keeping the original and the correction reason.",
+  "meta.questions.title": "Attendance questions — PosPay",
+  "meta.questions.description": "Salon manager questions about lateness and shifts.",
+  "meta.attend.title": "Check in and out — PosPay",
+  "meta.attend.description": "Staff check in and out from their own phone.",
+  "meta.home.title": "PosPay — attendance and commissions for salons",
+  "meta.home.description": "Digital staff attendance and commissions calculated automatically from recorded sessions.",
+  "meta.resetPassword.title": "Reset password — PosPay",
+  "meta.resetPassword.description": "Securely set a new password for your PosPay account.",
+  "meta.signIn.title": "Sign in — PosPay",
+  "meta.signIn.description": "Secure sign-in to PosPay and account recovery by email code.",
+  "meta.root.description": "PosPay — attendance and commissions for salons"
 }

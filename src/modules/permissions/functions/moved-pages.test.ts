@@ -38,6 +38,7 @@ vi.mock("@/modules/attendance/persistence/correction-repository.server", () => (
 vi.mock("@/modules/attendance/persistence/card-repository.server", () => ({
   readCardAccess: state.read,
   readCards: state.read,
+  cardHash: async () => "f".repeat(64),
 }));
 vi.mock("@/modules/services/persistence/catalog.server", () => ({ pgCatalogReader: state.read }));
 vi.mock("@/modules/services/persistence/discount.server", () => ({
@@ -88,7 +89,12 @@ it("sessions refuses pos.access deny when recording is available", async () => {
   await expect(getSessionFormFn({ data: { companyId } })).rejects.toThrow("FORBIDDEN");
   expect(state.read).not.toHaveBeenCalled();
 });
-it("reception card scanning rejects pos.access deny before consuming a receipt", async () => {
+it("reception card scanning rejects pos.access deny without saving a receipt", async () => {
+  state.query.mockImplementation(async (sql: string) => {
+    if (sql.includes("is_member")) return { rows: [{ member: true }] };
+    if (sql.includes("has_permission")) return { rows: [{ allowed: false }] };
+    return { rows: [] };
+  });
   expect(
     await scanCardFn({
       data: {
@@ -102,6 +108,10 @@ it("reception card scanning rejects pos.access deny before consuming a receipt",
     }),
   ).toEqual({ status: "rejected" });
   expect(state.read).not.toHaveBeenCalled();
+  const statements = state.query.mock.calls.map(([sql]) => String(sql));
+  expect(statements.some((sql) => sql.includes("insert into public.card_scan_requests"))).toBe(
+    false,
+  );
 });
 it("QR permission refusal prevents signing", async () => {
   state.query.mockResolvedValue({ rows: [] });

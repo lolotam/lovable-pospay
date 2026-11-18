@@ -57,6 +57,22 @@ describe("trusted session context", () => {
     expect(result.context.permissions).toContain("pos.access");
     expect(result.context.permissions).not.toContain("reports.view");
   });
+  it("grants the defaults of every role held in the active company", async () => {
+    const ws = company("staff");
+    const result = await loadSessionContext(
+      repo([
+        ws,
+        { ...company("branch_manager"), branchId: "b1", branchName: "North" },
+        company("owner", "40000000-0000-4000-8000-000000000002"),
+      ]),
+      user,
+      { kind: "company", companyId: ws.companyId, role: ws.role },
+    );
+    expect(result.context.active).toEqual(ws);
+    expect(result.context.permissions).toContain("staff.manage");
+    expect(result.context.permissions).not.toContain("reports.view");
+    expect(result.context.permissions).not.toContain("permissions.manage");
+  });
   it("marks removed membership stale and re-enters the sole remaining workspace", async () => {
     const ws = company("owner");
     const result = await loadSessionContext(repo([company("staff")]), user, {

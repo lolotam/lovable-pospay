@@ -13,10 +13,10 @@ export const Route = createFileRoute("/me/attend")({
   notFoundComponent: RouteNotFound,
   head: () => ({
     meta: [
-      { title: "الحضور والانصراف — PosPay" },
-      { name: "description", content: "تسجيل حضور وانصراف الموظفة من تليفونها." },
-      { property: "og:title", content: "الحضور والانصراف — PosPay" },
-      { property: "og:description", content: "تسجيل حضور وانصراف الموظفة من تليفونها." },
+      { title: t("meta.attend.title") },
+      { name: "description", content: t("meta.attend.description") },
+      { property: "og:title", content: t("meta.attend.title") },
+      { property: "og:description", content: t("meta.attend.description") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },

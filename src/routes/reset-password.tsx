@@ -15,10 +15,10 @@ export const Route = createFileRoute("/reset-password")({
   }),
   head: () => ({
     meta: [
-      { title: "استعادة كلمة المرور — PosPay" },
-      { name: "description", content: "تعيين كلمة مرور جديدة بأمان لحساب PosPay." },
-      { property: "og:title", content: "استعادة كلمة المرور — PosPay" },
-      { property: "og:description", content: "تعيين كلمة مرور جديدة بأمان لحساب PosPay." },
+      { title: t("meta.resetPassword.title") },
+      { name: "description", content: t("meta.resetPassword.description") },
+      { property: "og:title", content: t("meta.resetPassword.title") },
+      { property: "og:description", content: t("meta.resetPassword.description") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, nofollow" },

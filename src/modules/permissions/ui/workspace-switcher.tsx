@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
@@ -20,15 +20,22 @@ export interface WorkspaceSwitcherProps {
 export function WorkspaceSwitcher({ context }: WorkspaceSwitcherProps) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   const cache = useQueryClient();
   const navigate = useNavigate();
+  const router = useRouter();
   const label = context.active ? workspaceLabel(context.active) : t("ws.title");
   async function select(ws: WorkspaceDto) {
     setBusy(true);
+    setFailed(false);
     try {
       await chooseWorkspace(cache, context, ws);
       setOpen(false);
       await navigate({ to: `/${areaForWorkspace(ws)}` });
+    } catch {
+      // العضوية قد تكون أُلغيت: نعيد تحميل مساحات العمل ليختفي الخيار القديم.
+      setFailed(true);
+      await router.invalidate();
     } finally {
       setBusy(false);
     }
@@ -47,6 +54,11 @@ export function WorkspaceSwitcher({ context }: WorkspaceSwitcherProps) {
         <span className="min-w-0 break-words">{label}</span>
         <ChevronsUpDown className="shrink-0 size-4" />
       </Button>
+      {failed && (
+        <p role="alert" className="px-2 text-sm text-destructive">
+          {t("ws.switchFailed")}
+        </p>
+      )}
       {open && (
         <div
           id="workspace-options"

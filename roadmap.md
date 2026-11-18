@@ -89,6 +89,7 @@
 - [x] Migration 0016 applied in production after PR #7 merge (2026-11-18, backup `/root/pospay-backups/pre-0016-20261118T174058Z.dump`)
 - [x] Migration 0017 applied in production (2026-11-18, backup `/root/pospay-backups/pre-0017-20261118T180847Z.dump`)
 - [x] 016 App structure (workspaces, role areas, permissions) landed on `lovable` and `main` at 9db7389 (PR #10); migration 0018 applied manually in production by Waleed (2026-11-18) and verified read-only the same day (`3|1|1|t|f`; column, check constraint, the three function bodies matching the file, and grants: `pospay_app` execute, `public` revoked); follow-ups in #11
+- [ ] 016 follow-ups (#11): fixes on `fix/016-followups-issue-11`; migration 0019 (owner unbinds phones despite a device deny) applied manually in production by Waleed (2026-11-19) and verified read-only: the `phone_unbind` policy text matches the file, it is a DELETE policy, it is granted to `pospay_app`, and only one copy exists
 - [ ] Authenticated UI acceptance unverified (preview auth not configured).
 - [x] 012 تصدير تقارير الحضور/المصححة/الجلسات CSV وPDF
 - [ ] ق-1 قرار تعديل السعر وحد الخصم (D-44) — مستني وليد
