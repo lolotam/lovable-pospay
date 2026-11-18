@@ -147,3 +147,38 @@ it.each([true, false])(
     expect(save.mock.calls[2]?.[0].data).not.toHaveProperty("requestId");
   },
 );
+
+it("allows a corrected submission after the server rolls back unavailable assignments", async () => {
+  const staffId = "30000000-0000-4000-8000-000000000005";
+  const roster = {
+    canManage: true,
+    services: [],
+    staff: [{ id: staffId, name: "Unavailable employee" }],
+  };
+  getCatalog.mockReset().mockResolvedValue(roster);
+  save
+    .mockReset()
+    .mockImplementationOnce(async () => {
+      getCatalog.mockResolvedValue({ ...roster, staff: [] });
+      return { status: "invalid_assignments" };
+    })
+    .mockResolvedValueOnce({ status: "rejected" });
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <CatalogPage />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(await screen.findByRole("button", { name: t("services.add") }));
+  fireEvent.change(screen.getByLabelText(t("services.name")), { target: { value: "New service" } });
+  fireEvent.change(screen.getByLabelText(t("services.price")), { target: { value: "10" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: "Unavailable employee" }));
+  fireEvent.click(screen.getByRole("button", { name: t("services.save") }));
+  expect(await screen.findByText(t("services.invalidAssignments"))).toBeVisible();
+  expect(screen.getByRole("button", { name: "Switch company" })).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: t("services.removeUnavailableAssignments") }));
+  fireEvent.click(screen.getByRole("button", { name: t("services.save") }));
+  await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+  expect(save.mock.calls[0]?.[0].data.staffIds).toEqual([staffId]);
+  expect(save.mock.calls[1]?.[0].data.staffIds).toEqual([]);
+  expect(save.mock.calls[1]?.[0].data.requestId).not.toBe(save.mock.calls[0]?.[0].data.requestId);
+});

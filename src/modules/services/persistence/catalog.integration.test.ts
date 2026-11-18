@@ -123,6 +123,21 @@ describe.skipIf(!url)("service catalog under PostgreSQL RLS", () => {
       ),
     ).rejects.toThrow("FORBIDDEN");
   });
+  it("rolls back a create with unavailable staff and accepts a corrected retry", async () => {
+    const id = crypto.randomUUID();
+    const input = { companyId: company, requestId: id, name: "Corrected", price: "10" };
+    const run = (staffIds: string[]) =>
+      withUser("catalog-manager", (db) =>
+        saveService(db, "catalog-manager", { ...input, staffIds }),
+      );
+    await expect(run([crypto.randomUUID()])).rejects.toThrow("SERVICE_INVALID_ASSIGNMENTS");
+    const service = await admin.query(
+      "select 1 from public.service_catalog where company_id=$1 and id=$2",
+      [company, id],
+    );
+    expect(service.rowCount).toBe(0);
+    await expect(run([staff])).resolves.toEqual({ id });
+  });
   it("catalog edit retains previous price and rejects stale version", async () => {
     const { id } = await withUser("catalog-manager", (db) =>
       saveService(db, "catalog-manager", {

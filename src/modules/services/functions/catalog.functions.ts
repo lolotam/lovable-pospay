@@ -45,6 +45,8 @@ export const saveServiceFn = createServerFn({ method: "POST" })
         return { status: "denied" as const };
       if (error instanceof Error && error.message === "SERVICE_REQUEST_CONFLICT")
         return { status: "rejected" as const };
+      if (error instanceof Error && error.message === "SERVICE_INVALID_ASSIGNMENTS")
+        return { status: "invalid_assignments" as const };
       if (error instanceof Error && error.message === "SERVICE_CONFLICT")
         return { status: "stale" as const };
       throw error;

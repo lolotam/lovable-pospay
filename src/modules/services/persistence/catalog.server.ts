@@ -146,11 +146,13 @@ async function replaceAssignments(
   id: string,
   staffIds: string[],
 ) {
-  const selected = await db.query(
-    "select id from public.staff_members where company_id=$1 and id=any($2::uuid[])",
-    [companyId, staffIds],
+  const { rows: eligibility } = await db.query<{ manager: boolean; valid: boolean }>(
+    `select public.catalog_manager($1) as manager,
+       (select count(*)=$3 from public.staff_members where company_id=$1 and id=any($2::uuid[])) as valid`,
+    [companyId, staffIds, staffIds.length],
   );
-  if (selected.rowCount !== staffIds.length) return false;
+  if (!eligibility[0]?.manager) return false;
+  if (!eligibility[0].valid) throw new Error("SERVICE_INVALID_ASSIGNMENTS");
   const cleared = await db.query<{ complete: boolean }>(
     `with existing as materialized (
        select 1 from public.service_assignments where company_id=$1 and service_id=$2 and active

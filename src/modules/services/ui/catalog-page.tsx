@@ -143,7 +143,8 @@ function useCatalog(companyId: string, userId: string, drafts: PendingCreates) {
     setBusy(true);
     try {
       const result = await save({ data: { ...data, expectedUserId: userId } });
-      if (result.status === "denied") void query.refetch();
+      if (result.status === "denied" || result.status === "invalid_assignments")
+        void query.refetch();
       if (result.status === "denied" || result.status === "unverified")
         throw new Error("Catalog write not authorized");
       if (result.status === "saved" && pendingCreate) {
@@ -152,10 +153,9 @@ function useCatalog(companyId: string, userId: string, drafts: PendingCreates) {
         return;
       }
       complete(data.requestId);
-      if (result.status === "rejected") {
-        setMessage(t("services.error"));
-        return;
-      }
+      if (result.status === "invalid_assignments")
+        return setMessage(t("services.invalidAssignments"));
+      if (result.status === "rejected") return setMessage(t("services.error"));
       if (result.status === "stale") {
         setForm(false);
         await cache.invalidateQueries({ queryKey: catalogQuery(companyId, userId).queryKey });
@@ -356,6 +356,7 @@ function CatalogItems({ state }: { state: CatalogState }) {
 function AssignmentFields({ state }: { state: CatalogState }) {
   const { data, staffIds, setStaff, busy, pendingCreate } = state;
   if (!data) return null;
+  const availableStaff = staffIds.filter((id) => data.staff.some((staff) => staff.id === id));
   return (
     <fieldset disabled={busy || !!pendingCreate} className="space-y-2">
       <legend>{t("services.assign")}</legend>
@@ -373,6 +374,11 @@ function AssignmentFields({ state }: { state: CatalogState }) {
           {s.name}
         </label>
       ))}
+      {availableStaff.length !== staffIds.length && (
+        <Button type="button" variant="outline" onClick={() => setStaff(availableStaff)}>
+          {t("services.removeUnavailableAssignments")}
+        </Button>
+      )}
     </fieldset>
   );
 }

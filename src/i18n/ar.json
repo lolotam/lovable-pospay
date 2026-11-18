@@ -210,6 +210,8 @@
   "services.edit": "تعديل",
   "services.unassigned": "لم تُربط بموظفة",
   "services.error": "تعذّر الحفظ؛ راجع السعر والصلاحيات أو أعد تحميل أحدث نسخة.",
+  "services.invalidAssignments": "بعض الموظفين المختارين مبقوش متاحين. شيلهم من التعيينات وحاول تاني.",
+  "services.removeUnavailableAssignments": "إزالة الموظفين غير المتاحين من التعيينات",
   "reports.title": "التقارير التشغيلية",
   "reports.from": "من وقت",
   "reports.until": "إلى وقت (غير شامل)",

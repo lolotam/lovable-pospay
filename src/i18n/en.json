@@ -210,6 +210,8 @@
   "services.edit": "Edit",
   "services.unassigned": "No employee assigned",
   "services.error": "Save failed; check price, permissions or reload the latest version.",
+  "services.invalidAssignments": "One or more selected staff members are unavailable. Remove those selections and try again.",
+  "services.removeUnavailableAssignments": "Remove unavailable staff selections",
   "reports.title": "Operational reports",
   "reports.from": "From time",
   "reports.until": "Until time (exclusive)",
