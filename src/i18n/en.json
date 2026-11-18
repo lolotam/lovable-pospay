@@ -403,5 +403,6 @@
   "meta.resetPassword.description": "Securely set a new password for your PosPay account.",
   "meta.signIn.title": "Sign in — PosPay",
   "meta.signIn.description": "Secure sign-in to PosPay and account recovery by email code.",
-  "meta.root.description": "PosPay — attendance and commissions for salons"
+  "meta.root.description": "PosPay — attendance and commissions for salons",
+  "cards.pendingScanRecovery": "A card scan from this device has no confirmed result yet. You can recover it, but you cannot start a new scan."
 }

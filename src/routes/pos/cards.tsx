@@ -1,5 +1,6 @@
 import { pageAllowed } from "@/modules/permissions/ui/area-guard";
 import { NoAccess } from "@/modules/permissions/ui/no-access";
+import { PendingScanRecovery } from "@/modules/attendance/ui/pending-scan-recovery";
 import { RouteError, RouteNotFound } from "@/modules/permissions/ui/route-feedback";
 import { createFileRoute } from "@tanstack/react-router";
 import { CardScanPage } from "@/modules/attendance/ui/card-scan-page";
@@ -31,6 +32,9 @@ function GuardedPage() {
   return allowed && pageAllowed(session, "/pos/cards") ? (
     <CardScanPage />
   ) : (
-    <NoAccess workspace={session.active} />
+    <>
+      <NoAccess workspace={session.active} />
+      <PendingScanRecovery workspace={session.active} userId={session.user.id} />
+    </>
   );
 }

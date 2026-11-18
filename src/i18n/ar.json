@@ -403,5 +403,6 @@
   "meta.resetPassword.description": "تعيين كلمة مرور جديدة بأمان لحساب PosPay.",
   "meta.signIn.title": "تسجيل الدخول — PosPay",
   "meta.signIn.description": "دخول آمن إلى PosPay واستعادة الحساب برمز البريد.",
-  "meta.root.description": "PosPay — الحضور والعمولات للصالونات"
+  "meta.root.description": "PosPay — الحضور والعمولات للصالونات",
+  "cards.pendingScanRecovery": "فيه مسح كارت من الجهاز ده لسه نتيجته ماوصلتش. تقدر تسترجعها، بس مش هتقدر تعمل مسح جديد."
 }

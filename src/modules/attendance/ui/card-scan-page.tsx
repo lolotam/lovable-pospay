@@ -12,6 +12,7 @@ import {
   type CardScanRequest,
 } from "../card.contracts";
 import { scanCardFn, settleCardScanFn } from "../functions/card.functions";
+import { pendingScanKey, readPendingScan, tallyScanMessage } from "./card-scan-storage";
 export function CardScanPage() {
   const [switchLocked, setSwitchLocked] = useState(false);
   return (
@@ -26,17 +27,6 @@ export function CardScanPage() {
       )}
     </CompanyScope>
   );
-}
-type RecordedScan = Extract<Awaited<ReturnType<typeof scanCardFn>>, { status: "recorded" }>["scan"];
-
-function scanResultMessage({ name, result }: RecordedScan) {
-  const key =
-    result.outcome === "checked_in"
-      ? "attend.checkedIn"
-      : result.outcome === "checked_out"
-        ? "attend.checkedOut"
-        : "cards.error";
-  return name + " \u00b7 " + t(key);
 }
 
 function createScanRequest(
@@ -55,13 +45,6 @@ function createScanRequest(
     requestedAt: Date.now(),
     ...(prompt ? { promptedRecordId: prompt } : {}),
   };
-}
-
-const pendingScanKey = "pospay:card-scan";
-
-function readPendingScan() {
-  const raw = sessionStorage.getItem(pendingScanKey);
-  return raw ? cardRequestInput.parse(JSON.parse(raw)) : null;
 }
 
 function usePendingScan(companyId: string, userId: string, available: boolean) {
@@ -165,15 +148,6 @@ function useScanner(companyId: string, userId: string, available: boolean) {
     if (available && pending) void submit(pending, null, true);
   }
   return { ...controls, pending, blocked, ready, run, recover };
-}
-
-function tallyScanMessage(response: Awaited<ReturnType<typeof scanCardFn>>, retry: boolean) {
-  if (response.status === "clock_invalid") return t("cards.scanClockInvalid");
-  if (response.status === "recorded" && response.scan.result.outcome !== "needs_intent")
-    return scanResultMessage(response.scan);
-  if (response.status === "recorded") return t("cards.scanIntentRescan");
-  if (response.status === "cancelled") return t("cards.scanCancelled");
-  return t(retry ? "cards.statusDiscontinued" : "cards.scanError");
 }
 
 type ScannerProps = {
