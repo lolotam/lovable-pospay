@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
+import { t } from "@/i18n";
 import { duringAccountChange } from "@/lib/account-change";
 import { CompanyScope } from "./company-scope";
 import { preloadOperatorCompanies } from "./operator-companies-query";
@@ -124,4 +125,32 @@ it("keeps the default company selected when the refreshed list is reordered", as
   expect(await screen.findByText(added.name)).toBeInTheDocument();
   expect(screen.getByText(first.id)).toBeInTheDocument();
   expect(screen.queryByText(added.id)).not.toBeInTheDocument();
+});
+
+it("offers session re-verification after an unexpected network failure", async () => {
+  const cache = new QueryClient();
+  const refetch = vi.fn().mockResolvedValue(undefined);
+  const session = { data: { user: { id: "manager" } }, isPending: false, refetch };
+  useSession.mockReturnValue(session);
+  cache.setQueryData(["operator-companies", "manager"], {
+    companies: [{ id: "company", name: "Company", role: "owner" }],
+    error: null,
+  });
+  render(
+    <QueryClientProvider client={cache}>
+      <CompanyScope title="reports.title">{() => <p>Company data</p>}</CompanyScope>
+    </QueryClientProvider>,
+  );
+  await act(async () =>
+    duringAccountChange(
+      async () => undefined,
+      async () => {
+        throw new Error("Offline");
+      },
+    ),
+  );
+  expect(screen.queryByText("Company data")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: t("auth.retrySession") }));
+  expect(await screen.findByText("Company data")).toBeInTheDocument();
+  expect(refetch).toHaveBeenCalledWith({ query: { disableCookieCache: true } });
 });

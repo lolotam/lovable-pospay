@@ -13,12 +13,18 @@ function notify() {
   for (const listener of listeners) listener();
 }
 
-export function useAccountChangePending() {
+export function useAccountChangeStatus() {
   return useSyncExternalStore(
     subscribe,
-    () => pending > 0 || verificationFailed,
-    () => false,
+    () => (pending > 0 ? "pending" : verificationFailed ? "unverified" : "idle"),
+    () => "idle" as const,
   );
+}
+
+export function clearAccountVerificationFailure() {
+  if (!verificationFailed) return;
+  verificationFailed = false;
+  notify();
 }
 
 export async function duringAccountChange<T>(

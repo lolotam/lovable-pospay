@@ -29,17 +29,36 @@ const cardQuery = (companyId: string, userId: string) =>
   });
 export function CardsPage() {
   const [switchLocked, setSwitchLocked] = useState(false);
+  const [issuedByScope, setIssuedByScope] = useState(() => new Map<string, IssuedCard>());
+  function rememberIssued(scope: string, card: IssuedCard | null) {
+    setIssuedByScope((previous) => {
+      const next = new Map(previous);
+      if (card) next.set(scope, card);
+      else next.delete(scope);
+      return next;
+    });
+  }
   return (
     <CompanyScope title="cards.title" switchLocked={switchLocked}>
-      {(id, userId) => (
-        <CardActions companyId={id} userId={userId} onSwitchLockChange={setSwitchLocked} />
-      )}
+      {(id, userId) => {
+        const scope = JSON.stringify([userId, id]);
+        return (
+          <CardActions
+            companyId={id}
+            userId={userId}
+            issued={issuedByScope.get(scope)}
+            onIssuedChange={(card) => rememberIssued(scope, card)}
+            onSwitchLockChange={setSwitchLocked}
+          />
+        );
+      }}
     </CompanyScope>
   );
 }
-function useCards(companyId: string, userId: string) {
+type CardActionScope = Pick<CardActionsProps, "companyId" | "userId" | "issued" | "onIssuedChange">;
+
+function useCards({ companyId, userId, issued, onIssuedChange }: CardActionScope) {
   const { data, isFetching, refetch } = useSuspenseQuery(cardQuery(companyId, userId));
-  const [issued, setIssued] = useState<IssuedCard | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -50,12 +69,13 @@ function useCards(companyId: string, userId: string) {
     if (busy || isFetching || issued) return;
     setBusy(true);
     setMessage("");
-    setIssued(null);
     let saved = false;
     try {
-      if (action === "approve") await approve({ data: { companyId } });
-      else if (action === "issue") setIssued(await issue({ data: { companyId, staffId: id } }));
-      else await revoke({ data: { companyId, cardId: id } });
+      const scope = { companyId, expectedUserId: userId };
+      if (action === "approve") await approve({ data: scope });
+      else if (action === "issue")
+        onIssuedChange?.(await issue({ data: { ...scope, staffId: id } }));
+      else await revoke({ data: { ...scope, cardId: id } });
       setConfirm(null);
       saved = true;
     } catch {
@@ -82,7 +102,7 @@ function useCards(companyId: string, userId: string) {
     confirm,
     setConfirm,
     issued,
-    dismissIssued: () => setIssued(null),
+    dismissIssued: () => onIssuedChange?.(null),
     message,
     run,
   };
@@ -95,16 +115,20 @@ export interface CardActionsProps {
   companyId: string;
   userId: string;
   policyOnly?: boolean;
+  issued?: IssuedCard | undefined;
+  onIssuedChange?: ((card: IssuedCard | null) => void) | undefined;
   onSwitchLockChange?: (locked: boolean) => void;
 }
 export function CardActions({
   companyId,
   userId,
   policyOnly = false,
+  issued: currentCard,
+  onIssuedChange,
   onSwitchLockChange,
 }: CardActionsProps) {
   const { data, busy, isFetching, confirm, setConfirm, issued, dismissIssued, message, run } =
-    useCards(companyId, userId);
+    useCards({ companyId, userId, issued: currentCard, onIssuedChange });
   useEffect(() => {
     onSwitchLockChange?.(busy || !!issued);
     return () => onSwitchLockChange?.(false);

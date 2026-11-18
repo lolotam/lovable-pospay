@@ -1,7 +1,12 @@
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { isAuthNotConfigured } from "@/lib/auth-errors";
-import { useAccountChangePending } from "@/lib/account-change";
+import {
+  clearAccountVerificationFailure,
+  duringAccountChange,
+  useAccountChangeStatus,
+} from "@/lib/account-change";
+import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { operatorCompaniesQuery } from "./operator-companies-query";
 import { t, type MessageKey } from "@/i18n";
@@ -11,23 +16,50 @@ export interface CompanyScopeProps {
   children: (companyId: string, userId: string) => ReactNode;
 }
 export function CompanyScope(props: CompanyScopeProps) {
-  const { data, error, isPending, isRefetching } = authClient.useSession();
-  const accountChanging = useAccountChangePending();
-  if (isPending || isRefetching || accountChanging)
+  const { data, error, isPending, isRefetching, refetch } = authClient.useSession();
+  const accountChange = useAccountChangeStatus();
+  const [selection, setSelection] = useState<{ userId: string; companyId: string } | null>(null);
+  const sawRefresh = useRef(false);
+  useEffect(() => {
+    if (accountChange !== "unverified") {
+      sawRefresh.current = false;
+    } else if (isRefetching) {
+      sawRefresh.current = true;
+    } else if (sawRefresh.current && !error && !isPending) {
+      clearAccountVerificationFailure();
+    }
+  }, [accountChange, error, isPending, isRefetching]);
+  if (isPending || isRefetching || accountChange === "pending")
     return <p role="status">{t("phone.loading")}</p>;
+  const retry = () =>
+    void duringAccountChange(
+      async () => undefined,
+      () => refetch({ query: { disableCookieCache: true } }),
+    );
+  if (isAuthNotConfigured(error)) return <p role="status">{t("auth.notConfigured")}</p>;
+  if (accountChange === "unverified" || error) return <SessionVerificationError retry={retry} />;
   const userId = data?.user.id;
-  if (error || !userId) {
-    const key = isAuthNotConfigured(error)
-      ? "auth.notConfigured"
-      : error
-        ? "ops.forbidden"
-        : "attend.signInFirst";
-    return <p role="status">{t(key)}</p>;
-  }
+  if (!userId) return <p role="status">{t("attend.signInFirst")}</p>;
   return (
     <Suspense key={userId} fallback={<p role="status">{t("phone.loading")}</p>}>
-      <SignedInCompanyScope {...props} userId={userId} />
+      <SignedInCompanyScope
+        {...props}
+        userId={userId}
+        selected={selection?.userId === userId ? selection.companyId : ""}
+        setSelected={(companyId) => setSelection({ userId, companyId })}
+      />
     </Suspense>
+  );
+}
+
+function SessionVerificationError({ retry }: { retry: () => void }) {
+  return (
+    <div className="space-y-2">
+      <p role="alert">{t("auth.sessionVerificationFailed")}</p>
+      <Button type="button" onClick={retry}>
+        {t("auth.retrySession")}
+      </Button>
+    </div>
   );
 }
 
@@ -36,15 +68,20 @@ function SignedInCompanyScope({
   children,
   switchLocked = false,
   userId,
-}: CompanyScopeProps & { userId: string }) {
+  selected,
+  setSelected,
+}: CompanyScopeProps & {
+  userId: string;
+  selected: string;
+  setSelected: (companyId: string) => void;
+}) {
   const { data } = useSuspenseQuery(operatorCompaniesQuery(userId));
-  const [selected, setSelected] = useState(() => data.companies[0]?.id ?? "");
   const companyId = data.companies.some(({ id }) => id === selected)
     ? selected
     : (data.companies[0]?.id ?? "");
   useEffect(() => {
-    if (companyId) setSelected(companyId);
-  }, [companyId]);
+    if (companyId && companyId !== selected) setSelected(companyId);
+  }, [companyId, selected, setSelected]);
   return (
     <section className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold">{t(title)}</h1>

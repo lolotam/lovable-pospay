@@ -4,7 +4,12 @@ import {
   loadCardManagement,
   revokeCardUseCase,
 } from "../use-cases/card-actions";
-import { recordCard, recordCardRequest, settleCardRequest } from "../use-cases/card-scan";
+import {
+  cardRequestWindow,
+  recordCard,
+  recordCardRequest,
+  settleCardRequest,
+} from "../use-cases/card-scan";
 import { systemClock } from "@/shared/kernel/clock";
 import { cryptoIds } from "@/shared/kernel/ids";
 import type pg from "pg";
@@ -35,12 +40,13 @@ export const getCardsFn = createServerFn({ method: "GET" })
     );
   });
 export const approveCardsFn = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => cardScope.parse(v))
+  .inputValidator((v: unknown) => cardScope.extend({ expectedUserId: z.string().min(1) }).parse(v))
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { cardAudit, insertCardPolicy } = await import("../persistence/card-repository.server");
     const id = await requireUserId();
+    if (id !== data.expectedUserId) throw new Error("FORBIDDEN");
     return withUser(id, (db) =>
       approveCardPolicy({
         insert: () => insertCardPolicy(db, id, data.companyId),
@@ -49,23 +55,29 @@ export const approveCardsFn = createServerFn({ method: "POST" })
     );
   });
 export const issueCardFn = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => cardStaffInput.parse(v))
+  .inputValidator((v: unknown) =>
+    cardStaffInput.extend({ expectedUserId: z.string().min(1) }).parse(v),
+  )
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { pgCardRepository, cardTokens } = await import("../persistence/card-actions.server");
     const id = await requireUserId();
+    if (id !== data.expectedUserId) throw new Error("FORBIDDEN");
     return withUser(id, (db) =>
       issueCardUseCase(pgCardRepository(db, id, data.companyId), cardTokens, data.staffId),
     );
   });
 export const revokeCardFn = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => revokeCardInput.parse(v))
+  .inputValidator((v: unknown) =>
+    revokeCardInput.extend({ expectedUserId: z.string().min(1) }).parse(v),
+  )
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const { pgCardRepository } = await import("../persistence/card-actions.server");
     const id = await requireUserId();
+    if (id !== data.expectedUserId) throw new Error("FORBIDDEN");
     return withUser(id, (db) =>
       revokeCardUseCase(pgCardRepository(db, id, data.companyId), data.cardId),
     );
@@ -131,9 +143,9 @@ async function withCardRequest(
   const { pgCardScanReceipts } = await import("../persistence/card-scan-receipts.server");
   try {
     const userId = await requireUserId();
-    const age = Date.now() - data.requestedAt;
-    if (userId !== data.expectedUserId || age < -5 * 60_000) return { status: "unverified" };
-    if (age >= 7 * 24 * 60 * 60_000) return { status: "rejected" };
+    const window = cardRequestWindow(data.requestedAt, Date.now());
+    if (userId !== data.expectedUserId || window === "too_early") return { status: "unverified" };
+    if (window === "expired") return { status: "rejected" };
     return await withUser(userId, async (db) => {
       const { rows } = await db.query<{ member: boolean }>(
         "select public.is_member($1) as member",

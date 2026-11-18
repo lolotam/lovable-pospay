@@ -154,13 +154,13 @@ drop policy if exists card_scan_request_insert on public.card_scan_requests;
 create policy card_scan_request_insert on public.card_scan_requests for insert to pospay_app
  with check(actor_user_id=public.current_app_user() and public.is_member(company_id));
 
--- Request expiry is seven days, plus five minutes for accepted browser clock skew.
+-- Keep receipts beyond the retry window and both sides of the browser clock tolerance.
 create index if not exists card_scan_requests_expiry on public.card_scan_requests(created_at);
 create or replace function public.prune_card_scan_requests() returns void
 language sql volatile security definer set search_path=pg_catalog as $$
  with expired as (
   select company_id,actor_user_id,id from public.card_scan_requests
-  where created_at < now() - interval '7 days 5 minutes'
+  where created_at < now() - interval '7 days 10 minutes'
   order by created_at limit 100 for update skip locked
  )
  delete from public.card_scan_requests r using expired e

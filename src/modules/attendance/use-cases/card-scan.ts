@@ -32,6 +32,15 @@ export async function settleCardRequest<Result>(
   return cancelled;
 }
 
+/** يحسب صلاحية الاسترجاع مع سماح بخمس دقائق لفارق ساعة المتصفح. */
+export function cardRequestWindow(requestedAt: number, now: number) {
+  const clockSkew = 5 * 60_000;
+  const age = now - requestedAt;
+  if (age < -clockSkew) return "too_early";
+  if (age >= 7 * 24 * 60 * 60_000 + clockSkew) return "expired";
+  return "valid";
+}
+
 export interface CardScanContext {
   name: string;
   branch: BranchInfo;

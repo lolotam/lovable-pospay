@@ -152,6 +152,8 @@
   "conn.model": "الموديل",
   "conn.updated": "آخر تحديث",
   "auth.notConfigured": "الدخول غير متاح على هذه النسخة بعد. السيرفر لسه مش متوصّل بقاعدة البيانات.",
+  "auth.sessionVerificationFailed": "تعذّر التحقق من جلسة الدخول.",
+  "auth.retrySession": "أعد التحقق من الجلسة",
   "nav.section.settings": "الإعدادات",
   "nav.settings": "إعدادات التطبيق",
   "nav.diagnose": "تشخيص الأخطاء",
