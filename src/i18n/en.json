@@ -25,6 +25,8 @@
   "phone.noCompanies": "Your account is not linked to a company yet.",
   "phone.noStaff": "No linked phones are available to unbind.",
   "phone.bound": "Phone linked",
+  "phone.boundCompany": "This browser is linked to {company}.",
+  "phone.oneCompanyPerBrowser": "This browser can be linked to one company at a time. Ask a manager at the linked company to unbind it before linking it elsewhere.",
   "phone.notBound": "Phone not linked",
   "phone.loading": "Loading choices…",
   "phone.confirmUnbind": "Confirm unbinding this staff member's phone? Attendance from it will be blocked until rebinding.",

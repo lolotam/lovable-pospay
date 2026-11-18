@@ -30,6 +30,7 @@ export interface PhoneStaffOption {
 export interface PhoneManagementDto {
   canBind: boolean;
   isBound: boolean;
+  browserBinding: { companyId: string; companyName: string } | null;
   canManage: boolean;
   staff: PhoneStaffOption[];
 }

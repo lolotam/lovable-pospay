@@ -6,6 +6,7 @@ Finish the missing operator selector noted in `spec.md`, using existing D-40 per
 ## Acceptance
 - Signed-in users select their company by name; only existing memberships appear.
 - Staff bind their own phone only when their staff profile exists and attendance.record is not denied.
+- Staff with two eligible companies can choose either when this browser token is unbound. After binding, switching the selector or reopening the page shows the linked company and the manager-unbind explanation without offering another bind action. This is Waleed's 2026-11-18 option 1 for Lovable PR #1.
 - Owners and branch managers without attendance.manage_devices deny can select a linked staff account by display name for unbinding.
 - Other users cannot list another employee's device management options; another company's ID returns FORBIDDEN.
 - Return names and binding status only, never credential IDs, cookie hashes or secrets.

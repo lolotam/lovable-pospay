@@ -12,6 +12,10 @@ async function hash(value: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest), (v) => v.toString(16).padStart(2, "0")).join("");
 }
+export async function getPhoneDeviceHash(): Promise<string | null> {
+  const token = getCookie(cookieName);
+  return token ? hash(token) : null;
+}
 function origin() {
   const value = process.env["BETTER_AUTH_URL"];
   if (!value) throw new Error("AUTH_NOT_CONFIGURED");
@@ -115,12 +119,12 @@ export async function requirePhone(
   companyId: string,
   credentialId: string,
 ) {
-  const token = getCookie(cookieName);
-  if (!token) throw new Error("PHONE_NOT_BOUND");
+  const deviceHash = await getPhoneDeviceHash();
+  if (!deviceHash) throw new Error("PHONE_NOT_BOUND");
   const { rows } = await db.query(
     `select id from public.phone_bindings where company_id=$1 and user_id=$2
     and credential_id=$3 and device_hash=$4 for update`,
-    [companyId, userId, credentialId, await hash(token)],
+    [companyId, userId, credentialId, deviceHash],
   );
   const denied = await db.query(
     `select 1 from public.permission_overrides where company_id=$1 and user_id=$2

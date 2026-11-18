@@ -5,11 +5,13 @@ export async function readPhoneManagement(
   db: pg.PoolClient,
   userId: string,
   companyId: string,
+  deviceHash: string | null = null,
 ): Promise<PhoneManagementDto> {
   const { rows } = await db.query<{
     member: boolean;
     canBind: boolean;
     isBound: boolean;
+    browserBinding: PhoneManagementDto["browserBinding"];
     canManage: boolean;
   }>(
     `select public.is_member($1) as member,
@@ -17,15 +19,23 @@ export async function readPhoneManagement(
       select 1 from public.permission_overrides where company_id=$1 and user_id=$2
       and permission='attendance.record' and effect='deny')) as "canBind",
     exists (select 1 from public.phone_bindings where company_id=$1 and user_id=$2) as "isBound",
+    (select json_build_object('companyId', c.id, 'companyName', c.name)
+      from public.phone_bindings p join public.companies c on c.id=p.company_id
+      where p.user_id=$2 and p.device_hash=$3) as "browserBinding",
     (public.is_company_admin($1) and not exists (
       select 1 from public.permission_overrides where company_id=$1 and user_id=$2
       and permission='attendance.manage_devices' and effect='deny')) as "canManage"`,
-    [companyId, userId],
+    [companyId, userId, deviceHash],
   );
   const access = rows[0];
   if (!access?.member) throw new Error("FORBIDDEN");
+  const ownBinding = {
+    canBind: access.canBind && !access.browserBinding,
+    isBound: access.isBound,
+    browserBinding: access.browserBinding,
+  };
   if (!access.canManage) {
-    return { canBind: access.canBind, isBound: access.isBound, canManage: false, staff: [] };
+    return { ...ownBinding, canManage: false, staff: [] };
   }
   const staff = await db.query<PhoneStaffOption>(
     `select s.user_id as "userId",
@@ -38,5 +48,5 @@ export async function readPhoneManagement(
     order by s.display_name,s.id`,
     [companyId],
   );
-  return { canBind: access.canBind, isBound: access.isBound, canManage: true, staff: staff.rows };
+  return { ...ownBinding, canManage: true, staff: staff.rows };
 }

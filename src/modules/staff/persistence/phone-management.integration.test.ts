@@ -4,6 +4,16 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import pg from "pg";
 import { getPool, withUser } from "@/lib/server/db.server";
 import { readPhoneManagement } from "./phone-management.server";
+import { bindPhone, getPhoneDeviceHash } from "./phone.server";
+
+const browser = vi.hoisted(() => ({ token: undefined as string | undefined }));
+vi.mock("@tanstack/react-start/server", () => ({
+  getCookie: (name: string) => (name === "pospay-phone" ? browser.token : undefined),
+  setCookie: (name: string, token: string) => {
+    if (name === "pospay-phone") browser.token = token;
+  },
+}));
+vi.mock("@/lib/server/auth.server", () => ({}));
 
 const url = process.env["POSPAY_TEST_DATABASE_URL"];
 const company = "10000000-0000-0000-0000-000000000001";
@@ -19,6 +29,7 @@ describe.skipIf(!url)("phone management under company RLS", () => {
       throw new Error("Disposable localhost pospay_test required");
     }
     vi.stubEnv("DATABASE_URL", url);
+    vi.stubEnv("BETTER_AUTH_URL", "https://example.test");
     admin = new pg.Pool({ connectionString: url });
     for (let pass = 0; pass < 2; pass++) {
       for (const file of [
@@ -72,6 +83,7 @@ describe.skipIf(!url)("phone management under company RLS", () => {
     ).toEqual({
       canBind: false,
       isBound: false,
+      browserBinding: null,
       canManage: true,
       staff: [
         { userId: "selector-staff", displayName: "Mona", branchName: "Branch A", isBound: true },
@@ -89,6 +101,7 @@ describe.skipIf(!url)("phone management under company RLS", () => {
     ).toEqual({
       canBind: false,
       isBound: true,
+      browserBinding: null,
       canManage: false,
       staff: [],
     });
@@ -101,8 +114,42 @@ describe.skipIf(!url)("phone management under company RLS", () => {
     ).toEqual({
       canBind: false,
       isBound: false,
+      browserBinding: null,
       canManage: false,
       staff: [],
     });
+  });
+
+  it("shows one browser binding across a staff member's two companies", async () => {
+    const userId = "selector-two-companies";
+    const secondBranch = "10000000-0000-0000-0000-000000000004";
+    await admin.query(
+      "insert into public.branches (id,company_id,name) values ($1,$2,'Branch B')",
+      [secondBranch, foreign],
+    );
+    await admin.query(
+      "insert into public.memberships (company_id,user_id,role) values ($1,$3,'staff'),($2,$3,'staff')",
+      [company, foreign, userId],
+    );
+    await admin.query(
+      "insert into public.staff_members (company_id,branch_id,user_id,display_name) values ($1,$3,$5,'Rana'),($2,$4,$5,'Rana')",
+      [company, foreign, branch, secondBranch, userId],
+    );
+    const read = async (companyId: string, actor = userId) => {
+      const deviceHash = await getPhoneDeviceHash();
+      return withUser(actor, (db) => readPhoneManagement(db, actor, companyId, deviceHash));
+    };
+    expect(await read(company)).toMatchObject({ canBind: true, browserBinding: null });
+    expect(await read(foreign)).toMatchObject({ canBind: true, browserBinding: null });
+
+    await withUser(userId, (db) => bindPhone(db, userId, foreign, "owned-credential"));
+    const browserBinding = { companyId: foreign, companyName: "Salon B" };
+    expect(await read(foreign)).toMatchObject({ isBound: true, canBind: false, browserBinding });
+    expect(await read(company)).toMatchObject({ isBound: false, canBind: false, browserBinding });
+    expect(await read(company, "selector-owner")).toMatchObject({ browserBinding: null });
+    await expect(
+      withUser(userId, (db) => bindPhone(db, userId, company, "owned-credential")),
+    ).rejects.toMatchObject({ code: "23505" });
+    browser.token = undefined;
   });
 });

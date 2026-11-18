@@ -1,7 +1,7 @@
 import { isAuthNotConfigured } from "@/lib/auth-errors";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { authClient } from "@/lib/auth-client";
@@ -37,16 +37,19 @@ const companiesQuery = queryOptions({
     }
   },
 });
+const managementQueryKey = ["phone-management"];
 const managementQuery = (companyId: string) =>
   queryOptions({
-    queryKey: ["phone-management", companyId],
-    queryFn: async () => {
+    queryKey: [...managementQueryKey, companyId],
+    refetchOnMount: "always",
+    queryFn: async ({ signal }) => {
       try {
-        return { ...(await getPhoneManagementFn({ data: { companyId } })), error: null };
+        return { ...(await getPhoneManagementFn({ data: { companyId }, signal })), error: null };
       } catch (error) {
         return {
           canBind: false,
           isBound: false,
+          browserBinding: null,
           canManage: false,
           staff: [],
           error: isAuthNotConfigured(error)
@@ -116,7 +119,8 @@ function PhonePage() {
 }
 
 function usePhoneActions(companyId: string) {
-  const { data, refetch } = useSuspenseQuery(managementQuery(companyId));
+  const { data, isFetching } = useSuspenseQuery(managementQuery(companyId));
+  const queryClient = useQueryClient();
   const [userId, setUser] = useState("");
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -125,6 +129,7 @@ function usePhoneActions(companyId: string) {
   const finish = useServerFn(finishBindingFn);
   const unbind = useServerFn(unbindPhoneFn);
   async function run(remove: boolean) {
+    if (busy || (!remove && (isFetching || !data.canBind || data.isBound))) return;
     setBusy(true);
     setMessage("");
     try {
@@ -148,26 +153,37 @@ function usePhoneActions(companyId: string) {
         await finish({ data: { companyId, challengeId: proof.challengeId, response } });
       }
       setMessage(t("phone.success"));
-      await refetch();
+      await queryClient.invalidateQueries({ queryKey: managementQueryKey });
     } catch (e) {
       setMessage(t(isAuthNotConfigured(e) ? "auth.notConfigured" : "phone.error"));
     } finally {
       setBusy(false);
     }
   }
-  return { data, userId, setUser, confirm, setConfirm, busy, message, run };
+  return { data, userId, setUser, confirm, setConfirm, busy, isFetching, message, run };
 }
 
 function PhoneActions({ companyId }: { companyId: string }) {
   const actions = usePhoneActions(companyId);
-  const { data, busy, message, run } = actions;
+  const { data, busy, isFetching, message, run } = actions;
+  const binding = data.browserBinding;
+  if (isFetching) return <p role="status">{t("phone.loading")}</p>;
   if (data.error) return <p role="status">{t(data.error)}</p>;
   return (
     <section className="space-y-6">
-      <p>{t(data.isBound ? "phone.bound" : "phone.notBound")}</p>
-      <Button disabled={busy || !data.canBind || data.isBound} onClick={() => run(false)}>
-        {t("phone.bind")}
-      </Button>
+      {binding ? (
+        <div className="space-y-2">
+          <p>{t("phone.boundCompany").replace("{company}", () => binding.companyName)}</p>
+          <p className="text-muted-foreground">{t("phone.oneCompanyPerBrowser")}</p>
+        </div>
+      ) : (
+        <>
+          <p>{t(data.isBound ? "phone.bound" : "phone.notBound")}</p>
+          <Button disabled={busy || !data.canBind || data.isBound} onClick={() => run(false)}>
+            {t("phone.bind")}
+          </Button>
+        </>
+      )}
       {data.canManage && <StaffPhoneControls actions={actions} />}
       <p role="status">{message}</p>
     </section>
