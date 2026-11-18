@@ -83,3 +83,5 @@
 - [x] Migration 0013 (clients per company by phone D-30, session_writer for owner/manager/reception, insert RLS), /sessions form, reports show client name + last-3 phone (D-43) and late flag (D-49). 193/193 tests, isolation PASS, lint 0, tsgo OK on local pospay_test.
 - [ ] TODO(spec) ق-1: price override and discount limit (D-44) — sessions use the catalog price snapshot until approved.
 - [ ] Production apply of 0011–0013 — needs Waleed approval. Authenticated UI acceptance unverified (preview auth not configured).
+- [x] 012 تصدير تقارير الحضور/المصححة/الجلسات CSV وPDF
+- [ ] ق-1 قرار تعديل السعر وحد الخصم (D-44) — مستني وليد

@@ -235,5 +235,15 @@
   "sessions.saved": "تم حفظ الجلسة",
   "sessions.error": "تعذر الحفظ؛ تحققي من الخدمة والموظفة والرقم والصلاحية.",
   "reports.client": "العميلة",
-  "reports.lateSession": "متأخرة"
+  "reports.lateSession": "متأخرة",
+  "export.csv": "تصدير CSV",
+  "export.pdf": "تصدير PDF",
+  "export.employee": "الموظفة",
+  "export.branch": "الفرع",
+  "export.workDate": "يوم العمل",
+  "export.reason": "سبب التصحيح",
+  "export.service": "الخدمة",
+  "export.time": "وقت التنفيذ",
+  "export.phone": "الهاتف",
+  "export.price": "السعر (د.ك)"
 }

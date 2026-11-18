@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
 import { getOperationalReportFn } from "../functions/report.functions";
+import { buildTable, downloadCsv, printPdf } from "./report-export";
 export function ReportsPage() {
   return (
     <CompanyScope title="reports.title">{(id) => <ReportFilters companyId={id} />}</CompanyScope>
@@ -103,6 +104,25 @@ function ReportRows({
             )}
           </Button>
         ))}
+        <Button
+          variant="outline"
+          onClick={() =>
+            downloadCsv(buildTable(data, tab), `pospay-${tab}-${range.from.slice(0, 10)}`)
+          }
+        >
+          {t("export.csv")}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() =>
+            printPdf(
+              buildTable(data, tab),
+              `${new Date(range.from).toLocaleString("ar-KW")} — ${new Date(range.until).toLocaleString("ar-KW")}`,
+            )
+          }
+        >
+          {t("export.pdf")}
+        </Button>
       </div>
       {tab === "services" ? <SessionRows rows={data.sessions} /> : <AttendanceRows rows={rows} />}
     </section>

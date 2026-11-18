@@ -235,5 +235,15 @@
   "sessions.saved": "Session saved",
   "sessions.error": "Save failed; check service, employee, phone and permission.",
   "reports.client": "Client",
-  "reports.lateSession": "Late"
+  "reports.lateSession": "Late",
+  "export.csv": "Export CSV",
+  "export.pdf": "Export PDF",
+  "export.employee": "Employee",
+  "export.branch": "Branch",
+  "export.workDate": "Work date",
+  "export.reason": "Correction reason",
+  "export.service": "Service",
+  "export.time": "Performed at",
+  "export.phone": "Phone",
+  "export.price": "Price (KWD)"
 }
