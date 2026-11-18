@@ -14,6 +14,7 @@ import { Route as AttendRouteImport } from './routes/attend'
 import { Route as AttendanceCorrectionsRouteImport } from './routes/attendance-corrections'
 import { Route as AttendanceQuestionsRouteImport } from './routes/attendance-questions'
 import { Route as CardsRouteImport } from './routes/cards'
+import { Route as DiscountsRouteImport } from './routes/discounts'
 import { Route as PhoneRouteImport } from './routes/phone'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -50,6 +51,11 @@ const AttendanceQuestionsRoute = AttendanceQuestionsRouteImport.update({
 const CardsRoute = CardsRouteImport.update({
   id: '/cards',
   path: '/cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscountsRoute = DiscountsRouteImport.update({
+  id: '/discounts',
+  path: '/discounts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PhoneRoute = PhoneRouteImport.update({
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/attendance-corrections': typeof AttendanceCorrectionsRoute
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/cards': typeof CardsRoute
+  '/discounts': typeof DiscountsRoute
   '/phone': typeof PhoneRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/attendance-corrections': typeof AttendanceCorrectionsRoute
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/cards': typeof CardsRoute
+  '/discounts': typeof DiscountsRoute
   '/phone': typeof PhoneRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/attendance-corrections': typeof AttendanceCorrectionsRoute
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/cards': typeof CardsRoute
+  '/discounts': typeof DiscountsRoute
   '/phone': typeof PhoneRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/attendance-corrections'
     | '/attendance-questions'
     | '/cards'
+    | '/discounts'
     | '/phone'
     | '/reports'
     | '/reset-password'
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/attendance-corrections'
     | '/attendance-questions'
     | '/cards'
+    | '/discounts'
     | '/phone'
     | '/reports'
     | '/reset-password'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/attendance-corrections'
     | '/attendance-questions'
     | '/cards'
+    | '/discounts'
     | '/phone'
     | '/reports'
     | '/reset-password'
@@ -237,6 +249,7 @@ export interface RootRouteChildren {
   AttendanceCorrectionsRoute: typeof AttendanceCorrectionsRoute
   AttendanceQuestionsRoute: typeof AttendanceQuestionsRoute
   CardsRoute: typeof CardsRoute
+  DiscountsRoute: typeof DiscountsRoute
   PhoneRoute: typeof PhoneRoute
   ReportsRoute: typeof ReportsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -286,6 +299,13 @@ declare module '@tanstack/react-router' {
       path: '/cards'
       fullPath: '/cards'
       preLoaderRoute: typeof CardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discounts': {
+      id: '/discounts'
+      path: '/discounts'
+      fullPath: '/discounts'
+      preLoaderRoute: typeof DiscountsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/phone': {
@@ -381,6 +401,7 @@ const rootRouteChildren: RootRouteChildren = {
   AttendanceCorrectionsRoute: AttendanceCorrectionsRoute,
   AttendanceQuestionsRoute: AttendanceQuestionsRoute,
   CardsRoute: CardsRoute,
+  DiscountsRoute: DiscountsRoute,
   PhoneRoute: PhoneRoute,
   ReportsRoute: ReportsRoute,
   ResetPasswordRoute: ResetPasswordRoute,

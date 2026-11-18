@@ -1,13 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { recordSession } from "./record-session";
 import type { SessionRepository, NewSession } from "../ports/session-repository";
-function fake(opts: { assigned?: boolean; write?: boolean } = {}) {
+function fake(opts: { assigned?: boolean; write?: boolean; cap?: number } = {}) {
   const saved: NewSession[] = [];
   const clients: [string, string][] = [];
   const repo: SessionRepository = {
     assignedService: async () =>
       opts.assigned === false ? null : { serviceName: "Hair", priceMills: 12500n, branchId: "b1" },
     canWrite: async () => opts.write !== false,
+    discountCap: async () => opts.cap ?? 0,
     upsertClient: async (n, p) => (clients.push([n, p]), "c1"),
     insertSession: async (s) => void saved.push(s),
     audit: async () => undefined,
@@ -55,5 +56,30 @@ describe("recordSession", () => {
         () => "x",
       ),
     ).rejects.toThrow("FUTURE_SESSION");
+  });
+  it("refuses a discount when the user has no grant", async () => {
+    const f = fake();
+    await expect(
+      recordSession(
+        f.repo,
+        { ...input, priceMills: 12000n, discountReason: "vip" },
+        now,
+        () => "i",
+      ),
+    ).rejects.toThrow("DISCOUNT_OVER_LIMIT");
+  });
+  it("records a discount within the granted limit with list price and reason", async () => {
+    const f = fake({ cap: 10 });
+    await recordSession(
+      f.repo,
+      { ...input, priceMills: 11250n, discountReason: "vip" },
+      now,
+      () => "i",
+    );
+    expect(f.saved[0]).toMatchObject({
+      priceMills: 11250n,
+      listPriceMills: 12500n,
+      discountReason: "vip",
+    });
   });
 });

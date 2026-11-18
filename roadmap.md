@@ -85,3 +85,5 @@
 - [ ] Production apply of 0011–0013 — needs Waleed approval. Authenticated UI acceptance unverified (preview auth not configured).
 - [x] 012 تصدير تقارير الحضور/المصححة/الجلسات CSV وPDF
 - [ ] ق-1 قرار تعديل السعر وحد الخصم (D-44) — مستني وليد
+- [ ] تحقق تطبيق migrations 0011–0013 على الإنتاج — الفحص لقاها مش موجودة
+- [x] 013 صلاحية الخصم (ق-1) — migration 0014 جاهز، مستني تطبيقه على الإنتاج

@@ -1,4 +1,5 @@
 import { normalizePhone } from "../domain/client-phone";
+import { checkDiscount } from "../domain/discount";
 import type { SessionRepository } from "../ports/session-repository";
 
 /** مدخلات تسجيل جلسة خدمة منفذة. */
@@ -8,10 +9,12 @@ export interface RecordSessionInput {
   clientName: string;
   clientPhone: string;
   occurredAt: Date;
+  priceMills?: bigint | undefined;
+  discountReason?: string | undefined;
 }
 /**
- * يسجل جلسة خدمة بسعر الكتالوج الحالي للموظفة المسندة.
- * TODO(spec): تعديل السعر والخصم ينتظران اعتماد ق-1.
+ * يسجل جلسة خدمة للموظفة المسندة؛ السعر هو سعر الكتالوج
+ * إلا لو المستخدم عنده صلاحية خصم (ق-1) في حدودها.
  */
 export async function recordSession(
   repo: SessionRepository,
@@ -26,6 +29,10 @@ export async function recordSession(
   const service = await repo.assignedService(input.serviceId, input.staffId);
   if (!service) throw new Error("NOT_ASSIGNED");
   if (!(await repo.canWrite(service.branchId))) throw new Error("FORBIDDEN");
+  const priceMills = input.priceMills ?? service.priceMills;
+  const reason = input.discountReason?.trim() ?? "";
+  const bad = checkDiscount(service.priceMills, priceMills, await repo.discountCap(), reason);
+  if (bad) throw new Error(bad);
   const clientId = await repo.upsertClient(name, phone);
   const id = newId();
   await repo.insertSession({
@@ -34,12 +41,16 @@ export async function recordSession(
     branchId: service.branchId,
     clientId,
     serviceName: service.serviceName,
-    priceMills: service.priceMills,
+    priceMills,
+    listPriceMills: service.priceMills,
+    discountReason: priceMills === service.priceMills ? null : reason,
   });
   await repo.audit(id, {
     serviceId: input.serviceId,
     staffId: input.staffId,
-    priceMills: service.priceMills.toString(),
+    priceMills: priceMills.toString(),
+    listPriceMills: service.priceMills.toString(),
+    discountReason: priceMills === service.priceMills ? null : reason,
   });
   return { id };
 }

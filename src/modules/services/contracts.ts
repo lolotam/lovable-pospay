@@ -35,9 +35,36 @@ export const recordSessionInput = serviceScope.extend({
   clientName: z.string().trim().min(1).max(120),
   clientPhone: z.string().trim().min(8).max(24),
   occurredAt: z.string().datetime({ offset: true }),
+  price: z
+    .string()
+    .regex(/^\d{1,12}(\.\d{1,3})?$/)
+    .optional(),
+  discountReason: z.string().trim().max(200).optional(),
 });
 export interface SessionFormDto {
   canRecord: boolean;
+  discountCap: number;
   services: { id: string; name: string; priceMills: string; staffIds: string[] }[];
   staff: { id: string; name: string }[];
+}
+export const companyRoles = ["reception", "staff", "accountant", "viewer"] as const;
+export const discountGrantInput = serviceScope.extend({
+  target: z.union([
+    z.object({ kind: z.literal("role"), role: z.enum(companyRoles) }),
+    z.object({ kind: z.literal("user"), userId: z.string().min(1).max(100) }),
+  ]),
+  maxPercent: z.number().int().min(1).max(100),
+});
+export const discountRevokeInput = serviceScope.extend({ id: z.string().uuid() });
+export interface DiscountGrantDto {
+  id: string;
+  role: string | null;
+  userId: string | null;
+  name: string | null;
+  maxPercent: number;
+}
+export interface DiscountSettingsDto {
+  canManage: boolean;
+  grants: DiscountGrantDto[];
+  members: { userId: string; name: string }[];
 }

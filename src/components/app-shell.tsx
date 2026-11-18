@@ -21,6 +21,7 @@ const sections: { title: MessageKey | null; items: NavItem[] }[] = [
       { to: "/reception/cards", label: "nav.cardScan", icon: "▥" },
       { to: "/services", label: "nav.services", icon: "◇" },
       { to: "/sessions", label: "nav.sessions", icon: "◆" },
+      { to: "/discounts", label: "nav.discounts", icon: "%" },
       { to: "/reports", label: "nav.reports", icon: "≡" },
       { to: "/attendance-corrections", label: "nav.corrections", icon: "✓" },
       { to: "/attendance-questions", label: "nav.insights", icon: "?" },

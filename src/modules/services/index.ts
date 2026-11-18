@@ -4,3 +4,8 @@ export type { SessionFormDto } from "./contracts";
 export type { ServiceDto, ServiceCatalogDto } from "./contracts";
 
 export type { SessionReportRow } from "./contracts";
+export {
+  getDiscountSettingsFn,
+  saveDiscountGrantFn,
+  revokeDiscountGrantFn,
+} from "./functions/discount.functions";

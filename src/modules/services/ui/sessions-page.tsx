@@ -5,7 +5,9 @@ import { Save } from "lucide-react";
 import { CompanyScope } from "@/modules/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { t } from "@/i18n";
+import { t, type MessageKey } from "@/i18n";
+
+const discountErrors = ["DISCOUNT_OVER_LIMIT", "DISCOUNT_REASON_REQUIRED", "PRICE_ABOVE_LIST"];
 import { getSessionFormFn, recordSessionFn } from "../functions/session.functions";
 
 const formQuery = (companyId: string) =>
@@ -38,6 +40,8 @@ function useSessionForm(companyId: string) {
     clientName: "",
     clientPhone: "",
     at: localNow(),
+    price: "",
+    reason: "",
   });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -56,12 +60,24 @@ function useSessionForm(companyId: string) {
           clientName: f.clientName,
           clientPhone: f.clientPhone,
           occurredAt: new Date(f.at).toISOString(),
+          price: f.price || undefined,
+          discountReason: f.reason || undefined,
         },
       });
-      setF((p) => ({ ...p, clientName: "", clientPhone: "", at: localNow() }));
+      setF((p) => ({
+        ...p,
+        clientName: "",
+        clientPhone: "",
+        price: "",
+        reason: "",
+        at: localNow(),
+      }));
       setMessage(t("sessions.saved"));
-    } catch {
-      setMessage(t("sessions.error"));
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "";
+      setMessage(
+        t(discountErrors.includes(code) ? (`sessions.${code}` as MessageKey) : "sessions.error"),
+      );
     } finally {
       setBusy(false);
     }
@@ -153,11 +169,47 @@ function SessionForm({ companyId }: { companyId: string }) {
           {price} {t("ops.kwd")}
         </p>
       )}
+      {service && data.discountCap > 0 && <DiscountFields cap={data.discountCap} f={f} set={set} />}
       <Button disabled={busy}>
         <Save />
         {t("sessions.save")}
       </Button>
       <p role="status">{message}</p>
     </form>
+  );
+}
+function DiscountFields({
+  cap,
+  f,
+  set,
+}: {
+  cap: number;
+  f: { price: string; reason: string };
+  set: (k: "price" | "reason") => (v: string) => void;
+}) {
+  return (
+    <fieldset className="space-y-3 rounded-md border border-border p-3">
+      <legend className="px-1 text-sm">{`${t("sessions.discountCap")} ${cap}%`}</legend>
+      <label className="block space-y-2">
+        <span>{t("sessions.price")}</span>
+        <Input
+          dir="ltr"
+          inputMode="decimal"
+          value={f.price}
+          onChange={(e) => set("price")(e.target.value)}
+        />
+      </label>
+      {f.price && (
+        <label className="block space-y-2">
+          <span>{t("sessions.reason")}</span>
+          <Input
+            value={f.reason}
+            maxLength={200}
+            onChange={(e) => set("reason")(e.target.value)}
+            required
+          />
+        </label>
+      )}
+    </fieldset>
   );
 }
