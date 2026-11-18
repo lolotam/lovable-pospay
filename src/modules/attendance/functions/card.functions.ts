@@ -1,4 +1,3 @@
-import { requireCardEligibility } from "../use-cases/card-actions";
 import { recordCard } from "../use-cases/card-scan";
 import { systemClock } from "@/shared/kernel/clock";
 import { cryptoIds } from "@/shared/kernel/ids";
@@ -28,9 +27,7 @@ export const issueCardFn = createServerFn({ method: "POST" })
     const { withUser } = await import("@/lib/server/db.server");
     const { issueCard } = await import("../persistence/card-actions.server");
     const id = await requireUserId();
-    return withUser(id, (db) =>
-      issueCard(db, id, data.companyId, data.staffId, requireCardEligibility),
-    );
+    return withUser(id, (db) => issueCard(db, id, data.companyId, data.staffId));
   });
 export const revokeCardFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => revokeCardInput.parse(v))
