@@ -2,11 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import {
   branchQrInputSchema,
   protectedScanSchema,
+  scanQrBranchId,
   type BranchQrDto,
   type ScanResultDto,
 } from "../contracts";
-
-const UUID_RE = /^[0-9a-f-]{36}$/i;
 
 export const scanAttendanceFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => protectedScanSchema.parse(input))
@@ -19,11 +18,12 @@ export const scanAttendanceFn = createServerFn({ method: "POST" })
     const { systemClock } = await import("@/shared/kernel/clock");
     const { cryptoIds } = await import("@/shared/kernel/ids");
     const userId = await requireUserId();
+    const branchId = scanQrBranchId(data.token);
+    if (!branchId) return { outcome: "rejected", reason: "invalid_qr" };
     const { prove, requirePhone } = await import("@/modules/staff/index.server");
     return withUser(userId, async (db) => {
       const credentialId = await prove(db, userId, data, "scan");
       await requirePhone(db, userId, data.companyId, credentialId);
-      const branchId = data.token.split(".")[0];
       const branch = await db.query("select company_id from public.branches where id=$1", [
         branchId,
       ]);
@@ -32,8 +32,7 @@ export const scanAttendanceFn = createServerFn({ method: "POST" })
         repo: pgAttendanceRepository(db, userId),
         clock: systemClock,
         ids: cryptoIds,
-        signerFor: (branchId) =>
-          UUID_RE.test(branchId) ? branchSigner(db, branchId) : Promise.resolve(null),
+        signerFor: (id) => (id === branchId ? branchSigner(db, id) : Promise.resolve(null)),
       });
     });
   });

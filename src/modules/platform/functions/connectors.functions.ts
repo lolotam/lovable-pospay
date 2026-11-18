@@ -111,6 +111,11 @@ export const setDefaultAiFn = createServerFn({ method: "POST" })
     asSuperAdmin(async (db, userId) => {
       const { isAllowedModel } = await import("../domain/providers");
       if (!isAllowedModel(data.provider, data.model)) throw new Error("MODEL_NOT_ALLOWED");
+      const credential = await db.query(
+        "select provider from public.platform_credentials where provider=$1 for update",
+        [data.provider],
+      );
+      if (!credential.rowCount) throw new Error("NOT_CONNECTED");
       await db.query(
         `insert into public.platform_settings (key,value) values ('ai.provider',$1),('ai.model',$2)
          on conflict (key) do update set value=excluded.value, updated_at=now()`,

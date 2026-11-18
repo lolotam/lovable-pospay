@@ -44,6 +44,11 @@ export async function saveCredential(
 }
 export async function deleteCredential(db: pg.PoolClient, provider: string) {
   await db.query("delete from public.platform_credentials where provider=$1", [provider]);
+  const cleared = await db.query(
+    "delete from public.platform_settings where key='ai.provider' and value=$1 returning key",
+    [provider],
+  );
+  if (cleared.rowCount) await db.query("delete from public.platform_settings where key='ai.model'");
 }
 export async function listStatus(db: pg.PoolClient) {
   const creds = await db.query(
@@ -53,6 +58,7 @@ export async function listStatus(db: pg.PoolClient) {
     "select key, value from public.platform_settings where key in ('ai.provider','ai.model')",
   );
   const s = Object.fromEntries(settings.rows.map((r) => [r.key, r.value as string]));
+  const hasDefault = creds.rows.some((row) => row.provider === s["ai.provider"]);
   return {
     connected: creds.rows.map((r) => ({
       provider: r.provider as string,
@@ -60,8 +66,8 @@ export async function listStatus(db: pg.PoolClient) {
       updatedAt: (r.updated_at as Date).toISOString(),
       email: (r.email as string | null) ?? null,
     })),
-    defaultProvider: s["ai.provider"] ?? null,
-    defaultModel: s["ai.model"] ?? null,
+    defaultProvider: hasDefault ? (s["ai.provider"] ?? null) : null,
+    defaultModel: hasDefault ? (s["ai.model"] ?? null) : null,
   };
 }
 export async function loadCredential(

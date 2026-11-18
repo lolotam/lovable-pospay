@@ -1,3 +1,8 @@
+function floorDivide(value: bigint, divisor: bigint): bigint {
+  const quotient = value / divisor;
+  return value % divisor < 0n ? quotient - 1n : quotient;
+}
+
 /** مبلغ بالملّيم (1 دينار كويتي = 1000 ملّيم). لا يُستخدم number للنقود أبداً. */
 export type Mills = bigint;
 
@@ -32,7 +37,7 @@ export function formatKwd(mills: Mills): string {
 export function splitLastTakesRemainder(total: Mills, parts: number): Mills[] {
   if (!Number.isInteger(parts) || parts <= 0) throw new Error("parts must be a positive integer");
   const n = BigInt(parts);
-  const base = total / n;
+  const base = floorDivide(total, n);
   const result = Array.from({ length: parts }, () => base);
   result[parts - 1] = base + (total - base * n);
   return result;
@@ -43,5 +48,5 @@ export function splitLastTakesRemainder(total: Mills, parts: number): Mills[] {
  * @param basisPoints النسبة بنقاط الأساس (10% = 1000)
  */
 export function percentOf(amount: Mills, basisPoints: bigint): Mills {
-  return (amount * basisPoints) / 10000n;
+  return floorDivide(amount * basisPoints, 10000n);
 }

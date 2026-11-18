@@ -49,3 +49,11 @@ remain open until Better Auth is configured. No QR fix was folded into tooling w
 - Reviewer flagged pending verification/tracker documentation in the implementation
   commit; this document and updated roadmap close that delivery gap.
 - No deferred code findings. External CI and authenticated acceptance stay open.
+## PR #1 review dispositions
+
+- Phase 1 PRD: removed the obsolete pre-implementation confirmation note in section 10.
+- Reception metadata: use the Arabic and English dictionaries for the page and Open Graph text.
+- Recovery plugin length: defer splitting the Better Auth hook wrapper to a focused refactor with the recovery and TOTP regressions. The wrapper owns the cookie handoff across the plugin hooks.
+- Reception QR issuance, connector actions, and phone management: defer the three use-case boundary findings to separate module refactors. Preserve the existing transaction, RLS, and response-cookie boundaries when moving orchestration.
+- Z.ai business OAuth: the [published ZCode client](https://github.com/zai-org/ZCode/blob/fec975905a2abd4c07e35c40d51fa097a2258ec9/packages/shared/src/project-access-token-client.ts#L307-L316) sends the raw login JWT to customer info. It [maps the API key response field](https://github.com/zai-org/ZCode/blob/fec975905a2abd4c07e35c40d51fa097a2258ec9/packages/shared/src/project-access-token-client.ts#L376-L396) to the [project token route ID](https://github.com/zai-org/ZCode/blob/fec975905a2abd4c07e35c40d51fa097a2258ec9/packages/shared/src/project-access-token-client.ts#L219-L231). Both match PosPay's connector. Verification used published source.
+- Phone binding: the owner deferred the bound-passkey chooser to a separate change. Codex discussion 4609991931 remains open.

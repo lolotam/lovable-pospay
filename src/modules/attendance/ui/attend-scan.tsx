@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { scanAttendanceFn, scanChallengeFn } from "../functions/attendance.functions";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { Button } from "@/components/ui/button";
-import type { ScanResultDto } from "../contracts";
+import { scanQrBranchId, type ScanResultDto } from "../contracts";
 import { t, type MessageKey } from "@/i18n";
 
 type Location = { latitude: number; longitude: number } | null;
@@ -27,23 +27,26 @@ const exceptionKey: Record<string, MessageKey> = {
 };
 
 export function AttendScan({ token }: { token: string }) {
+  const branchId = scanQrBranchId(token);
   const scan = useServerFn(scanAttendanceFn);
   const getChallenge = useServerFn(scanChallengeFn);
   const [result, setResult] = useState<ScanResultDto | null>(null);
-  const [error, setError] = useState<"auth" | "notConfigured" | "other" | null>(null);
+  const [error, setError] = useState<"auth" | "notConfigured" | "other" | "uncertain" | null>(null);
   const [location, setLocation] = useState<Location | undefined>(undefined);
   const [pending, setPending] = useState(false);
   const submitting = useRef(false);
 
   const submit = useCallback(
     async (intent: "new_shift" | "check_out" | null, loc: Location, promptedRecordId?: string) => {
-      if (submitting.current) return;
+      if (!branchId || submitting.current) return;
       submitting.current = true;
       setPending(true);
       setError(null);
+      let submitted = false;
       try {
-        const proof = await getChallenge({ data: { branchId: token.split(".")[0] ?? "" } });
+        const proof = await getChallenge({ data: { branchId } });
         const response = await startAuthentication({ optionsJSON: proof.options });
+        submitted = true;
         setResult(
           await scan({
             data: {
@@ -63,20 +66,35 @@ export function AttendScan({ token }: { token: string }) {
             ? "notConfigured"
             : e instanceof Error && e.message.includes("UNAUTHENTICATED")
               ? "auth"
-              : "other",
+              : submitted
+                ? "uncertain"
+                : "other",
         );
       } finally {
         submitting.current = false;
         setPending(false);
       }
     },
-    [scan, token, getChallenge],
+    [scan, token, branchId, getChallenge],
   );
 
   useEffect(() => {
     getLocation().then(setLocation);
   }, []);
 
+  if (!branchId)
+    return (
+      <p role="alert" className="text-destructive">
+        {t("attend.invalidQr")}
+      </p>
+    );
+  if (error === "uncertain") {
+    return (
+      <p role="alert" className="text-destructive">
+        {t("attend.uncertain")}
+      </p>
+    );
+  }
   if (error === "auth")
     return (
       <Link to="/sign-in" className="text-primary underline">

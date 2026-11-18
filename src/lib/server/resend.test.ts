@@ -44,6 +44,7 @@ describe("Resend password reset delivery", () => {
     const call = request.mock.calls[0];
     if (!call) throw new Error("Expected OTP delivery");
     expect(call[0]).toBe("https://connector-gateway.lovable.dev/resend/emails");
+    expect(call[1].signal).toBeInstanceOf(AbortSignal);
     const body = JSON.parse(call[1].body);
     expect(body.to).toEqual(["test@example.com"]);
     expect(body.text).toContain("123456");
@@ -64,6 +65,7 @@ describe("Resend password reset delivery", () => {
     const call = request.mock.calls[0];
     if (!call) throw new Error("Expected delivery request");
     const [url, init] = call;
+    expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(url).toBe("https://connector-gateway.lovable.dev/resend/emails");
     expect(JSON.parse(init.body).to).toEqual(["test@example.com"]);
     expect(JSON.parse(init.body).from).toBe("PosPay <noreply@pospay.systems>");

@@ -66,3 +66,17 @@ describe("redactSecrets", () => {
     );
   });
 });
+
+it("redacts credential objects and arrays while keeping adjacent diagnostic fields", () => {
+  const text = JSON.stringify({
+    accessToken: { value: "synthetic-value", nested: [{ braces: "}]" }] },
+    cookie: ["synthetic-cookie", { nested: "synthetic-cookie-value" }],
+    evidence: "provider responded",
+  });
+  expect(JSON.parse(redactSecrets(text))).toEqual({
+    accessToken: "[REDACTED]",
+    cookie: "[REDACTED]",
+    evidence: "provider responded",
+  });
+  expect(redactSecrets('accessToken={value: "synthetic-value"')).not.toContain("synthetic-value");
+});

@@ -18,6 +18,12 @@ select set_config('test.b_branch', (select id::text from public.branches where n
 set local role pospay_app;
 select set_config('app.user_id','user-a',true);
 do $$ begin
+  insert into public.branches (company_id, name)
+    values ('00000000-0000-0000-0000-00000000000a', 'Owner branch default');
+  if not exists (
+    select 1 from public.branches where name='Owner branch default'
+      and length(public.branch_qr_secret(id)) = 64
+  ) then raise exception 'Branch QR secret default missing'; end if;
   if (select count(*) from public.companies where name='B') <> 0 then raise exception 'LEAK companies'; end if;
   if (select count(*) from public.branches where name='B-1') <> 0 then raise exception 'LEAK branches'; end if;
   if (select count(*) from public.memberships where user_id='user-b') <> 0 then raise exception 'LEAK memberships'; end if;
@@ -53,5 +59,11 @@ do $$ begin
   if (select count(*) from public.companies) <> 0 then raise exception 'anonymous sees rows'; end if;
 end $$;
 reset role;
+do $$ begin
+  if exists (
+    select 1 from pg_roles where rolname='pospay_server'
+      and (rolsuper or rolcreatedb or rolcreaterole or rolinherit or rolreplication or rolbypassrls)
+  ) then raise exception 'Unsafe pospay_server attributes'; end if;
+end $$;
 rollback;
 \echo 'isolation: PASS'

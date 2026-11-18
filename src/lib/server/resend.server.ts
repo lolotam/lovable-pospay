@@ -17,6 +17,7 @@ export function createResendPasswordSender(config: ResendConfig): PasswordResetS
     }
     const response = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
       method: "POST",
+      signal: AbortSignal.timeout(10_000),
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.apiKey}`,
@@ -60,6 +61,7 @@ export function getResendOtpSender(): Parameters<typeof emailOTP>[0]["sendVerifi
       throw new Error("EMAIL_OTP_NOT_CONFIGURED");
     const response = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
       method: "POST",
+      signal: AbortSignal.timeout(10_000),
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,

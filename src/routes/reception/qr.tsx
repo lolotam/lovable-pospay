@@ -8,10 +8,10 @@ export const Route = createFileRoute("/reception/qr")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "كود الحضور — PosPay" },
-      { name: "description", content: "شاشة كود الحضور عند استقبال الصالون." },
-      { property: "og:title", content: "كود الحضور — PosPay" },
-      { property: "og:description", content: "شاشة كود الحضور عند استقبال الصالون." },
+      { title: t("qr.metaTitle") },
+      { name: "description", content: t("qr.metaDescription") },
+      { property: "og:title", content: t("qr.metaTitle") },
+      { property: "og:description", content: t("qr.metaDescription") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },

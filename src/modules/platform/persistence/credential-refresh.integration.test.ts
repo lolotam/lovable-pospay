@@ -5,7 +5,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { getPool, withUser } from "@/lib/server/db.server";
 import { callConnector } from "./ai-call.server";
 import {
+  deleteCredential,
   dropLogin,
+  listStatus,
   loadCredential,
   lockActiveLogin,
   saveCredential,
@@ -58,6 +60,38 @@ describe.skipIf(!url)("connector credential refresh under PostgreSQL", () => {
   function refreshedResponse() {
     return Response.json({ access_token: "new-access", refresh_token: "new-refresh" });
   }
+
+  it("preserves stored credentials when refresh succeeds without a usable access token", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(Response.json({ refresh_token: "fixture" })),
+    );
+    await expect(loadCredential(userId, provider)).rejects.toThrow("INVALID_REFRESH_RESPONSE");
+    await admin.query("update public.platform_credentials set expires_at=null where provider=$1", [
+      provider,
+    ]);
+    await expect(loadCredential(userId, provider)).resolves.toMatchObject({
+      access: "old-access",
+      refresh: "old-refresh",
+    });
+  });
+
+  it("clears the default and its model when the default connector is disconnected", async () => {
+    await withUser(userId, async (db) => {
+      await db.query(
+        "insert into public.platform_settings (key,value) values ('ai.provider',$1),('ai.model','fixture')",
+        [provider],
+      );
+      await deleteCredential(db, "codex");
+      expect(await listStatus(db)).toMatchObject({
+        defaultProvider: provider,
+        defaultModel: "fixture",
+      });
+      await deleteCredential(db, provider);
+      expect(await listStatus(db)).toMatchObject({ defaultProvider: null, defaultModel: null });
+      expect((await db.query("select key from public.platform_settings")).rows).toEqual([]);
+    });
+  });
 
   it("refreshes an expired credential once across concurrent transactions", async () => {
     const fetchMock = vi.fn(async () => {

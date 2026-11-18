@@ -361,15 +361,20 @@ export async function refreshCredential(p: AccountProvider, c: Credential): Prom
       throw new AuthRejected("EXPIRED");
     throw new Error(`REFRESH_${res.status}`);
   }
-  if (p === "codex") return codexCredential(j ?? {}, c);
+  if (p === "minimax_coding" && j?.status !== "success") {
+    throw new Error("INVALID_REFRESH_RESPONSE");
+  }
+  if (typeof j?.access_token !== "string" || !j.access_token.trim()) {
+    throw new Error("INVALID_REFRESH_RESPONSE");
+  }
+  if (p === "codex") return codexCredential(j, c);
   if (p === "kimi_coding")
     return {
-      access: j?.access_token,
+      access: j.access_token,
       refresh: j?.refresh_token ?? c.refresh,
       expires: Date.now() + (Number(j?.expires_in) || 3600) * 1000,
       extras: c.extras,
     };
-  if (j?.status !== "success") throw new AuthRejected("EXPIRED");
   return {
     access: j.access_token,
     refresh: j.refresh_token ?? c.refresh,

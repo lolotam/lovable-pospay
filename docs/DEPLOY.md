@@ -2,17 +2,8 @@
 
 1. In Dokploy create an Application from the GitHub repo, build type **Dockerfile**, port 3000.
 2. Set environment variables from `.env.example` (DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, WhatsApp).
-3. Verify all migrations and isolation scripts using disposable local PostgreSQL. The isolation scripts insert fixtures and belong on the disposable database.
-4. After migration approval, the database administrator applies all numbered migrations in order before switching the application role or deploying the matching application revision. Migration 0006 creates the Better Auth tables. Run from the repository root using the approved migration connection:
-
-   ```sh
-   : "${MIGRATION_DATABASE_URL:?Set the approved migration connection URL}"
-   for migration in db/migrations/*.sql; do
-     psql "$MIGRATION_DATABASE_URL" -X --single-transaction -v ON_ERROR_STOP=1 -f "$migration" || exit 1
-   done
-   ```
-
-   Each migration commits as a unit. If a migration fails, inspect the failure and resume through the approved migration process before deploying.
+3. Apply all numbered migrations twice to disposable local `pospay_test` and run all isolation scripts there. The scripts insert fixtures. For local `psql` migration runs, use an explicit disposable database connection, `--single-transaction`, and `ON_ERROR_STOP=1`.
+4. After separate production migration approval, use the `supabase-pospay` connector to review `list_migrations`, then apply outstanding `db/migrations/NNNN_*.sql` files in order, one `apply_migration` call per file. Stop at the first failure and resolve it through the approved migration process. Run `get_advisors` after the final migration. Verify migration and advisory results before switching roles or deploying the matching application revision. Migration 0006 creates the Better Auth tables.
 
 5. Verify the dedicated application login and its `pospay_app` membership. Migration 0007 grants this membership to `pospay_server`. Complete the approved activation steps below before switching the pooler username.
 6. Backups (D-11): daily `pg_dump` via Dokploy scheduled backup.

@@ -114,6 +114,11 @@ describe.skipIf(!url)("D-32 real correction transaction", () => {
       correctedAt: "2026-11-18T11:00:00.000Z",
       reason: "Forgot reception scan",
     });
+    expect(
+      await withUser("correction-manager", (db) =>
+        listForgottenAttendance(db, "correction-manager", company),
+      ),
+    ).toEqual([]);
     const result = await admin.query(
       `select check_out_at,previous_check_out_at,status,correction_reason,corrected_by
       from public.attendance_records where id=$1`,

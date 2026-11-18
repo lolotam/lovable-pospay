@@ -17,3 +17,9 @@ describe("money (KWD mills)", () => {
     expect(formatKwd(percentOf(parseKwd("50"), 1000n))).toBe("5.000");
   });
 });
+
+it("rounds negative amounts down and keeps the signed split total", () => {
+  expect(percentOf(-5n, 1000n)).toBe(-1n);
+  expect(percentOf(-10n, 1000n)).toBe(-1n);
+  expect(splitLastTakesRemainder(-5n, 2)).toEqual([-3n, -2n]);
+});

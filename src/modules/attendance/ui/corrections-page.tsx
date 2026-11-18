@@ -1,6 +1,6 @@
 import { Suspense, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyCompanies } from "@/lib/tenancy.functions";
 import { isAuthNotConfigured } from "@/lib/auth-errors";
@@ -17,7 +17,6 @@ import {
 import { t } from "@/i18n";
 import { getForgottenAttendanceFn, correctAttendanceFn } from "../functions/correction.functions";
 import type { ForgottenAttendanceDto } from "../correction.contracts";
-import { assertCorrectionReadback } from "./correction-readback";
 
 const companiesQuery = queryOptions({
   queryKey: ["correction-companies"],
@@ -88,19 +87,33 @@ export function CorrectionsPage() {
 }
 
 function CorrectionList({ companyId }: { companyId: string }) {
-  const { data, refetch } = useSuspenseQuery(recordsQuery(companyId));
+  const query = recordsQuery(companyId);
+  const { data } = useSuspenseQuery(query);
+  const cache = useQueryClient();
+  const [saved, setSaved] = useState<CorrectionResult | null>(null);
   if (data.error) return <p role="status">{t(data.error)}</p>;
-  if (!data.records.length) return <p>{t("correction.empty")}</p>;
   return (
     <div className="space-y-6">
+      {saved && (
+        <div role="status">
+          <p>{t("correction.saved")}</p>
+          <p>{formatCorrectionTime(saved.correctedAt, saved.timeZone)}</p>
+          <p className="break-words">{saved.reason}</p>
+        </div>
+      )}
+      {!data.records.length && <p>{t("correction.empty")}</p>}
       {data.records.map((record) => (
         <CorrectionItem
           key={record.id}
           record={record}
           companyId={companyId}
-          refresh={async (id, correctedAt) => {
-            const result = await refetch();
-            assertCorrectionReadback(result.data, id, correctedAt);
+          onSaved={(result) => {
+            setSaved({ ...result, timeZone: record.timeZone });
+            cache.setQueryData(query.queryKey, (current) =>
+              current?.error === null
+                ? { records: current.records.filter(({ id }) => id !== result.id), error: null }
+                : current,
+            );
           }}
         />
       ))}
@@ -108,10 +121,13 @@ function CorrectionList({ companyId }: { companyId: string }) {
   );
 }
 
+type SavedCorrection = { id: string; correctedAt: string; reason: string };
+type CorrectionResult = SavedCorrection & { timeZone: string };
+
 interface CorrectionItemProps {
   record: ForgottenAttendanceDto;
   companyId: string;
-  refresh: (id: string, correctedAt: string) => Promise<void>;
+  onSaved: (result: SavedCorrection) => void;
 }
 function useCorrection(props: CorrectionItemProps) {
   const [time, setTime] = useState("");
@@ -127,8 +143,7 @@ function useCorrection(props: CorrectionItemProps) {
       const result = await save({
         data: { companyId: props.companyId, recordId: props.record.id, correctedAt: time, reason },
       });
-      await props.refresh(result.id, result.correctedAt);
-      setMessage(t("correction.saved"));
+      props.onSaved(result);
     } catch {
       setMessage(t("correction.error"));
     } finally {
@@ -137,15 +152,18 @@ function useCorrection(props: CorrectionItemProps) {
   }
   return { time, setTime, reason, setReason, busy, message, submit };
 }
+function formatCorrectionTime(value: string, timeZone: string) {
+  return new Intl.DateTimeFormat("ar-KW", {
+    timeZone,
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 function CorrectionItem(props: CorrectionItemProps) {
   const { record } = props;
   const state = useCorrection(props);
-  const format = (value: string) =>
-    new Intl.DateTimeFormat("ar-KW", {
-      timeZone: record.timeZone,
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(value));
+  const format = (value: string) => formatCorrectionTime(value, record.timeZone);
   return (
     <article className="space-y-4 border-b border-border py-6">
       <h2 className="text-lg font-bold break-words">
@@ -161,43 +179,34 @@ function CorrectionItem(props: CorrectionItemProps) {
         {t("correction.original")}:{" "}
         {record.checkOutAt ? format(record.checkOutAt) : t("correction.missing")}
       </p>
-      {record.correctedAt ? (
-        <div className="space-y-2">
-          <p className="text-success">
-            {t("correction.resolved")}: {format(record.correctedAt)}
-          </p>
-          <p className="break-words">{record.reason}</p>
-        </div>
-      ) : (
-        <form onSubmit={state.submit} className="space-y-4">
-          <label htmlFor={`time-${record.id}`} className="block">
-            {t("correction.time")}
-          </label>
-          <Input
-            id={`time-${record.id}`}
-            dir="ltr"
-            required
-            placeholder={t("correction.placeholder")}
-            value={state.time}
-            onChange={(event) => state.setTime(event.target.value)}
-            disabled={state.busy}
-          />
-          <label htmlFor={`reason-${record.id}`} className="block">
-            {t("correction.reason")}
-          </label>
-          <Textarea
-            id={`reason-${record.id}`}
-            required
-            maxLength={2000}
-            value={state.reason}
-            onChange={(event) => state.setReason(event.target.value)}
-            disabled={state.busy}
-          />
-          <Button type="submit" disabled={state.busy || !state.reason.trim()}>
-            {t(state.busy ? "auth.busy" : "correction.save")}
-          </Button>
-        </form>
-      )}
+      <form onSubmit={state.submit} className="space-y-4">
+        <label htmlFor={`time-${record.id}`} className="block">
+          {t("correction.time")}
+        </label>
+        <Input
+          id={`time-${record.id}`}
+          dir="ltr"
+          required
+          placeholder={t("correction.placeholder")}
+          value={state.time}
+          onChange={(event) => state.setTime(event.target.value)}
+          disabled={state.busy}
+        />
+        <label htmlFor={`reason-${record.id}`} className="block">
+          {t("correction.reason")}
+        </label>
+        <Textarea
+          id={`reason-${record.id}`}
+          required
+          maxLength={2000}
+          value={state.reason}
+          onChange={(event) => state.setReason(event.target.value)}
+          disabled={state.busy}
+        />
+        <Button type="submit" disabled={state.busy || !state.reason.trim()}>
+          {t(state.busy ? "auth.busy" : "correction.save")}
+        </Button>
+      </form>
       <p role="status">{state.message}</p>
     </article>
   );

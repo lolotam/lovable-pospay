@@ -60,7 +60,8 @@ export async function listForgottenAttendance(
     r.corrected_check_out_at,r.correction_reason,r.corrected_by
     from public.attendance_records r join public.staff_members s on s.company_id=r.company_id and s.id=r.staff_id
     join public.branches b on b.company_id=r.company_id and b.id=r.branch_id
-    where r.company_id=$1 and r.status='forgotten' order by r.check_in_at desc,r.id`,
+    where r.company_id=$1 and r.status='forgotten' and r.corrected_check_out_at is null
+    order by r.check_in_at desc,r.id`,
     [companyId],
   );
   return result.rows.map((row) => ({
