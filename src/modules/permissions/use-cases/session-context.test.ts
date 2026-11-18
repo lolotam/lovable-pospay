@@ -57,7 +57,7 @@ describe("trusted session context", () => {
     expect(result.context.permissions).toContain("pos.access");
     expect(result.context.permissions).not.toContain("reports.view");
   });
-  it("marks removed membership stale and leaves no active choice", async () => {
+  it("marks removed membership stale and re-enters the sole remaining workspace", async () => {
     const ws = company("owner");
     const result = await loadSessionContext(repo([company("staff")]), user, {
       kind: "company",
@@ -65,7 +65,7 @@ describe("trusted session context", () => {
       role: ws.role,
     });
     expect(result.staleChoice).toBe(true);
-    expect(result.context.active).toBeNull();
+    expect(result.context.active).toEqual(company("staff"));
   });
   it("refuses foreign company, foreign role and unheld platform", async () => {
     const r = repo([company("staff")]);

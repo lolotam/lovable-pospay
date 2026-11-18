@@ -616,7 +616,8 @@ export interface SessionContextRepository {
 - [ ] Tests first (fake repository): platform admin without memberships → one `platform`
   workspace, `active` = it, permissions `[]`; two memberships and a remembered choice that still
   exists → that one active with its effective permissions; remembered choice no longer present →
-  `active: null`, `staleChoice: true`; `selectWorkspace` with a company the user does not hold →
+  `staleChoice: true` and R2 applies again (the sole remaining workspace becomes active, otherwise
+  `active: null`); `selectWorkspace` with a company the user does not hold →
   throws `FORBIDDEN`; with a held one → returns the same value to store.
 - [ ] Implement `loadSessionContext(repo, user, remembered: SelectWorkspaceInput | null)`
   returning `{ context: SessionContextDto; staleChoice: boolean }` and

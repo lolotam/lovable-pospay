@@ -33,8 +33,8 @@ Two independent axes reviewed the changes using the code-review workflow. Fixed 
 
 Two specification inconsistencies were not silently rewritten:
 
-- Task 8's supplied `has_permission(company,key)` aggregates all held company roles and owner immunity, whereas the DTO reflects the active workspace role. An owner + branch_manager in the same company can therefore have broader endpoint authority than the selected workspace's navigation. Existing endpoint checks/RLS are retained. **TODO(spec): Waleed/Codex to resolve whether SQL remains account-level or must become workspace-role-aware.** The required role × key parity tests cover each role independently, not a false claim of multi-role equivalence.
-- Task 9 explicitly requires `active:null, staleChoice:true` for a removed remembered choice; implemented as written. R2's wording suggests immediately entering a sole remaining workspace. **TODO(spec): resolve this discrepancy before claiming complete R2 acceptance.** Cookie clears immediately; the next read reapplies the normal single-workspace rule.
+- `has_permission(company,key)` is account-level by design: it grants what any role the person holds in that company grants (deny still wins, owner still immune), matching how RLS already authorizes. The workspace only narrows navigation and route guards; it is a view, not a security boundary, because the person holds that authority in any workspace. Parity tests cover each role × key.
+- Stale remembered choice: the cookie is cleared and R2 applies again in the same read, so a sole remaining workspace is entered directly (spec R2 and edge case; the plan's Task 9 wording was corrected to match).
 
 ## Writes and external gates
 

@@ -152,6 +152,9 @@ Migration `0018_app_structure.sql` (idempotent):
   `db/tests/isolation.sql` if missing.
 - Platform dashboard counts come from a `security definer` function guarded by `is_super_admin()`.
 
+`has_permission` is account-level: it combines every role the person holds in the company (deny
+wins, owner immune). The active workspace narrows navigation and route guards only.
+
 Existing table policies are not changed in this slice; `has_permission` is used by server
 functions first and moves into policies slice by slice.
 

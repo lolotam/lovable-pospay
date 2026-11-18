@@ -80,9 +80,9 @@ describe("workspace cookie server boundary", () => {
     expect(result?.active).toMatchObject({ companyName: "Salon" });
     expect(state.clear).not.toHaveBeenCalled();
   });
-  it("clears a removed role and returns no active workspace", async () => {
+  it("clears a removed role and re-enters the sole remaining workspace", async () => {
     state.cookie = JSON.stringify({ kind: "company", companyId, role: "owner" });
-    expect((await getSessionContext())?.active).toBeNull();
+    expect((await getSessionContext())?.active).toMatchObject({ companyId, role: "staff" });
     expect(state.clear).toHaveBeenCalledWith(
       "pospay-ws",
       expect.objectContaining({ path: "/", secure: true, httpOnly: true, sameSite: "lax" }),
