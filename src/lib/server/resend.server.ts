@@ -77,3 +77,26 @@ export function getResendOtpSender(): Parameters<typeof emailOTP>[0]["sendVerifi
     if (!response.ok) throw new Error(`EMAIL_OTP_DELIVERY_FAILED_${response.status}`);
   };
 }
+
+/** يرسل رابط الدعوة لصاحب البريد؛ يرجع false لو البريد غير مضبوط بدل إيقاف الدعوة. */
+export async function sendInvitationEmail(to: string, url: string, companyName: string): Promise<boolean> {
+  const apiKey = process.env["LOVABLE_API_KEY"];
+  const connectionKey = process.env["RESEND_API_KEY"];
+  if (!apiKey || !connectionKey) return false;
+  const response = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+    method: "POST",
+    signal: AbortSignal.timeout(10_000),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "X-Connection-Api-Key": connectionKey,
+    },
+    body: JSON.stringify({
+      from: process.env["RESEND_FROM"] || "PosPay <noreply@pospay.systems>",
+      to: [to],
+      subject: `دعوة للانضمام إلى ${companyName} — PosPay`,
+      text: `تمت دعوتك للانضمام إلى ${companyName} على PosPay.\nافتح الرابط لإنشاء حسابك:\n${url}\n\nالرابط صالح 7 أيام ولمرة واحدة. لو لم تتوقع الدعوة، تجاهل الرسالة.`,
+    }),
+  });
+  return response.ok;
+}
