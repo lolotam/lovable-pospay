@@ -60,20 +60,12 @@ describe("recordSession", () => {
   it("refuses a discount when the user has no grant", async () => {
     const f = fake();
     await expect(
-      recordSession(
-        f.repo,
-        { ...input, price: "12", discountReason: "vip" },
-        now,
-      ),
+      recordSession(f.repo, { ...input, price: "12", discountReason: "vip" }, now),
     ).rejects.toThrow("DISCOUNT_OVER_LIMIT");
   });
   it("records a discount within the granted limit with list price and reason", async () => {
     const f = fake({ cap: 10 });
-    await recordSession(
-      f.repo,
-      { ...input, price: "11.250", discountReason: "vip" },
-      now,
-    );
+    await recordSession(f.repo, { ...input, price: "11.250", discountReason: "vip" }, now);
     expect(f.saved[0]).toMatchObject({
       priceMills: 11250n,
       listPriceMills: 12500n,

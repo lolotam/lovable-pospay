@@ -83,9 +83,9 @@
 - [x] Migration 0013 prepares client and session storage. Public session recording is deferred pending D-44. Operational reports exclude client phone fields under the slice 003 acceptance rule.
 - [ ] TODO(spec) ق-1: price override and discount limit (D-44) — sessions use the catalog price snapshot until approved.
 - [ ] Before enabling session recording, bind reused request IDs to the original normalized client, service, staff and occurrence data. Verify identical retries return the existing session and changed requests return a conflict.
-- [ ] Production apply of 0011–0013 — needs Waleed approval. Authenticated UI acceptance unverified (preview auth not configured).
+- [x] Migrations 0011–0013 applied in production after PR #5.
+- [ ] Authenticated UI acceptance unverified (preview auth not configured).
 - [x] 012 تصدير تقارير الحضور/المصححة/الجلسات CSV وPDF
 - [ ] ق-1 قرار تعديل السعر وحد الخصم (D-44) — مستني وليد
-- [ ] تحقق تطبيق migrations 0011–0013 على الإنتاج — الفحص لقاها مش موجودة
-- [x] 013 صلاحية الخصم (ق-1) — migration 0014 جاهز، مستني تطبيقه على الإنتاج
+- [ ] 013 صلاحية الخصم (ق-1) — الكود وmigration 0014 للمراجعة. إتاحة تسجيل الجلسات تنتظر اعتماد D-44.
 - [x] 014 تنزيل PDF مباشر من التقارير

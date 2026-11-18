@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CompanyScope } from "@/modules/staff";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,13 @@ import {
   saveDiscountGrantFn,
 } from "../functions/discount.functions";
 
-const settingsQuery = (companyId: string) =>
+const settingsQuery = (companyId: string, userId: string) =>
   queryOptions({
-    queryKey: ["discount-settings", companyId],
+    queryKey: ["discount-settings", userId, companyId],
+    refetchOnMount: "always",
     queryFn: async () => {
       try {
-        return await getDiscountSettingsFn({ data: { companyId } });
+        return await getDiscountSettingsFn({ data: { companyId, expectedUserId: userId } });
       } catch {
         return null;
       }
@@ -29,26 +30,30 @@ const roleLabel = (r: string) => t(`discounts.role.${r}` as MessageKey);
 export function DiscountsPage() {
   return (
     <CompanyScope title="discounts.title">
-      {(id) => <DiscountSettings companyId={id} />}
+      {(id, userId) => <DiscountSettings companyId={id} userId={userId} />}
     </CompanyScope>
   );
 }
-function DiscountSettings({ companyId }: { companyId: string }) {
-  const { data } = useSuspenseQuery(settingsQuery(companyId));
+function DiscountSettings({ companyId, userId }: { companyId: string; userId: string }) {
+  const { data, fetchStatus, isFetchedAfterMount } = useQuery(settingsQuery(companyId, userId));
   const qc = useQueryClient();
   const save = useServerFn(saveDiscountGrantFn);
   const revoke = useServerFn(revokeDiscountGrantFn);
   const [target, setTarget] = useState("role:reception");
   const [pct, setPct] = useState("10");
   const [message, setMessage] = useState("");
+  if (fetchStatus !== "idle" || !isFetchedAfterMount)
+    return <p role="status">{t("phone.loading")}</p>;
   if (!data?.canManage) return <p role="alert">{t("ops.forbidden")}</p>;
-  const refresh = () => qc.invalidateQueries({ queryKey: ["discount-settings", companyId] });
+  const refresh = () =>
+    qc.invalidateQueries({ queryKey: ["discount-settings", userId, companyId] });
   async function submit() {
     const [kind, value] = target.split(/:(.*)/s);
     try {
       await save({
         data: {
           companyId,
+          expectedUserId: userId,
           maxPercent: Number(pct),
           target:
             kind === "role"
@@ -123,7 +128,7 @@ function DiscountSettings({ companyId }: { companyId: string }) {
               variant="outline"
               onClick={async () => {
                 if (confirm(t("discounts.confirmRevoke"))) {
-                  await revoke({ data: { companyId, id: g.id } });
+                  await revoke({ data: { companyId, expectedUserId: userId, id: g.id } });
                   await refresh();
                 }
               }}

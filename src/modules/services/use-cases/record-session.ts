@@ -66,7 +66,8 @@ export async function recordSession(
 export async function loadSessionForm(
   read: () => Promise<SessionFormRecord>,
 ): Promise<SessionFormDto> {
-  if (!serviceSessionRecordingAvailable) return { canRecord: false, discountCap: 0, services: [], staff: [] };
+  if (!serviceSessionRecordingAvailable)
+    return { canRecord: false, discountCap: 0, services: [], staff: [] };
   const { canRecord, discountCap, services, staff } = await read();
   return {
     canRecord,

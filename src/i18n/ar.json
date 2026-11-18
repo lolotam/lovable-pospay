@@ -299,5 +299,6 @@
   "sessions.DISCOUNT_OVER_LIMIT": "الخصم أكبر من الحد المسموح لك",
   "sessions.DISCOUNT_REASON_REQUIRED": "اكتب سبب الخصم",
   "sessions.PRICE_ABOVE_LIST": "لا يمكن رفع السعر عن سعر الخدمة",
-  "export.pdfBusy": "جارٍ تجهيز PDF…"
+  "export.pdfBusy": "جارٍ تجهيز PDF…",
+  "export.pdfFailed": "تعذّر تجهيز ملف PDF. حاول تاني."
 }

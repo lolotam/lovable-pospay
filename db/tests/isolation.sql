@@ -28,10 +28,14 @@ insert into public.service_sessions(company_id,service_id,staff_id,branch_id,cli
  from public.staff_members s join public.service_catalog c using(company_id)
  join public.clients b using(company_id) where s.user_id='user-b';
 insert into public.discount_grants(company_id,role,max_percent,granted_by) values ('00000000-0000-0000-0000-00000000000b','reception',10,'seed');
+insert into public.invitations(company_id,email,role,token_hash,expires_at,invited_by)
+ values ('00000000-0000-0000-0000-00000000000b','invite-b@example.test','staff',repeat('b',64),now()+interval '1 day','user-b');
 select set_config('test.b_branch' , (select id::text from public.branches where name='B-1'), true);
 set local role pospay_app;
 select set_config('app.user_id','user-b',true);
 do $$ begin
+  if not exists(select 1 from public.invitations where email='invite-b@example.test')
+    then raise exception 'B cannot read its invitation'; end if;
   if not exists (
     select 1 from public.service_sessions s join public.clients c
       on c.company_id=s.company_id and c.id=s.client_id where c.name='B client'
@@ -46,6 +50,7 @@ do $$ begin
       and length(public.branch_qr_secret(id)) = 64
   ) then raise exception 'Branch QR secret default missing'; end if;
   if exists(select 1 from public.card_policies) then raise exception 'LEAK card policy'; end if;
+  if exists(select 1 from public.invitations) then raise exception 'LEAK invitations'; end if;
   if exists(select 1 from public.attendance_cards) then raise exception 'LEAK cards'; end if;
   if exists(select 1 from public.card_scan_requests) then raise exception 'LEAK card scan receipts'; end if;
   if exists(select 1 from public.service_catalog) then raise exception 'LEAK catalog'; end if;

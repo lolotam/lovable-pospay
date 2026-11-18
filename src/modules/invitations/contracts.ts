@@ -1,5 +1,11 @@
 import { z } from "zod";
-export const invitableRoles = ["branch_manager", "reception", "staff", "accountant", "viewer"] as const;
+export const invitableRoles = [
+  "branch_manager",
+  "reception",
+  "staff",
+  "accountant",
+  "viewer",
+] as const;
 export const inviteScope = z.object({ companyId: z.string().uuid() });
 export const createInviteInput = inviteScope.extend({
   email: z.string().trim().toLowerCase().email().max(254),

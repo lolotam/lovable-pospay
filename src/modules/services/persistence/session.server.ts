@@ -13,7 +13,9 @@ export function pgSessionRepository(
       return Boolean(r.rows[0]?.ok);
     },
     async discountCap() {
-      const { rows } = await db.query<{ cap: number }>("select public.discount_cap($1) as cap", [companyId]);
+      const { rows } = await db.query<{ cap: number }>("select public.discount_cap($1) as cap", [
+        companyId,
+      ]);
       return rows[0]?.cap ?? 0;
     },
     async resolveTime(local, timeZone) {

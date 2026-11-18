@@ -299,5 +299,6 @@
   "sessions.DISCOUNT_OVER_LIMIT": "Discount exceeds your limit",
   "sessions.DISCOUNT_REASON_REQUIRED": "Enter a discount reason",
   "sessions.PRICE_ABOVE_LIST": "Price cannot exceed the list price",
-  "export.pdfBusy": "Preparing PDF…"
+  "export.pdfBusy": "Preparing PDF…",
+  "export.pdfFailed": "Could not prepare the PDF. Try again."
 }
