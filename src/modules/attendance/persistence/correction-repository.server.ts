@@ -1,5 +1,6 @@
 import type pg from "pg";
 import type { CorrectionRepository, CorrectionRecord } from "../ports/correction-repository";
+import type { ForgottenAttendanceDto } from "../correction.contracts";
 
 export function pgCorrectionRepository(db: pg.PoolClient, userId: string): CorrectionRepository {
   return {
@@ -45,4 +46,35 @@ export function pgCorrectionRepository(db: pg.PoolClient, userId: string): Corre
       );
     },
   };
+}
+
+export async function listForgottenAttendance(
+  db: pg.PoolClient,
+  userId: string,
+  companyId: string,
+): Promise<ForgottenAttendanceDto[]> {
+  await pgCorrectionRepository(db, userId).authorize(companyId);
+  const result = await db.query(
+    `select r.id,s.display_name as "staffName",b.name as "branchName",
+    b.timezone as "timeZone",r.work_date::text as "workDate",r.check_in_at,r.check_out_at,
+    r.corrected_check_out_at,r.correction_reason,r.corrected_by
+    from public.attendance_records r join public.staff_members s on s.company_id=r.company_id and s.id=r.staff_id
+    join public.branches b on b.company_id=r.company_id and b.id=r.branch_id
+    where r.company_id=$1 and r.status='forgotten' order by r.check_in_at desc,r.id`,
+    [companyId],
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    staffName: row.staffName,
+    branchName: row.branchName,
+    timeZone: row.timeZone,
+    workDate: row.workDate,
+    checkInAt: (row.check_in_at as Date).toISOString(),
+    checkOutAt: row.check_out_at ? (row.check_out_at as Date).toISOString() : null,
+    correctedAt: row.corrected_check_out_at
+      ? (row.corrected_check_out_at as Date).toISOString()
+      : null,
+    reason: row.correction_reason,
+    correctedBy: row.corrected_by,
+  }));
 }

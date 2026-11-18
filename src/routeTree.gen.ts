@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AttendRouteImport } from './routes/attend'
+import { Route as AttendanceCorrectionsRouteImport } from './routes/attendance-corrections'
 import { Route as AttendanceQuestionsRouteImport } from './routes/attendance-questions'
 import { Route as PhoneRouteImport } from './routes/phone'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -29,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 const AttendRoute = AttendRouteImport.update({
   id: '/attend',
   path: '/attend',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AttendanceCorrectionsRoute = AttendanceCorrectionsRouteImport.update({
+  id: '/attendance-corrections',
+  path: '/attendance-corrections',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AttendanceQuestionsRoute = AttendanceQuestionsRouteImport.update({
@@ -80,6 +86,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/attend': typeof AttendRoute
+  '/attendance-corrections': typeof AttendanceCorrectionsRoute
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/phone': typeof PhoneRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/attend': typeof AttendRoute
+  '/attendance-corrections': typeof AttendanceCorrectionsRoute
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/phone': typeof PhoneRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/attend': typeof AttendRoute
+  '/attendance-corrections': typeof AttendanceCorrectionsRoute
   '/attendance-questions': typeof AttendanceQuestionsRoute
   '/phone': typeof PhoneRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/attend'
+    | '/attendance-corrections'
     | '/attendance-questions'
     | '/phone'
     | '/reset-password'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/attend'
+    | '/attendance-corrections'
     | '/attendance-questions'
     | '/phone'
     | '/reset-password'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/attend'
+    | '/attendance-corrections'
     | '/attendance-questions'
     | '/phone'
     | '/reset-password'
@@ -162,6 +174,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AttendRoute: typeof AttendRoute
+  AttendanceCorrectionsRoute: typeof AttendanceCorrectionsRoute
   AttendanceQuestionsRoute: typeof AttendanceQuestionsRoute
   PhoneRoute: typeof PhoneRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/attend'
       fullPath: '/attend'
       preLoaderRoute: typeof AttendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/attendance-corrections': {
+      id: '/attendance-corrections'
+      path: '/attendance-corrections'
+      fullPath: '/attendance-corrections'
+      preLoaderRoute: typeof AttendanceCorrectionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/attendance-questions': {
@@ -258,6 +278,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AttendRoute: AttendRoute,
+  AttendanceCorrectionsRoute: AttendanceCorrectionsRoute,
   AttendanceQuestionsRoute: AttendanceQuestionsRoute,
   PhoneRoute: PhoneRoute,
   ResetPasswordRoute: ResetPasswordRoute,

@@ -17,6 +17,7 @@ const sections: { title: MessageKey | null; items: NavItem[] }[] = [
     items: [
       { to: "/reception/qr", label: "nav.reception", icon: "▦" },
       { to: "/phone", label: "nav.phone", icon: "▢" },
+      { to: "/attendance-corrections", label: "nav.corrections", icon: "✓" },
       { to: "/attendance-questions", label: "nav.insights", icon: "?" },
     ],
   },
@@ -78,7 +79,8 @@ export function AppShell({ children }: AppShellProps) {
       <div className="min-w-0 flex-1">
         <nav
           ref={mobileNav}
-          className="sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-border bg-sidebar/95 px-2 py-1.5 backdrop-blur md:hidden">
+          className="sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-border bg-sidebar/95 px-2 py-1.5 backdrop-blur md:hidden"
+        >
           {sections
             .flatMap((s) => s.items)
             .map((item) => (

@@ -4,7 +4,10 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import pg from "pg";
 import { getPool, withUser } from "@/lib/server/db.server";
 import { correctAttendance } from "./correct-attendance";
-import { pgCorrectionRepository } from "../persistence/correction-repository.server";
+import {
+  pgCorrectionRepository,
+  listForgottenAttendance,
+} from "../persistence/correction-repository.server";
 
 const url = process.env["POSPAY_TEST_DATABASE_URL"];
 const company = "20000000-0000-0000-0000-000000000001";
@@ -75,6 +78,21 @@ describe.skipIf(!url)("D-32 real correction transaction", () => {
         },
       ),
     );
+  it("manager reads pending exceptions without other company rows", async () => {
+    const rows = await withUser("correction-manager", (db) =>
+      listForgottenAttendance(db, "correction-manager", company),
+    );
+    expect(
+      rows.map((row) => ({ id: row.id, staffName: row.staffName, correctedAt: row.correctedAt })),
+    ).toEqual([{ id: record, staffName: "Mona", correctedAt: null }]);
+  });
+  it("staff cannot read the managerial exception list", async () => {
+    await expect(
+      withUser("correction-staff", (db) =>
+        listForgottenAttendance(db, "correction-staff", company),
+      ),
+    ).rejects.toThrow("FORBIDDEN");
+  });
   it.each(["correction-staff", "foreign-user", "correction-denied"])(
     "rejects unauthorized correction from %s",
     async (user) => {
