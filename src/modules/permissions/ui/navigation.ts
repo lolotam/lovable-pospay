@@ -12,6 +12,7 @@ import {
   QrCode,
   Question,
   Scan,
+  ShieldCheck,
   Sparkle,
   Stethoscope,
   Storefront,
@@ -104,6 +105,12 @@ const NAV: Record<Area, NavGroup[]> = {
       ],
     },
     { to: "/pos", label: "nav.openReception", icon: Storefront, requires: "pos.access" },
+    {
+      to: "/app/permissions",
+      label: "nav.permissions",
+      icon: ShieldCheck,
+      requires: "permissions.manage",
+    },
     { to: "/app/settings", label: "nav.settings", icon: GearSix },
   ],
   pos: [
@@ -138,8 +145,10 @@ export function visibleNavigation(
   area: Area,
   perms: readonly PermissionKey[],
   recording: boolean,
+  role?: import("../contracts").CompanyRole,
 ): NavGroup[] {
   return NAV[area].flatMap((group) => {
+    if (group.to === "/app/permissions" && role !== "owner") return [];
     if (!group.children) return allowed(group, perms, recording) ? [group] : [];
     const children = group.children.filter((c) => allowed(c, perms, recording));
     return children.length ? [{ ...group, children }] : [];

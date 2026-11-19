@@ -42,6 +42,7 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
         "0016_discount_grant_membership.sql",
         "0017_invitation_scope.sql",
         "0018_app_structure.sql",
+        "0020_permission_admin.sql",
       ]) {
         await admin.query(await readFile(`db/migrations/${file}`, "utf8"));
       }

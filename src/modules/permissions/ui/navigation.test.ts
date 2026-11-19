@@ -11,6 +11,17 @@ const paths = (
   );
 
 describe("visibleNavigation", () => {
+  it("puts owner permissions before settings", () => {
+    const items = visibleNavigation("app", ["permissions.manage"], false, "owner");
+    expect(items.slice(-2).map((item) => item.to)).toEqual(["/app/permissions", "/app/settings"]);
+  });
+  it("does not treat an allow override as ownership", () => {
+    expect(
+      visibleNavigation("app", ["permissions.manage"], false, "branch_manager").some(
+        (item) => item.to === "/app/permissions",
+      ),
+    ).toBe(false);
+  });
   it("shows a branch manager only permitted items", () => {
     const p = paths("app", ["reports.view", "staff.manage"]);
     expect(p).toContain("/app/attendance/reports");
