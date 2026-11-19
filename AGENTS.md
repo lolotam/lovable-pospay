@@ -53,7 +53,7 @@ The old `CLAUDE.md` / `CLAUDE.architecture.md` (NestJS, monorepo) do not apply t
 - Before any task read the files in "Read first" above.
 - One vertical slice per PR. Never push to main; push only to an explicit feature branch. Never use `--delete-branch`, `--force`, or `git commit -a`.
 - A PR merges only when CI is green on the exact head, review finished on that head, no unresolved threads. Max 3 review rounds; leftover P2/P3 become issues.
-- Exception (Waleed, 2026-11-19): plan and spec files only (`docs/specs/**`, plans, roadmap notes) skip the PR, CI and review. Commit and push them straight to `main` and `lovable`. Any change touching code, tests, SQL or config still goes through a PR.
+- Docs, specs and plans are a Light task: they go through a PR that merges as soon as CI is green (see "Delivery tiers" below). The earlier direct-push exception is retired.
 - Never loosen a test or performance bound. Never delete a test to make it pass. Never touch `.env` files or secrets; shared-database changes follow the Tools section below.
 - Production, servers, secrets, deploy changes and anything marked HOLD need Waleed's direct decision. Never guess a business rule: mark `TODO(spec)`, ask, and stop only the dependent work.
 - Code rules: money is `bigint` mills (never float), all UI strings through i18n, logical CSS only, Arabic JSDoc on domain/ports/events, no closing comments or FIXME, files under 400 lines, functions under 60.
