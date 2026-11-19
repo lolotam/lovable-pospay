@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
 import { validSlug, normalizeSlug } from "../domain/slug";
@@ -9,23 +9,26 @@ export interface SlugFieldProps {
   onValidity: (valid: boolean) => void;
 }
 export function SlugField({ value, onChange, check, onValidity }: SlugFieldProps) {
+  const checkRef = useRef(check);
+  const validityRef = useRef(onValidity);
+  useEffect(() => { checkRef.current = check; validityRef.current = onValidity; });
   const [status, setStatus] = useState<
     "invalidSlug" | "checking" | "available" | "taken" | "failed"
   >("invalidSlug");
   useEffect(() => {
     let alive = true;
-    onValidity(false);
+    validityRef.current(false);
     if (!validSlug(value)) {
       setStatus("invalidSlug");
       return;
     }
     setStatus("checking");
     const timer = setTimeout(() => {
-      void check(value)
+      void checkRef.current(value)
         .then((available) => {
           if (alive) {
             setStatus(available ? "available" : "taken");
-            onValidity(available);
+            validityRef.current(available);
           }
         })
         .catch(() => {
@@ -36,7 +39,7 @@ export function SlugField({ value, onChange, check, onValidity }: SlugFieldProps
       alive = false;
       clearTimeout(timer);
     };
-  }, [value, check, onValidity]);
+  }, [value]);
   return (
     <div className="space-y-2">
       <label htmlFor="page-slug" className="text-sm font-medium">
