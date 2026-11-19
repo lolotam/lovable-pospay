@@ -1008,6 +1008,21 @@ begin
     values ('21000000-0000-4000-8000-000000000002','21000000-0000-4000-8000-000000000021',450000,'2027-01-01','user-21b');
   if not exists(select 1 from public.audit_log where action='staff_salary.recorded')
     then raise exception 'Salary audit missing'; end if;
+  -- A salary may not start inside or before a closed month (Waleed 2026-11-20).
+  insert into public.closed_commission_months(company_id,period_month,closed_by)
+    values ('21000000-0000-4000-8000-000000000002','2026-10-01','user-21b');
+  begin
+    insert into public.staff_salaries(company_id,staff_id,salary_mills,effective_date,recorded_by)
+      values ('21000000-0000-4000-8000-000000000002','21000000-0000-4000-8000-000000000021',460000,'2026-10-15','user-21b');
+    raise exception 'Salary inside a closed month accepted';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.staff_salaries(company_id,staff_id,salary_mills,effective_date,recorded_by)
+      values ('21000000-0000-4000-8000-000000000002','21000000-0000-4000-8000-000000000021',460000,'2026-09-01','user-21b');
+    raise exception 'Salary before a closed month accepted';
+  exception when insufficient_privilege then null;
+  end;
   -- No UPDATE/DELETE on the three new tables.
   begin update public.commission_plan_tiers set rate_bp=1; raise exception 'tiers update allowed'; exception when insufficient_privilege then null; end;
   begin delete from public.commission_plan_tiers; raise exception 'tiers delete allowed'; exception when insufficient_privilege then null; end;

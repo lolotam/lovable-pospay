@@ -200,6 +200,20 @@ $$;
 revoke all on function public.salary_manager(uuid,uuid) from public;
 grant execute on function public.salary_manager(uuid,uuid) to pospay_app;
 
+-- Waleed 2026-11-20: a salary may not start inside or before a closed
+-- commission month, because the salary-multiple threshold of that month
+-- would silently change.
+create or replace function public.salary_date_open(_company uuid, _effective date)
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select not exists (
+    select 1 from public.closed_commission_months c
+    where c.company_id = _company
+      and _effective < (c.period_month + interval '1 month')::date)
+$$;
+revoke all on function public.salary_date_open(uuid,date) from public;
+grant execute on function public.salary_date_open(uuid,date) to pospay_app;
+
 grant select, insert on public.staff_salaries to pospay_app;
 alter table public.staff_salaries enable row level security;
 drop policy if exists staff_salaries_select on public.staff_salaries;
@@ -210,7 +224,8 @@ drop policy if exists staff_salaries_insert on public.staff_salaries;
 create policy staff_salaries_insert on public.staff_salaries
   for insert to pospay_app
   with check (public.salary_manager(company_id, staff_id)
-              and recorded_by = public.current_app_user());
+              and recorded_by = public.current_app_user()
+              and public.salary_date_open(company_id, effective_date));
 
 -- S4: every salary insert writes its own audit row at the database level.
 create or replace function public.staff_salary_audit()

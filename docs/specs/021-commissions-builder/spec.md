@@ -463,3 +463,7 @@ In `src/modules/commissions/contracts.ts`:
 - Returns & post-approval corrections (D-14, ق-2).
 - Shared sessions splitting (ق-3) and package session rounding (ق-5).
 - Tips column on statement (D-36) and staff self-view live estimate (`/me/commission`, D-28, D-46).
+
+## Waleed decision — 2026-11-20
+
+- A staff salary may not start inside or before a closed commission month. The database refuses it (`salary_date_open` in the `staff_salaries` insert policy), so a closed month's salary-multiple threshold can never change after the close.
