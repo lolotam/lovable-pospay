@@ -140,6 +140,12 @@ never force). "Deploy" below therefore means the production deploy that the merg
    permissions/auth merges ONLY after Waleed's card approval, after all gates. Other Heavy work: the
    manager merges after all gates. A migration is applied to production Postgres before the merge, with
    a `pg_dump` backup first and a receipt (file checksum + post-apply verification) in the report.
+   **Review skills per tier (Waleed, 2026-11-20).** LIGHT: no review skills. MEDIUM: the implementer
+   finishes its code and tests, then runs `clean-code-guard` and `test-guard` itself (plus `docs-guard`
+   when docs changed). HEAVY: the same plus `waleed-security-reviewer`. The implementer fixes what the
+   skills find before reporting. The manager does not repeat those skills; it runs one independent
+   `/code-review` on the whole PR diff (a different model from the implementer), then opens the PR and
+   waits for CI. `claude-security` runs once at the end of PosPay Phase 1, not per PR.
 5. **Implementer fallback, fixed order** (lanes this repo has): Light = manager / OpenCode GLM 5.3 →
    Claude Sonnet. Medium & Heavy = Kimi K3.1 Pro → MiniMax Code → OpenCode GLM 5.3 → Grok → Claude
    Sonnet (Heavy on Sonnet at high effort). After 2 failures or exhausted quota, move to the next lane
