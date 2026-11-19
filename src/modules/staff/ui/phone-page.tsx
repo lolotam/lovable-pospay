@@ -155,10 +155,11 @@ function usePhoneActions(companyId: string, busy: boolean, setBusy: (busy: boole
         await finish({ data: { companyId, challengeId: proof.challengeId, response } });
       }
       setMessage(t("phone.success"));
-      await queryClient.invalidateQueries({ queryKey: managementQueryKey });
     } catch (e) {
       setMessage(t(isAuthNotConfigured(e) ? "auth.notConfigured" : "phone.error"));
     } finally {
+      // An unbind can commit before a later step fails, so always reload the committed state.
+      await queryClient.invalidateQueries({ queryKey: managementQueryKey });
       setBusy(false);
     }
   }

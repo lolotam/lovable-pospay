@@ -5,7 +5,20 @@ import { bindPhone } from "./phone.server";
 import { withUser } from "@/lib/server/db.server";
 import { getAuth } from "@/lib/server/auth.server";
 import { unbindPhoneFn } from "../functions/phone.functions";
+import { assertBoundPhonePasskey } from "@/lib/server/phone-passkey.server";
 const identity = vi.hoisted(() => ({ userId: "c2-staff" }));
+vi.mock("@tanstack/react-start", () => ({
+  createServerOnlyFn: (fn: unknown) => fn,
+  createServerFn: () => ({
+    handler: (fn: unknown) => fn,
+    inputValidator: (validate: (v: unknown) => unknown) => ({
+      handler:
+        (fn: (arg: { data: unknown }) => unknown) =>
+        ({ data }: { data: unknown }) =>
+          fn({ data: validate(data) }),
+    }),
+  }),
+}));
 vi.mock("@/lib/server/session.server", () => ({ requireUserId: async () => identity.userId }));
 vi.mock("@tanstack/react-start/server", () => ({ getCookie: () => undefined, setCookie: vi.fn() }));
 const url = process.env["POSPAY_TEST_DATABASE_URL"];
@@ -44,6 +57,43 @@ describe.skipIf(!url)("C2 real bind/unbind adapter deletion", () => {
       await admin.end();
     }
     vi.unstubAllEnvs();
+  });
+  it("signs in only a bound passkey of a current member", async () => {
+    const ctx = await getAuth().$context;
+    for (const credentialID of ["c2-gate", "c2-unbound"])
+      await ctx.adapter.create({
+        model: "passkey",
+        data: {
+          name: "Phone",
+          userId: "c2-staff",
+          credentialID,
+          publicKey: "test-key",
+          counter: 0,
+          deviceType: "singleDevice",
+          backedUp: false,
+        },
+      });
+    await withUser("c2-staff", (db) =>
+      bindPhone(db, "c2-staff", company, "c2-gate", "c2-gate-session"),
+    );
+    try {
+      await expect(assertBoundPhonePasskey("c2-gate")).resolves.toBeUndefined();
+      await expect(assertBoundPhonePasskey("c2-unbound")).rejects.toThrow("Authentication failed");
+      await admin.query("delete from memberships where company_id=$1 and user_id='c2-staff'", [
+        company,
+      ]);
+      await expect(assertBoundPhonePasskey("c2-gate")).rejects.toThrow("Authentication failed");
+    } finally {
+      await admin.query(
+        "insert into memberships(company_id,user_id,role,branch_id) values($1,'c2-staff','staff',$2) on conflict do nothing",
+        [company, branch],
+      );
+      await admin.query("delete from phone_bindings where company_id=$1", [company]);
+      await ctx.adapter.deleteMany({
+        model: "passkey",
+        where: [{ field: "userId", value: "c2-staff" }],
+      });
+    }
   });
   it.each(["c2-staff", "c2-owner"])("%s unbind deletes the bound passkey", async (actor) => {
     identity.userId = actor;

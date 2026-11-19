@@ -8,8 +8,10 @@ import { duringAccountChange } from "./account-change";
 export interface PhoneSignInProps {
   disabled: boolean;
   onSuccess: (data: unknown) => Promise<void> | void;
+  /** Shares the pending passkey attempt with the page so other sign-in controls lock too. */
+  onPendingChange: (pending: boolean) => void;
 }
-export function PhoneSignIn({ disabled, onSuccess }: PhoneSignInProps) {
+export function PhoneSignIn({ disabled, onSuccess, onPendingChange }: PhoneSignInProps) {
   const [available, setAvailable] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -17,6 +19,7 @@ export function PhoneSignIn({ disabled, onSuccess }: PhoneSignInProps) {
   async function signIn() {
     if (busy || disabled) return;
     setBusy(true);
+    onPendingChange(true);
     setFailed(false);
     try {
       const result = await duringAccountChange(
@@ -29,6 +32,7 @@ export function PhoneSignIn({ disabled, onSuccess }: PhoneSignInProps) {
       setFailed(true);
     } finally {
       setBusy(false);
+      onPendingChange(false);
     }
   }
   if (!available) return null;

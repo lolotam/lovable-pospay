@@ -44,6 +44,7 @@ function OwnerPermissions() {
       members={members}
       save={async (input) => {
         const updated = await save({ data: input });
+        await cache.cancelQueries({ queryKey: query.queryKey });
         cache.setQueryData(query.queryKey, (old) =>
           old?.map((member) => (member.userId === updated.userId ? updated : member)),
         );

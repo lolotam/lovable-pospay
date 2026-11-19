@@ -52,25 +52,32 @@ Charts per dashboard:
   `hero` (title, subtitle), `about` (text up to 1,000 characters), `services` (pulled live from
   `service_catalog`, active items only, name and price; the owner picks "show prices" yes/no),
   `branches` (name, address text, opening hours text, map link), `contact` (WhatsApp number,
-  phone, Instagram handle), `cta` (button label + WhatsApp message).
-  At most 12 blocks per page. All text is plain text; no HTML is stored or rendered.
+  phone, Instagram handle), `cta` (button label + WhatsApp message), `gallery` (up to 6 images
+  with alt text). The `hero` also takes an optional background image, and the page an optional
+  logo. At most 12 blocks per page. All text is plain text; no HTML is stored or rendered.
 - **P4.** Two languages: every text field has `ar` and `en`; the public page shows Arabic by
   default with a toggle; an empty English field falls back to Arabic.
 - **P5.** Draft and published: edits save to `draft`; "publish" copies draft to `published`.
   The public route reads `published` only. "Unpublish" makes `/s/<slug>` show not-found again.
-- **P6.** Page images use Cloudflare R2 through its S3 API, server-side only. Configuration:
-  `STORAGE_ENDPOINT`, `STORAGE_REGION` (default `auto`), `STORAGE_BUCKET`,
-  `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY`; no values in repository/browser/logs.
-  Unset bucket disables uploads and hides upload controls. Owner uploads PNG/JPEG/WebP verified
-  by magic bytes, maximum 2097152 bytes and 20 assets per company. Server chooses
-  `companies/<company_id>/pages/<uuid>.<ext>`. Failed DB insert compensates by deleting the object.
-  `company_assets` stores owner-only metadata; `public_asset(uuid)` exposes key/type only when
-  referenced by a published document. Documents add nullable `logoAssetId`, `heroImageAssetId`
-  and gallery blocks with at most 6 `{assetId, alt: {ar,en}}` images. Foreign IDs are refused on
-  save. Draft/published references prevent deletion (`ASSET_IN_USE`). `/media/$assetId` serves
-  own owner assets or published assets, otherwise 404; `nosniff` and immutable one-year public
-  cache headers. Tests cover signatures, 2097153 bytes, 21st asset, foreign IDs, unpublished
-  media 404, referenced deletion, and storage requests mocked at fetch boundary.
+- **P6 (Waleed, 2026-11-19).** Images are stored in Cloudflare R2 through its S3 API.
+  - Configuration comes from env only: `STORAGE_ENDPOINT`, `STORAGE_REGION` (`auto`),
+    `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` (same names as the
+    staging stack). Values live in Dokploy, never in the repo or in browser code.
+  - Production uses its own bucket (`pospay-production`), not `pospay-staging`. Until it is
+    configured, upload controls are hidden when `STORAGE_BUCKET` is unset (feature off, the page
+    still works without images).
+  - Upload goes browser -> server function -> R2 (no presigned URL, no bucket CORS). Only the
+    owner uploads. Accepted: PNG, JPEG, WebP, checked by magic bytes, not by file name; max
+    2 MB per file; max 20 stored images per company.
+  - Object key: `companies/<company_id>/pages/<uuid>.<ext>`. The browser never chooses the key.
+  - Every upload is a row in `company_assets`; a page document may only reference asset ids of
+    its own company, checked on save.
+  - Images are served by the app at `/media/<asset_id>`: the server reads R2 and streams the
+    bytes with the stored content type, `Cache-Control: public, max-age=31536000, immutable`
+    and `X-Content-Type-Options: nosniff`. Only assets referenced by a published page, or
+    requested by the owner in the editor, are served; anything else returns 404.
+  - Deleting an image removes the R2 object and the row; an image still used by the draft or the
+    published page cannot be deleted (`ASSET_IN_USE`).
 - **P7.** The public page is server-rendered, has `<title>`, description, `og:*` from the hero,
   `robots: index` only while published, and a canonical URL `https://app2.pospay.systems/s/<slug>`.
 - **P8.** The public read goes through a `security definer` SQL function that returns only the
@@ -138,6 +145,13 @@ create table if not exists public.company_pages (
 ```
 
 - RLS: select/insert/update only `has_company_role(company_id,'owner')`; no delete grant.
+- `company_assets` table: `company_id uuid`, `id uuid default gen_random_uuid()`,
+  `object_key text not null unique`, `content_type text` (png, jpeg or webp),
+  `byte_size integer check (byte_size between 1 and 2097152)`, `alt jsonb`, `created_by text`,
+  `created_at timestamptz`; primary key `(company_id, id)`; RLS owner-only select, insert and
+  delete; grants to `pospay_app`; isolation cases like `company_pages`.
+- `public.public_asset(_id uuid)` returns `(object_key, content_type)` only when the asset is
+  referenced by a published page (security definer, used by `/media/<id>`).
 - `public.public_company_page(_slug text)` returns `jsonb` (`published` plus company name and
   live active services), `security definer`, granted to `pospay_app`; returns null when not
   published.
@@ -179,15 +193,22 @@ export const pageBlockSchema = z.discriminatedUnion("type", [
     phone: z.string().regex(/^[0-9]{8,15}$/).or(z.literal("")),
     instagram: z.string().regex(/^[A-Za-z0-9._]{0,30}$/) }),
   z.object({ id: z.uuid(), type: z.literal("cta"), hidden: z.boolean(), label: text(40), message: text(200) }),
+  z.object({ id: z.uuid(), type: z.literal("gallery"), hidden: z.boolean(), images: z.array(z.object({
+    assetId: z.uuid(), alt: text(120) })).max(6) }),
 ]);
-export const pageDocumentSchema = z.object({ blocks: z.array(pageBlockSchema).max(12) });
+export const pageDocumentSchema = z.object({
+  logoAssetId: z.uuid().nullable(),
+  heroImageAssetId: z.uuid().nullable(),
+  blocks: z.array(pageBlockSchema).max(12),
+});
 export const slugSchema = z.string().regex(/^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/);
 ```
 
 Server functions: `getCompanyChartsFn({ companyId, range })`, `getMyAttendanceStripFn()`,
 `getPlatformGrowthFn()`; `getPageDraftFn`, `savePageDraftFn({ slug, document, version })`,
 `checkSlugFn({ slug })`, `publishPageFn({ version })`, `unpublishPageFn()`,
-`getPublicPageFn({ slug })` (no session needed).
+`getPublicPageFn({ slug })` (no session needed), `uploadPageImageFn(FormData)`,
+`listPageImagesFn()`, `deletePageImageFn({ assetId })`; server route `/media/$assetId`.
 
 ## Permissions (who can, who cannot)
 
@@ -211,6 +232,10 @@ Server functions: `getCompanyChartsFn({ companyId, range })`, `getMyAttendanceSt
   literally).
 - D2 integration: owner saves draft, publishes, anonymous `public_company_page` returns it;
   stale `version` → `PAGE_CONFLICT`; `SLUG_TAKEN`; cross-company and branch-manager refusals.
+- D2 storage: R2 client mocked at the boundary; a `.png` name with JPEG bytes is stored as
+  JPEG, a `.png` name with HTML bytes is refused; 2 MB + 1 byte refused; 21st image refused;
+  saving a document with another company's asset id refused; `/media/<id>` returns 404 for an
+  asset not on a published page; deleting an in-use image returns `ASSET_IN_USE`.
 - D2 UI: editor adds, hides and reorders blocks; preview equals the public render; public page
   falls back to Arabic for an empty English field.
 
@@ -220,5 +245,7 @@ Defaults below apply unless Waleed changes them:
 
 1. The public company page is not listed in PRD Phase 1 scope (§2). This spec treats it as an
    approved Phase 1 addition on Waleed's request (2026-11-19).
-2. No image or logo upload in D2 (needs a storage decision).
+2. Images: Cloudflare R2 (decided 2026-11-19, P6). Waleed creates the `pospay-production`
+   bucket and an API token scoped to it, and approves adding the five `STORAGE_*` values to the
+   production app in Dokploy.
 3. Public pages live under `app2.pospay.systems/s/<slug>`; custom domains are a later slice.

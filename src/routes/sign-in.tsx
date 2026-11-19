@@ -182,6 +182,7 @@ function useSignInFlow() {
     totp,
     message,
     busy,
+    setBusy,
     google,
     setEmail,
     setPassword,
@@ -218,7 +219,9 @@ function SignIn() {
           {flow.message}
         </p>
       )}
-      {flow.step === "login" && <PhoneSignIn disabled={flow.busy} onSuccess={flow.finish} />}
+      {flow.step === "login" && (
+        <PhoneSignIn disabled={flow.busy} onSuccess={flow.finish} onPendingChange={flow.setBusy} />
+      )}
       {flow.step === "login" && <GoogleSignIn flow={flow} />}
       <Button
         type="button"
