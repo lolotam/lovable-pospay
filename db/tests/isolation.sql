@@ -38,10 +38,20 @@ select set_config('test.a_branch' , (select id::text from public.branches where 
 insert into public.memberships (company_id, user_id, role, branch_id)
  values ('00000000-0000-0000-0000-00000000000b','user-bm','branch_manager',current_setting('test.b_branch')::uuid);
 insert into public."user"(id,email,name,"emailVerified") values
- ('user-invited','invite-b@example.test','Invited',true),('user-other','other@example.test','Other',true);
+ ('user-invited','invite-b@example.test','Invited',true),('user-other','other@example.test','Other',true),
+ ('user-b','owner-b@example.test','Owner B',true),('user-bm','manager-b@example.test','Manager B',true);
+insert into public.permission_overrides(company_id,user_id,permission,effect) values
+ ('00000000-0000-0000-0000-00000000000b','user-b','reports.read','deny'),
+ ('00000000-0000-0000-0000-00000000000b','user-b','sessions.record','deny');
 set local role pospay_app;
 select set_config('app.user_id','user-b',true);
 do $$ begin
+  if (select count(*) from public.company_member_directory('00000000-0000-0000-0000-00000000000b')
+      where user_id in ('user-b','user-bm')) <> 2
+    then raise exception 'Owner cannot read its member directory'; end if;
+  if not public.report_reader('00000000-0000-0000-0000-00000000000b')
+     or not public.session_writer('00000000-0000-0000-0000-00000000000b', current_setting('test.b_branch')::uuid)
+    then raise exception 'Deny row removed owner report or session access'; end if;
   if not exists(select 1 from public.invitations where email='invite-b@example.test')
     then raise exception 'B cannot read its invitation'; end if;
   if not exists (
