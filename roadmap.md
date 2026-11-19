@@ -103,6 +103,12 @@
 - [ ] Real authenticated acceptance and cookie/override/branch-context integration wait for 016-B; not verified against real users.
 - Part B (Tasks 8–12) is owned by the backend developer; no migrations, persistence or server functions in this request.
 
+## 016-C C1 owner permission page
+- [x] Source: owner directory migration 0020, six-key contracts/domain, owner-only transactional save with audit, server functions, responsive page and navigation.
+- [ ] Claude Code: migration double-application, SQL/RLS integration and real authenticated acceptance; no database execution by Lovable.
+- [ ] TODO(spec): updated spec B3b manages five deny-only restrictions, conflicting with the task's explicit keep-legacy/six-key scope. This implementation preserves them read-only pending confirmation.
+- [ ] Requested feature branch unavailable: environment prohibits switching branches; source remains on connected `lovable`, no PR or merge performed.
+
 ## 016-B trusted workspaces (2026-11-18)
 - [x] Tasks 8–11 source implementation: prepared migration/isolation, repository/use cases, trusted cookies, endpoint permission checks and scoped overviews; no database execution.
 - [x] Task 12 local checks/evidence: 248 tests passed / 124 database tests skipped; lint 0 errors / 8 existing warnings; harness build OK; 10 public browser checks. See verification.md; no PR requested.

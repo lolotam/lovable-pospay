@@ -54,3 +54,26 @@ export const selectWorkspaceInputSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("company"), companyId: z.uuid(), role: companyRoleSchema }),
 ]);
 export type SelectWorkspaceInput = z.infer<typeof selectWorkspaceInputSchema>;
+
+export const editablePermissionSchema = permissionKeySchema.exclude(["permissions.manage"]);
+export const overrideStateSchema = z.enum(["default", "allow", "deny"]);
+export const memberPermissionsSchema = z.object({
+  userId: z.string(),
+  name: z.string(),
+  email: z.string(),
+  roles: z.array(companyRoleSchema).min(1),
+  isOwner: z.boolean(),
+  overrides: z.record(editablePermissionSchema, overrideStateSchema),
+  otherRestrictions: z.array(z.string()),
+  effective: z.array(permissionKeySchema),
+});
+export type MemberPermissionsDto = z.infer<typeof memberPermissionsSchema>;
+export const listMemberPermissionsInput = z.object({ companyId: z.uuid() }).strict();
+export const saveOverridesInput = z
+  .object({
+    companyId: z.uuid(),
+    userId: z.string().min(1),
+    overrides: z.record(editablePermissionSchema, overrideStateSchema),
+  })
+  .strict();
+export type SaveOverridesInput = z.infer<typeof saveOverridesInput>;

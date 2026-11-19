@@ -34,6 +34,7 @@ import { Route as AdminConnectorsRouteImport } from './routes/admin/connectors'
 import { Route as AdminDiagnoseRouteImport } from './routes/admin/diagnose'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppPermissionsRouteImport } from './routes/app/permissions'
 import { Route as AppSettingsRouteImport } from './routes/app/settings'
 import { Route as MeIndexRouteImport } from './routes/me/index'
 import { Route as MeAttendRouteImport } from './routes/me/attend'
@@ -182,6 +183,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppPermissionsRoute = AppPermissionsRouteImport.update({
+  id: '/permissions',
+  path: '/permissions',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -318,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/app/permissions': typeof AppPermissionsRoute
   '/app/settings': typeof AppSettingsRoute
   '/me/attend': typeof MeAttendRoute
   '/me/phone': typeof MePhoneRoute
@@ -363,6 +370,7 @@ export interface FileRoutesByTo {
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/app/permissions': typeof AppPermissionsRoute
   '/app/settings': typeof AppSettingsRoute
   '/me/attend': typeof MeAttendRoute
   '/me/phone': typeof MePhoneRoute
@@ -413,6 +421,7 @@ export interface FileRoutesById {
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/app/permissions': typeof AppPermissionsRoute
   '/app/settings': typeof AppSettingsRoute
   '/me/attend': typeof MeAttendRoute
   '/me/phone': typeof MePhoneRoute
@@ -464,6 +473,7 @@ export interface FileRouteTypes {
     | '/admin/connectors'
     | '/admin/diagnose'
     | '/admin/settings'
+    | '/app/permissions'
     | '/app/settings'
     | '/me/attend'
     | '/me/phone'
@@ -509,6 +519,7 @@ export interface FileRouteTypes {
     | '/admin/connectors'
     | '/admin/diagnose'
     | '/admin/settings'
+    | '/app/permissions'
     | '/app/settings'
     | '/me/attend'
     | '/me/phone'
@@ -558,6 +569,7 @@ export interface FileRouteTypes {
     | '/admin/connectors'
     | '/admin/diagnose'
     | '/admin/settings'
+    | '/app/permissions'
     | '/app/settings'
     | '/me/attend'
     | '/me/phone'
@@ -788,6 +800,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/permissions': {
+      id: '/app/permissions'
+      path: '/permissions'
+      fullPath: '/app/permissions'
+      preLoaderRoute: typeof AppPermissionsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/settings': {
       id: '/app/settings'
       path: '/settings'
@@ -964,6 +983,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 )
 
 interface AppRouteRouteChildren {
+  AppPermissionsRoute: typeof AppPermissionsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAttendanceCorrectionsRoute: typeof AppAttendanceCorrectionsRoute
@@ -977,6 +997,7 @@ interface AppRouteRouteChildren {
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppPermissionsRoute: AppPermissionsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAttendanceCorrectionsRoute: AppAttendanceCorrectionsRoute,

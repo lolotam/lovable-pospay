@@ -155,7 +155,12 @@ export function AreaShell({ area, context, children }: AreaShellProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   useEffect(() => setOpen(false), [pathname, context.active]);
   const activeCompany = context.active?.kind === "company" ? context.active.companyId : null;
-  const groups = visibleNavigation(area, context.permissions, serviceSessionRecordingAvailable);
+  const groups = visibleNavigation(
+    area,
+    context.permissions,
+    serviceSessionRecordingAvailable,
+    context.active?.kind === "company" ? context.active.role : undefined,
+  );
   const sidebar = (
     <SidebarContents
       groups={groups}

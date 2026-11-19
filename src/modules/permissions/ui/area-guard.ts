@@ -28,9 +28,12 @@ export function pageAllowed(session: SessionContextDto, path: string) {
     !canEnterArea(session.active, session.permissions, area)
   )
     return false;
-  return visibleNavigation(area, session.permissions, serviceSessionRecordingAvailable).some(
-    (item) => item.to === path || item.children?.some((child) => child.to === path),
-  );
+  return visibleNavigation(
+    area,
+    session.permissions,
+    serviceSessionRecordingAvailable,
+    session.active.kind === "company" ? session.active.role : undefined,
+  ).some((item) => item.to === path || item.children?.some((child) => child.to === path));
 }
 
 /** صفحة اختيار المساحة مع حمل المسار المطلوب إن كان آمناً. */

@@ -67,6 +67,8 @@ do $$ begin
 end $$;
 select set_config('app.user_id','user-bm',true);
 do $$ begin
+  if exists(select 1 from public.company_member_directory('00000000-0000-0000-0000-00000000000b'))
+    then raise exception 'LEAK member directory to non-owner'; end if;
   begin
     insert into public.invitations(company_id,email,role,token_hash,expires_at,invited_by)
       values ('00000000-0000-0000-0000-00000000000b','wide@example.test','reception',repeat('d',64),now()+interval '1 day','user-bm');
@@ -99,6 +101,8 @@ do $$ begin
 end $$;
 select set_config('app.user_id','user-a',true);
 do $$ begin
+  if exists(select 1 from public.company_member_directory('00000000-0000-0000-0000-00000000000b'))
+    then raise exception 'LEAK foreign member directory'; end if;
   insert into public.branches (company_id, name)
     values ('00000000-0000-0000-0000-00000000000a', 'Owner branch default');
   if not exists (
