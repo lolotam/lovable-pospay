@@ -30,12 +30,12 @@ export async function computeStaffCommission(
   input: ComputeStaffCommissionInput,
 ): Promise<ComputeStaffCommissionResult> {
   const { companyId, staffId, period } = input;
-  const plan = await deps.plans.resolve(staffId, period);
+  const plan = await deps.plans.resolve(companyId, staffId, period);
   if (!plan) return { status: "no_plan" };
-  const lines = await deps.sales.listLines(companyId, staffId, period);
-  const salaryMills =
-    plan.rules.tier?.threshold.kind === "salary_multiple"
-      ? await deps.salary.salaryOn(companyId, staffId, lastDayOfPeriod(period))
-      : null;
+  const needsSalary = plan.rules.tier?.threshold.kind === "salary_multiple";
+  const [lines, salaryMills] = await Promise.all([
+    deps.sales.listLines(companyId, staffId, period),
+    needsSalary ? deps.salary.salaryOn(companyId, staffId, lastDayOfPeriod(period)) : null,
+  ]);
   return { status: "ok", plan, result: computeCommission(plan.rules, lines, salaryMills) };
 }

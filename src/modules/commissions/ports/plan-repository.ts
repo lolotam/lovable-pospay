@@ -38,5 +38,9 @@ export interface CommissionPlanRepository {
   /** يسند خطة لموظف ويسجل التدقيق في المعاملة نفسها ويعيد معرف الإسناد. */
   assign(input: AssignCommissionPlanInput): Promise<{ id: string }>;
   /** يعيد أحدث إسناد وإصدار ساريين للفترة، أو null عند غياب خطة محلولة. */
-  resolve(staffId: string, period: CommissionPeriod): Promise<ResolvedPlan | null>;
+  resolve(
+    companyId: string,
+    staffId: string,
+    period: CommissionPeriod,
+  ): Promise<ResolvedPlan | null>;
 }

@@ -44,10 +44,10 @@ export function pgCommissionPlanRepository(
       const { rows } = await db.query<{ id: string }>(
         `insert into public.commission_plans(company_id,name,created_by)
          values($1,$2,$3) returning id`,
-        [companyId, input.name, userId],
+        [companyId, input.name.trim(), userId],
       );
       const id = rows[0]!.id;
-      await audit("commission_plan.created", "commission_plan", id, { name: input.name });
+      await audit("commission_plan.created", "commission_plan", id, { name: input.name.trim() });
       return { id };
     },
     async addVersion(input) {
@@ -92,7 +92,7 @@ export function pgCommissionPlanRepository(
       });
       return { id };
     },
-    async resolve(staffId, period) {
+    async resolve(resolveCompanyId, staffId, period) {
       const { rows } = await db.query<ResolvedPlanRow>(
         `with latest_assignment as (
            select plan_id from public.staff_commission_plans
@@ -108,7 +108,7 @@ export function pgCommissionPlanRepository(
          join public.commission_plan_versions v on v.company_id=$1 and v.plan_id=a.plan_id
          where v.effective_month <= $3::date
          order by v.effective_month desc,v.version desc limit 1`,
-        [companyId, staffId, periodStart(period)],
+        [resolveCompanyId, staffId, periodStart(period)],
       );
       return rows[0] ? mapResolvedPlan(rows[0]) : null;
     },

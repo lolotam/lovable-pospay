@@ -41,17 +41,17 @@ export function computeCommission(
   if (lines.some((line) => line.netMills < 0n)) throw new CommissionError("INVALID_LINE");
   const qualifyingSalesMills = lines.reduce((sum, line) => sum + line.netMills, 0n);
   const thresholdMills = rules.tier ? resolveThreshold(rules.tier.threshold, salaryMills) : null;
-  const baseNumerator = rules.baseRateBp === null ? 0n : qualifyingSalesMills * rules.baseRateBp;
-  const tierValue =
+  const baseMills =
+    rules.baseRateBp === null ? 0n : roundCommission(qualifyingSalesMills * rules.baseRateBp);
+  const tierMills =
     rules.tier && thresholdMills !== null
       ? roundCommission(tierNumerator(rules.tier, qualifyingSalesMills, thresholdMills))
       : 0n;
-  const baseMills = roundCommission(baseNumerator);
   return {
     qualifyingSalesMills,
     thresholdMills,
     baseMills,
-    tierMills: tierValue,
-    totalMills: baseMills + tierValue,
+    tierMills,
+    totalMills: baseMills + tierMills,
   };
 }

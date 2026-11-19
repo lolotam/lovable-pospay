@@ -90,7 +90,7 @@ describe.skipIf(!url)("commission plan repository under PostgreSQL RLS", () => {
       });
       expect(corrected.version).toBe(2);
       await repository.assign({ staffId: staff1, planId, effectiveMonth: "2027-01-01" });
-      await expect(repository.resolve(staff1, period)).resolves.toMatchObject({
+      await expect(repository.resolve(company, staff1, period)).resolves.toMatchObject({
         planId,
         version: 2,
         versionId: corrected.id,
@@ -119,11 +119,13 @@ describe.skipIf(!url)("commission plan repository under PostgreSQL RLS", () => {
     );
     await withUser(owner, async (db) => {
       const repository = pgCommissionPlanRepository(db, owner, company);
-      await expect(repository.resolve(staff1, { year: 2027, month: 2 })).resolves.toMatchObject({
+      await expect(
+        repository.resolve(company, staff1, { year: 2027, month: 2 }),
+      ).resolves.toMatchObject({
         planId: hairPlanId,
         version: 1,
       });
-      await expect(repository.resolve(staff1, period)).resolves.toMatchObject({
+      await expect(repository.resolve(company, staff1, period)).resolves.toMatchObject({
         planId,
         version: 2,
       });
@@ -178,7 +180,7 @@ describe.skipIf(!url)("commission plan repository under PostgreSQL RLS", () => {
   it("returns null for staff without an assignment", async () => {
     await withUser(owner, async (db) => {
       const repository = pgCommissionPlanRepository(db, owner, company);
-      await expect(repository.resolve(staff2, period)).resolves.toBeNull();
+      await expect(repository.resolve(company, staff2, period)).resolves.toBeNull();
     });
   });
 });

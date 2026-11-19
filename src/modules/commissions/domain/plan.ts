@@ -76,6 +76,7 @@ export function validatePlanVersion(rules: PlanRules): PlanValidationError {
     return "PLAN_INVALID";
   if (!rules.tier) return null;
   const { tier } = rules;
+  if (tier.mode !== "excess" && tier.mode !== "all_after") return "PLAN_INVALID";
   if (tier.rateBp < 1n || tier.rateBp > 10000n || !tier.threshold) return "PLAN_INVALID";
   if (tier.threshold.kind === "fixed") {
     const { mills } = tier.threshold;

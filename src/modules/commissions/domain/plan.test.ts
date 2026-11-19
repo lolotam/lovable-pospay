@@ -80,6 +80,14 @@ describe("validatePlanVersion", () => {
       },
       expected: "PLAN_INVALID",
     },
+    {
+      name: "unknown tier mode",
+      rules: {
+        ...validTier,
+        tier: { ...validTier.tier!, mode: "flat" },
+      } as unknown as PlanRules,
+      expected: "PLAN_INVALID",
+    },
     { name: "missing threshold", rules: missingThreshold, expected: "PLAN_INVALID" },
   ])("returns $expected for $name", ({ rules, expected }) => {
     expect(validatePlanVersion(rules)).toBe(expected);
