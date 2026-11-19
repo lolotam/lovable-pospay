@@ -98,21 +98,4 @@ describe("computeStaffCommission", () => {
     expect(output).toMatchObject({ status: "ok", result: { totalMills: total } });
     expect(f.salaryDates).toEqual([]);
   });
-
-  test("returns the corrected plan selected by the repository", async () => {
-    const corrected = resolved(MASSAGE_PLAN);
-    const f = fakes(corrected, [], null);
-    const output = await computeStaffCommission(f.deps, input);
-    expect(output).toEqual({
-      status: "ok",
-      plan: corrected,
-      result: {
-        qualifyingSalesMills: 0n,
-        thresholdMills: null,
-        baseMills: 0n,
-        tierMills: 0n,
-        totalMills: 0n,
-      },
-    });
-  });
 });

@@ -248,6 +248,19 @@ do $$ begin
     raise exception 'A inserted a commission plan into B';
   exception when insufficient_privilege then null;
   end;
+  begin
+    insert into public.commission_plan_versions(company_id,plan_id,version,effective_month,base_rate_bp,created_by)
+      values('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000031',9,'2027-01-01',100,'user-a');
+    raise exception 'A inserted a commission version into B';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.staff_commission_plans(company_id,staff_id,plan_id,effective_month,assigned_by)
+      values('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000021',
+             '19000000-0000-4000-8000-000000000031','2027-03-01','user-a');
+    raise exception 'A assigned a commission plan in B';
+  exception when insufficient_privilege then null;
+  end;
 end $$;
 select set_config('app.user_id','user-b',true);
 do $$ begin
@@ -280,6 +293,19 @@ do $$ begin
 end $$;
 select set_config('app.user_id','user-b',true);
 do $$ begin
+  begin
+    insert into public.commission_plan_versions(company_id,plan_id,version,effective_month,base_rate_bp,created_by)
+      values('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000031',9,'2027-01-01',100,'commission-bm-1');
+    raise exception 'Owner B spoofed created_by';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.staff_commission_plans(company_id,staff_id,plan_id,effective_month,assigned_by)
+      values('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000021',
+             '19000000-0000-4000-8000-000000000031','2027-03-01','commission-bm-1');
+    raise exception 'Owner B spoofed assigned_by';
+  exception when insufficient_privilege then null;
+  end;
   begin
     update public.commission_plans set name='Changed' where company_id='19000000-0000-4000-8000-000000000002';
     raise exception 'Commission plan update was allowed';

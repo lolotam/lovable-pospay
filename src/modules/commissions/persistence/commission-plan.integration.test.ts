@@ -99,12 +99,34 @@ describe.skipIf(!url)("commission plan repository under PostgreSQL RLS", () => {
     });
   });
 
-  it("allows the branch 1 manager to assign branch 1 staff", async () => {
-    await withUser(manager1, async (db) => {
-      const repository = pgCommissionPlanRepository(db, manager1, company);
-      await expect(
-        repository.assign({ staffId: staff1, planId, effectiveMonth: "2027-02-01" }),
-      ).resolves.toEqual({ id: expect.any(String) });
+  it("lets the branch 1 manager move branch 1 staff to another plan from February", async () => {
+    const hairPlanId = await withUser(owner, async (db) => {
+      const repository = pgCommissionPlanRepository(db, owner, company);
+      const created = await repository.createPlan({ name: "Hair" });
+      await repository.addVersion({
+        planId: created.id,
+        effectiveMonth: "2027-01-01",
+        rules: version1Rules,
+      });
+      return created.id;
+    });
+    await withUser(manager1, (db) =>
+      pgCommissionPlanRepository(db, manager1, company).assign({
+        staffId: staff1,
+        planId: hairPlanId,
+        effectiveMonth: "2027-02-01",
+      }),
+    );
+    await withUser(owner, async (db) => {
+      const repository = pgCommissionPlanRepository(db, owner, company);
+      await expect(repository.resolve(staff1, { year: 2027, month: 2 })).resolves.toMatchObject({
+        planId: hairPlanId,
+        version: 1,
+      });
+      await expect(repository.resolve(staff1, period)).resolves.toMatchObject({
+        planId,
+        version: 2,
+      });
     });
   });
 

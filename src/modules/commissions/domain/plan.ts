@@ -50,6 +50,20 @@ export class CommissionError extends Error {
   }
 }
 
+const MAX_INTEGER = 2147483647n;
+const MAX_BIGINT = 9223372036854775807n;
+
+/**
+ * يتحقق من اسم الخطة: من 1 إلى 80 حرفاً بعد حذف المسافات الطرفية، كما يشترط قيد الجدول.
+ *
+ * @param name اسم الخطة كما أدخله المستخدم
+ * @returns true عندما يكون الاسم مقبولاً
+ */
+export function isValidPlanName(name: string): boolean {
+  const length = name.trim().length;
+  return length >= 1 && length <= 80;
+}
+
 /**
  * يتحقق من قواعد إصدار الخطة قبل حفظه، بما فيها وجود جزء واحد وحدود النسب والعتبات.
  *
@@ -63,8 +77,12 @@ export function validatePlanVersion(rules: PlanRules): PlanValidationError {
   if (!rules.tier) return null;
   const { tier } = rules;
   if (tier.rateBp < 1n || tier.rateBp > 10000n || !tier.threshold) return "PLAN_INVALID";
-  if (tier.threshold.kind === "fixed") return tier.threshold.mills < 0n ? "PLAN_INVALID" : null;
-  return tier.threshold.multipleMilli <= 0n ? "PLAN_INVALID" : null;
+  if (tier.threshold.kind === "fixed") {
+    const { mills } = tier.threshold;
+    return mills < 0n || mills > MAX_BIGINT ? "PLAN_INVALID" : null;
+  }
+  const { multipleMilli } = tier.threshold;
+  return multipleMilli <= 0n || multipleMilli > MAX_INTEGER ? "PLAN_INVALID" : null;
 }
 
 /**

@@ -9,7 +9,7 @@ import type { CommissionResult, PlanRules, PlanTier, SalesLine, TierThreshold } 
  * @param numerator حاصل ضرب المبلغ في نسبة بنقاط الأساس
  * @returns قيمة المكوّن بالملّيم بعد حذف الكسر
  */
-export function roundCommission(numerator: bigint): Mills {
+function roundCommission(numerator: bigint): Mills {
   return numerator / 10000n;
 }
 

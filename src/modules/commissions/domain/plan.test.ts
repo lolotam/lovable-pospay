@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { isMonthStart, validatePlanVersion } from "./plan";
+import { isMonthStart, isValidPlanName, validatePlanVersion } from "./plan";
 import type { PlanRules } from "./plan";
 
 const validTier: PlanRules = {
@@ -58,6 +58,28 @@ describe("validatePlanVersion", () => {
       },
       expected: "PLAN_INVALID",
     },
+    {
+      name: "fixed threshold above the bigint column",
+      rules: {
+        ...validTier,
+        tier: {
+          ...validTier.tier!,
+          threshold: { kind: "fixed" as const, mills: 9223372036854775808n },
+        },
+      },
+      expected: "PLAN_INVALID",
+    },
+    {
+      name: "salary multiple above the integer column",
+      rules: {
+        ...validTier,
+        tier: {
+          ...validTier.tier!,
+          threshold: { kind: "salary_multiple" as const, multipleMilli: 2147483648n },
+        },
+      },
+      expected: "PLAN_INVALID",
+    },
     { name: "missing threshold", rules: missingThreshold, expected: "PLAN_INVALID" },
   ])("returns $expected for $name", ({ rules, expected }) => {
     expect(validatePlanVersion(rules)).toBe(expected);
@@ -79,5 +101,16 @@ describe("isMonthStart", () => {
 
   test("accepts the first day of a month", () => {
     expect(isMonthStart("2027-02-01")).toBe(true);
+  });
+});
+
+describe("isValidPlanName", () => {
+  test.each([
+    { name: "Nails", expected: true },
+    { name: "   ", expected: false },
+    { name: "a".repeat(80), expected: true },
+    { name: "a".repeat(81), expected: false },
+  ])("returns $expected for a $name.length-character name", ({ name, expected }) => {
+    expect(isValidPlanName(name)).toBe(expected);
   });
 });

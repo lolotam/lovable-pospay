@@ -39,7 +39,8 @@ create table if not exists public.staff_commission_plans (
   plan_id uuid not null,
   effective_month date not null check (extract(day from effective_month) = 1),
   assigned_by text not null,
-  assigned_at timestamptz not null default now(),
+  -- clock_timestamp orders assignments by real write time, not transaction start.
+  assigned_at timestamptz not null default clock_timestamp(),
   primary key (company_id, id),
   foreign key (company_id, staff_id) references public.staff_members(company_id, id),
   foreign key (company_id, plan_id) references public.commission_plans(company_id, id)

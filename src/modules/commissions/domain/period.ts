@@ -10,7 +10,7 @@ export interface CommissionPeriod {
  * @param period السنة والشهر المطلوبان
  * @throws RangeError عندما لا تكون السنة بين 1 و9999 أو الشهر بين 1 و12
  */
-export function assertPeriod(period: CommissionPeriod): void {
+function assertPeriod(period: CommissionPeriod): void {
   const { year, month } = period;
   if (!Number.isInteger(year) || year < 1 || year > 9999)
     throw new RangeError("Invalid period year");

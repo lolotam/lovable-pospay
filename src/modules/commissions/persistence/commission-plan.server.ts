@@ -1,5 +1,10 @@
 import type pg from "pg";
-import { CommissionError, isMonthStart, validatePlanVersion } from "../domain/plan";
+import {
+  CommissionError,
+  isMonthStart,
+  isValidPlanName,
+  validatePlanVersion,
+} from "../domain/plan";
 import type { PlanRules, PlanTier, TierMode } from "../domain/plan";
 import { periodStart } from "../domain/period";
 import type { CommissionPlanRepository, ResolvedPlan } from "../ports/plan-repository";
@@ -21,24 +26,37 @@ export function pgCommissionPlanRepository(
   userId: string,
   companyId: string,
 ): CommissionPlanRepository {
+  const audit = async (
+    action: string,
+    entity: string,
+    entityId: string,
+    details: Record<string, string | number>,
+  ) => {
+    await db.query(
+      `insert into public.audit_log(company_id,actor_user_id,action,entity,entity_id,details)
+       values($1,$2,$3,$4,$5,$6)`,
+      [companyId, userId, action, entity, entityId, JSON.stringify(details)],
+    );
+  };
   return {
     async createPlan(input) {
+      if (!isValidPlanName(input.name)) throw new CommissionError("PLAN_INVALID");
       const { rows } = await db.query<{ id: string }>(
         `insert into public.commission_plans(company_id,name,created_by)
          values($1,$2,$3) returning id`,
         [companyId, input.name, userId],
       );
       const id = rows[0]!.id;
-      await writeAudit(db, companyId, userId, "commission_plan.created", "commission_plan", id, {
-        name: input.name,
-      });
+      await audit("commission_plan.created", "commission_plan", id, { name: input.name });
       return { id };
     },
     async addVersion(input) {
       requireMonthStart(input.effectiveMonth);
       const validation = validatePlanVersion(input.rules);
       if (validation) throw new CommissionError(validation);
-      await db.query("select pg_advisory_xact_lock(hashtext($1))", [input.planId]);
+      await db.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [
+        `commission_plan:${input.planId}`,
+      ]);
       const { rows } = await db.query<{ id: string; version: number }>(
         `insert into public.commission_plan_versions(
            company_id,plan_id,version,effective_month,base_rate_bp,tier_mode,tier_rate_bp,
@@ -51,15 +69,11 @@ export function pgCommissionPlanRepository(
         [companyId, input.planId, input.effectiveMonth, ...versionParameters(input.rules), userId],
       );
       const row = rows[0]!;
-      await writeAudit(
-        db,
-        companyId,
-        userId,
-        "commission_plan.version_added",
-        "commission_plan_version",
-        row.id,
-        { planId: input.planId, effectiveMonth: input.effectiveMonth, version: row.version },
-      );
+      await audit("commission_plan.version_added", "commission_plan_version", row.id, {
+        planId: input.planId,
+        effectiveMonth: input.effectiveMonth,
+        version: row.version,
+      });
       return { id: row.id, version: row.version };
     },
     async assign(input) {
@@ -71,15 +85,11 @@ export function pgCommissionPlanRepository(
         [companyId, input.staffId, input.planId, input.effectiveMonth, userId],
       );
       const id = rows[0]!.id;
-      await writeAudit(
-        db,
-        companyId,
-        userId,
-        "commission_plan.assigned",
-        "staff_commission_plan",
-        id,
-        { staffId: input.staffId, planId: input.planId, effectiveMonth: input.effectiveMonth },
-      );
+      await audit("commission_plan.assigned", "staff_commission_plan", id, {
+        staffId: input.staffId,
+        planId: input.planId,
+        effectiveMonth: input.effectiveMonth,
+      });
       return { id };
     },
     async resolve(staffId, period) {
@@ -140,20 +150,4 @@ function mapTier(row: ResolvedPlanRow): PlanTier | null {
       ? { kind: "salary_multiple" as const, multipleMilli: BigInt(row.tierSalaryMultipleMilli!) }
       : { kind: "fixed" as const, mills: BigInt(row.tierThresholdMills) };
   return { mode: row.tierMode, rateBp: BigInt(row.tierRateBp!), threshold };
-}
-
-async function writeAudit(
-  db: pg.PoolClient,
-  companyId: string,
-  userId: string,
-  action: string,
-  entity: string,
-  entityId: string,
-  details: Record<string, string | number>,
-): Promise<void> {
-  await db.query(
-    `insert into public.audit_log(company_id,actor_user_id,action,entity,entity_id,details)
-     values($1,$2,$3,$4,$5,$6)`,
-    [companyId, userId, action, entity, entityId, JSON.stringify(details)],
-  );
 }
