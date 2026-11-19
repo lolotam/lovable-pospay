@@ -8,7 +8,12 @@ import { Input } from "@/components/ui/input";
 import { t, type MessageKey } from "@/i18n";
 import type { SessionFormDto } from "../contracts";
 
-const discountErrors = ["DISCOUNT_OVER_LIMIT", "DISCOUNT_REASON_REQUIRED", "PRICE_ABOVE_LIST"];
+const sessionErrorCodes = [
+  "DISCOUNT_OVER_LIMIT",
+  "DISCOUNT_REASON_REQUIRED",
+  "PRICE_ABOVE_LIST",
+  "IDEMPOTENCY_CONFLICT",
+];
 import { getSessionFormFn, recordSessionFn } from "../functions/session.functions";
 
 const formQuery = (companyId: string) =>
@@ -70,8 +75,9 @@ function useSessionForm(companyId: string) {
       setMessage(t("sessions.saved"));
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
+      if (code === "IDEMPOTENCY_CONFLICT") request.current = null;
       setMessage(
-        t(discountErrors.includes(code) ? (`sessions.${code}` as MessageKey) : "sessions.error"),
+        t(sessionErrorCodes.includes(code) ? (`sessions.${code}` as MessageKey) : "sessions.error"),
       );
     } finally {
       setBusy(false);

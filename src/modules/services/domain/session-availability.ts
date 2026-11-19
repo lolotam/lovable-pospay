@@ -1,2 +1,2 @@
-/** تسجيل الجلسات موقوف لحين اعتماد قواعد تعديل السعر والخصم (D-44). */
-export const serviceSessionRecordingAvailable = false;
+/** مفتاح إيقاف تسجيل الجلسات؛ قواعد D-44 وق-1 مطبقة في domain وRLS. */
+export const serviceSessionRecordingAvailable = true;

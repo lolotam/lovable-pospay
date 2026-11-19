@@ -43,6 +43,7 @@ describe.skipIf(!url)("service sessions real RLS", () => {
         "0013_service_sessions",
         "0014_discount_grants",
         "0016_discount_grant_membership",
+        "0023_session_recording",
       ])
         await admin.query(await readFile(`db/migrations/${f}.sql`, "utf8"));
     await admin.query(`insert into companies(id,name) values($1,'Sessions salon')`, [company]);
@@ -92,7 +93,12 @@ describe.skipIf(!url)("service sessions real RLS", () => {
       run("s-reception", requestId),
       run("s-reception", requestId),
     ]);
-    expect(duplicates).toEqual([{ id: requestId }, { id: requestId }]);
+    expect(duplicates).toEqual(
+      expect.arrayContaining([
+        { id: requestId, replayed: false },
+        { id: requestId, replayed: true },
+      ]),
+    );
     const rowsVisibleToWriter = await withUser("s-reception", async (db) => {
       const { rowCount } = await db.query(
         "select id from public.service_sessions where company_id=$1",
