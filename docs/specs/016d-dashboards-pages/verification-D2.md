@@ -23,7 +23,7 @@
 - Prepared `0022_company_pages.sql` and isolation cases only; no SQL was executed anywhere.
 - Claude Code must verify double application, tenant RLS, database integration and duplicate 0021 migration numbering (D1 plus earlier phone unbind migration).
 - Authenticated owner save/upload/publish/readback, live R2 and Lighthouse thresholds remain unverified. Storage credentials and production settings were not changed.
-- Private unpublished owner images intentionally use `private, no-store`; only published assets receive public immutable caching, avoiding a shared-cache draft disclosure.
+- Private unpublished owner images intentionally use `private, no-store`; only published assets receive a short (300 s) public cache, avoiding a shared-cache draft disclosure.
 - Independent review, CI and deployment remain external gates. Resend was not retried or modified during this task.
 
 ## Files written across D2

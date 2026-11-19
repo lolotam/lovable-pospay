@@ -34,7 +34,7 @@ it("returns 404 for another company's private image", async () => {
   expect((await serveAsset("asset", config)).status).toBe(404);
   expect(fetch).not.toHaveBeenCalled();
 });
-it("serves published bytes with immutable cache and nosniff", async () => {
+it("serves published bytes with a short public cache and nosniff", async () => {
   mocks.query.mockResolvedValue({
     rows: [{ object_key: "companies/a/pages/photo.png", content_type: "image/png" }],
   });
@@ -44,7 +44,7 @@ it("serves published bytes with immutable cache and nosniff", async () => {
   );
   const response = await serveAsset("asset", config);
   expect(response.status).toBe(200);
-  expect(response.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
+  expect(response.headers.get("Cache-Control")).toBe("public, max-age=300");
   expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
   expect(response.headers.get("Content-Type")).toBe("image/png");
   expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([137, 80, 78, 71]);

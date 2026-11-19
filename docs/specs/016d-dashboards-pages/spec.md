@@ -73,7 +73,7 @@ Charts per dashboard:
   - Every upload is a row in `company_assets`; a page document may only reference asset ids of
     its own company, checked on save.
   - Images are served by the app at `/media/<asset_id>`: the server reads R2 and streams the
-    bytes with the stored content type, `Cache-Control: public, max-age=31536000, immutable`
+    bytes with the stored content type, `Cache-Control: public, max-age=300` (short, so unpublish or delete takes effect within minutes; review 2026-11-19)
     and `X-Content-Type-Options: nosniff`. Only assets referenced by a published page, or
     requested by the owner in the editor, are served; anything else returns 404.
   - Deleting an image removes the R2 object and the row; an image still used by the draft or the

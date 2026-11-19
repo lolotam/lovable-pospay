@@ -21,11 +21,11 @@ export function pgPageRepository(
     },
     draft: () => readDraft(db, companyId),
     save: (input) => saveDocument(db, companyId, userId, input),
-    async publish(version) {
+    async publish(version, snapshot) {
       await lockPageAssets(db, companyId);
       const result = await db.query(
-        "update public.company_pages set published=draft,published_at=now(),version=version+1,updated_by=$2,updated_at=now() where company_id=$1 and version=$3 returning version",
-        [companyId, userId, version],
+        "update public.company_pages set published=$4::jsonb,published_at=now(),version=version+1,updated_by=$2,updated_at=now() where company_id=$1 and version=$3 returning version",
+        [companyId, userId, version, JSON.stringify(snapshot)],
       );
       if (result.rowCount !== 1) throw new Error("PAGE_CONFLICT");
       return readDraft(db, companyId);
@@ -49,7 +49,7 @@ export function pgPageRepository(
     },
     async audit(action, version) {
       await db.query(
-        "insert into public.audit_log(company_id,actor_user_id,action,entity,entity_id,details) values($1,$2,$3,'company_page',$1,$4::jsonb)",
+        "insert into public.audit_log(company_id,actor_user_id,action,entity,entity_id,details) values($1::uuid,$2,$3,'company_page',$1::text,$4::jsonb)",
         [companyId, userId, action, JSON.stringify({ version })],
       );
     },

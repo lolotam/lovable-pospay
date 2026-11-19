@@ -57,7 +57,11 @@ export const publicPageSchema = z.object({
   currency: z.string(),
   document: pageDocumentSchema,
   services: z.array(
-    z.object({ id: z.uuid(), name: z.string(), priceMills: z.string().regex(/^\d+$/) }),
+    z.object({
+      id: z.uuid(),
+      name: z.string(),
+      priceMills: z.string().regex(/^\d+$/).optional(),
+    }),
   ),
 });
 export type PublicPageDto = z.infer<typeof publicPageSchema>;

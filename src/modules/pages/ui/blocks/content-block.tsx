@@ -173,7 +173,7 @@ function InfoBlock({
             {page.services.map((service) => (
               <li key={service.id} className="flex flex-wrap justify-between gap-3 py-4">
                 <span className="break-words">{service.name}</span>
-                {block.showPrices && (
+                {block.showPrices && service.priceMills !== undefined && (
                   <span className="tabular-nums">
                     {formatKwd(BigInt(service.priceMills))} {page.currency}
                   </span>

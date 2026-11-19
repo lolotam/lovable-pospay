@@ -43,13 +43,14 @@ it("maps a unique slug failure to SLUG_TAKEN", async () => {
     repo.save({ slug: "glow-salon", version: 1, document: { blocks: [] } }),
   ).rejects.toThrow("SLUG_TAKEN");
 });
-it("publishes only the expected version under the company asset lock", async () => {
+it("publishes the given snapshot only at the expected version under the asset lock", async () => {
   const { repo, query } = setup();
-  await repo.publish(1);
-  expect(query).toHaveBeenCalledWith(expect.stringContaining("set published=draft"), [
+  await repo.publish(1, { blocks: [] });
+  expect(query).toHaveBeenCalledWith(expect.stringContaining("set published=$4::jsonb"), [
     company,
     "owner",
     1,
+    JSON.stringify({ blocks: [] }),
   ]);
   expect(query.mock.calls[0]?.[0]).toContain("pg_advisory_xact_lock");
 });

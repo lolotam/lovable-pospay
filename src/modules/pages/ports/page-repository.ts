@@ -1,10 +1,10 @@
-import type { PageDraftDto, SavePageInput, PublicPageDto } from "../contracts";
+import type { PageDocument, PageDraftDto, SavePageInput, PublicPageDto } from "../contracts";
 /** تخزين صفحة شركة ضمن معاملة المستخدم، وتفويض المالك قبل القراءة والكتابة. */
 export interface PageRepository {
   isOwner(): Promise<boolean>;
   draft(): Promise<PageDraftDto>;
   save(input: SavePageInput): Promise<PageDraftDto>;
-  publish(version: number): Promise<PageDraftDto>;
+  publish(version: number, snapshot: PageDocument): Promise<PageDraftDto>;
   unpublish(): Promise<PageDraftDto>;
   available(slug: string): Promise<boolean>;
   audit(

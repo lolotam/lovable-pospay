@@ -30,7 +30,8 @@ export async function serveAsset(id: string, config: StorageConfig): Promise<Res
     return new Response(response.body, {
       headers: {
         "Content-Type": asset.content_type,
-        "Cache-Control": published ? "public, max-age=31536000, immutable" : "private, no-store",
+        // Short public cache: an unpublished or deleted image must stop being served soon.
+        "Cache-Control": published ? "public, max-age=300" : "private, no-store",
         "X-Content-Type-Options": "nosniff",
         Vary: "Cookie",
       },
