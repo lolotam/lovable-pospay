@@ -288,3 +288,41 @@ Nothing below is implemented. Defaults are what this slice does today.
    and 5 (D-17, D-54), tips column (D-36), audit of approver and time (acceptance §12 #3).
 6. Plan builder screen from blocks (D-35) with server functions and Zod contracts.
 7. Staff "my commission" live estimate (D-28, D-46).
+
+## Waleed decisions — 2026-11-19 (answers to Q1–Q8)
+
+Recorded from Waleed's decision cards on 2026-11-19. Nothing below is implemented yet.
+
+- **Q1 → round down, once per month** per component (recommended; current engine behavior).
+- **Q2 → owner and branch manager record salaries** (option 2, not the default). A branch manager
+  records salaries only for staff of their own branch. Salaries keep an effective-date history;
+  the threshold uses the salary on the last day of the period. This relaxes D-46 «owner-only» for
+  salaries and needs RLS by branch.
+- **Q3 → progressive brackets, like tax** (recommended). Example: sales 3,000; 5% from 1,000 and
+  8% from 2,000 → 1,000×5% + 1,000×8% = 130.
+- **Q4 → session-count thresholds apply the rate to the sessions after the Nth** (recommended).
+  Example: 10% after 20 sessions, 25 sessions × 30.000 → 5 × 30 × 10% = 15.000.
+- **Q5 → a per-service commission replaces the plan for that line** (recommended); its value may
+  be a percentage or a fixed amount per session, chosen by the owner; the line does not count
+  toward thresholds.
+- **Q6 → plan changes take effect from the 1st of a month only** (recommended; current behavior).
+- **Q7 → only the owner creates and edits plans; branch managers assign existing plans to staff
+  of their branch** (recommended). Migration 0024 currently lets branch managers insert plans and
+  versions (`commission_plan_manager`); a later migration must narrow plan/version inserts to the
+  owner while keeping `commission_plan_assigner` for assignments.
+- **Q8 → staff without a plan show «بدون خطة» (`NO_PLAN`)** on the statement (recommended).
+
+### Commission methods are a menu the owner picks from (Waleed, 2026-11-19)
+
+The plan builder must offer several methods, and the owner chooses which apply to each plan,
+combining them where it makes sense:
+
+1. **Fixed percentage** of sales (e.g. 5% of everything).
+2. **Fixed amount per session** (e.g. 2.000 per session).
+3. **Brackets after a threshold** (Q3 progressive tiers), with the threshold as a fixed amount,
+   a salary multiple, or a session count (Q4).
+4. **Combinations**, e.g. a base percentage plus brackets above a threshold, or a fixed amount per
+   session plus a percentage after N sessions; per-service overrides (Q5) on top.
+
+The current engine supports base rate + one tier (`excess` / `all_after`). Multiple brackets,
+fixed-amount methods and the owner-facing method picker are follow-up slices.

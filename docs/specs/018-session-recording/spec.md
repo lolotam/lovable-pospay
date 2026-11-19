@@ -207,3 +207,22 @@ picked the wrong employee.
 1. *(Recommended)* A later slice: the manager voids a session with a mandatory reason, kept in
    `audit_log` (like D-32 corrections).
 2. Reception may edit within a short window.
+
+## Waleed decisions — 2026-11-19 (answers to Q1–Q5)
+
+Recorded from Waleed's decision cards on 2026-11-19. Not implemented yet; each becomes its own
+follow-up slice. Until then production keeps the behavior described above.
+
+- **Q1 → build manager PIN approval now** (option 2, not the recommended default). Over-limit
+  example: list 10.000, reception limit 10%, client pays 8.500 → the branch manager enters a PIN on
+  the reception device and the session saves with the approver recorded. Details still to specify in
+  the slice: who may approve, PIN storage and lockout, and whether remote approval follows.
+- **Q2 → keep ق-1 live now** (recommended). Revisit only if the client picks another reference price.
+- **Q3 → raising the price above the list price is allowed with a mandatory reason** (option 2).
+  Example: long-hair cut, list 12.500, charged 15.000, reason «شعر طويل». Replaces the 013
+  `PRICE_ABOVE_LIST` refusal once implemented.
+- **Q4 → warn and confirm** (option 2): if a session with the same client, service, employee and
+  minute already exists, show «فيه جلسة مشابهة، أكيد تبين تحفظين؟» and save only after confirmation.
+- **Q5 → reception may edit its own session within a short window** (option 2); after the window
+  only a manager may correct it. Every edit is audited (who, when, old and new value). The window
+  length is not decided; proposal 15 minutes.
