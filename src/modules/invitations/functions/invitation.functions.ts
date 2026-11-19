@@ -101,3 +101,20 @@ export const acceptInviteFn = createServerFn({ method: "POST" })
     }
     return { email: invite.email };
   });
+
+export const acceptInviteAsSignedInFn = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => inviteTokenInput.parse(v))
+  .handler(async ({ data }) => {
+    const { requireSession } = await import("@/lib/server/session.server");
+    const { withUser } = await import("@/lib/server/db.server");
+    const { acceptInvite } = await import("../persistence/invitation.server");
+    const { hashInviteToken } = await import("../domain/invite-token");
+    const { setResponseHeader } = await import("@tanstack/react-start/server");
+    const session = await requireSession();
+    const hash = await hashInviteToken(data.token);
+    setResponseHeader("Cache-Control", "private, no-store");
+    const companyId = await withUser(session.user.id, (db) =>
+      acceptInvite(db, hash, session.user.email),
+    );
+    return { companyId };
+  });

@@ -91,3 +91,9 @@ describe("allowedDestination", () => {
     ).toBeNull();
   });
 });
+
+it("returns to the public invitation after sign-in regardless of workspace", () => {
+  expect(signInDestination(context, "/invite?t=abc")).toBe("/invite?t=abc");
+  expect(signInDestination({ ...context, active: null }, "/invite?t=abc")).toBe("/invite?t=abc");
+  expect(signInDestination(context, "//evil.example/invite")).not.toBe("//evil.example/invite");
+});
