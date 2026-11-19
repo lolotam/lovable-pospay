@@ -8,6 +8,9 @@ import { Dashboard } from "@/modules/permissions/ui/dashboard";
 import { t } from "@/i18n";
 import { SystemStatus, statusQuery } from "@/modules/permissions/ui/system-status";
 import { RouteError, RouteNotFound } from "@/modules/permissions/ui/route-feedback";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { growthQuery } from "@/modules/permissions/ui/charts/chart-query";
+import { GrowthChart } from "@/modules/permissions/ui/charts/growth-chart";
 export const Route = createFileRoute("/admin/")({
   head: () => ({
     meta: [
@@ -26,6 +29,7 @@ export const Route = createFileRoute("/admin/")({
           context.queryClient.ensureQueryData(statusQuery),
           context.queryClient.ensureQueryData(platformOverviewQuery),
           context.queryClient.ensureQueryData(connectorSummaryQuery),
+          context.queryClient.ensureQueryData(growthQuery),
         ])
       : undefined,
   errorComponent: RouteError,
@@ -38,8 +42,13 @@ function Home() {
     <>
       <Dashboard area="admin" context={session}>
         <PlatformOverview />
+        <Growth />
       </Dashboard>
       <SystemStatus />
     </>
   );
+}
+function Growth() {
+  const { data } = useSuspenseQuery(growthQuery);
+  return <GrowthChart data={data} />;
 }

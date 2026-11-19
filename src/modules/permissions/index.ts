@@ -1,4 +1,10 @@
 export * from "./contracts";
+export { parseRange } from "./domain/chart-range";
+export {
+  getCompanyChartsFn,
+  getMyAttendanceStripFn,
+  getPlatformGrowthFn,
+} from "./functions/charts.functions";
 export { effectivePermissions } from "./domain/permission-matrix";
 export {
   areaForWorkspace,
