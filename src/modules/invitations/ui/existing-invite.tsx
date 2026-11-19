@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -23,6 +23,14 @@ export function ExistingInvite({ token, invite, context }: ExistingInviteProps) 
   const [joinedCompany, setJoinedCompany] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // A join that resolves after the user left this invitation must not switch workspace or navigate.
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, [token]);
   const matches = context.user.email.trim().toLowerCase() === invite.email.trim().toLowerCase();
   async function join() {
     setBusy(true);
@@ -35,7 +43,9 @@ export function ExistingInvite({ token, invite, context }: ExistingInviteProps) 
         (ws) => ws.kind === "company" && ws.companyId === companyId && ws.role === invite.role,
       );
       if (!fresh || !workspace) throw new Error("WORKSPACE_UNAVAILABLE");
+      if (!active.current) return;
       await chooseWorkspace(cache, fresh, workspace);
+      if (!active.current) return;
       await navigate({ href: `/${areaForWorkspace(workspace)}`, replace: true });
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
@@ -57,7 +67,7 @@ export function ExistingInvite({ token, invite, context }: ExistingInviteProps) 
       const result = await authClient.signOut();
       if (result.error) throw result.error;
       cache.clear();
-      await navigate({ to: "/invite", search: { t: token }, replace: true });
+      await navigate({ to: "/invite", search: { t: token }, replace: true, reloadDocument: true });
     } catch {
       setError(t("team.error"));
     } finally {
