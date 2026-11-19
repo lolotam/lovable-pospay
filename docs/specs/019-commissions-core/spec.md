@@ -306,10 +306,10 @@ Recorded from Waleed's decision cards on 2026-11-19. Nothing below is implemente
   be a percentage or a fixed amount per session, chosen by the owner; the line does not count
   toward thresholds.
 - **Q6 → plan changes take effect from the 1st of a month only** (recommended; current behavior).
-- **Q7 → only the owner creates and edits plans; branch managers assign existing plans to staff
-  of their branch** (recommended). Migration 0024 currently lets branch managers insert plans and
-  versions (`commission_plan_manager`); a later migration must narrow plan/version inserts to the
-  owner while keeping `commission_plan_assigner` for assignments.
+- **Q7 → owner and branch managers create and edit plans** (the current default). Waleed first
+  picked owner-only, then reverted the same day: branch managers keep creating plans. Migration
+  0024 already matches (`commission_plan_manager`), and assignments stay limited to the manager's
+  own branch (`commission_plan_assigner`). No migration change needed.
 - **Q8 → staff without a plan show «بدون خطة» (`NO_PLAN`)** on the statement (recommended).
 
 ### Commission methods are a menu the owner picks from (Waleed, 2026-11-19)
