@@ -8,8 +8,9 @@ export interface PermissionPageData {
   save: (input: SaveOverridesInput) => Promise<MemberPermissionsDto>;
   refresh: () => Promise<unknown>;
 }
+type PermissionDraft = Pick<MemberPermissionsDto, "overrides" | "restrictions">;
 export function usePermissionEditor({ companyId, members, save, refresh }: PermissionPageData) {
-  const [drafts, setDrafts] = useState<Record<string, MemberPermissionsDto["overrides"]>>({});
+  const [drafts, setDrafts] = useState<Record<string, PermissionDraft>>({});
   const [selectedId, setSelectedId] = useState(
     members.find((member) => !member.isOwner)?.userId ?? members[0]?.userId,
   );
@@ -21,24 +22,15 @@ export function usePermissionEditor({ companyId, members, save, refresh }: Permi
   const selected = members.find((member) => member.userId === selectedId) ?? members[0];
   const draftMember = (member: MemberPermissionsDto) => ({
     ...member,
-    overrides: drafts[member.userId] ?? member.overrides,
+    ...(drafts[member.userId] ?? member),
   });
   const dirty = members.filter(
     (member) =>
       drafts[member.userId] &&
-      JSON.stringify(drafts[member.userId]) !== JSON.stringify(member.overrides),
+      JSON.stringify(drafts[member.userId]) !==
+        JSON.stringify({ overrides: member.overrides, restrictions: member.restrictions }),
   );
-  const change = (
-    member: MemberPermissionsDto,
-    key: keyof MemberPermissionsDto["overrides"],
-    state: "default" | "allow" | "deny",
-  ) => {
-    setFeedback(null);
-    setDrafts((old) => ({
-      ...old,
-      [member.userId]: { ...(old[member.userId] ?? member.overrides), [key]: state },
-    }));
-  };
+  const { change, changeRestriction } = draftActions(setDrafts, setFeedback);
   const submit = () =>
     submitPermissionChanges(
       { companyId, save, refresh },
@@ -58,6 +50,7 @@ export function usePermissionEditor({ companyId, members, save, refresh }: Permi
     draftMember,
     dirty,
     change,
+    changeRestriction,
     submit,
   };
 }
@@ -66,10 +59,8 @@ export type PermissionEditorState = ReturnType<typeof usePermissionEditor>;
 async function submitPermissionChanges(
   { companyId, save, refresh }: Pick<PermissionPageData, "companyId" | "save" | "refresh">,
   dirty: MemberPermissionsDto[],
-  drafts: Record<string, MemberPermissionsDto["overrides"]>,
-  setDrafts: React.Dispatch<
-    React.SetStateAction<Record<string, MemberPermissionsDto["overrides"]>>
-  >,
+  drafts: Record<string, PermissionDraft>,
+  setDrafts: React.Dispatch<React.SetStateAction<Record<string, PermissionDraft>>>,
   setPending: (pending: boolean) => void,
   setFeedback: (feedback: "saved" | "failed" | "removed" | "forbidden" | null) => void,
 ) {
@@ -80,7 +71,8 @@ async function submitPermissionChanges(
       await save({
         companyId,
         userId: member.userId,
-        overrides: drafts[member.userId] ?? member.overrides,
+        overrides: drafts[member.userId]?.overrides ?? member.overrides,
+        restrictions: drafts[member.userId]?.restrictions ?? member.restrictions,
       });
       setDrafts((old) => {
         const next = { ...old };
@@ -108,4 +100,42 @@ async function submitPermissionChanges(
   } finally {
     setPending(false);
   }
+}
+
+function draftActions(
+  setDrafts: React.Dispatch<React.SetStateAction<Record<string, PermissionDraft>>>,
+  setFeedback: (feedback: "saved" | "failed" | "removed" | "forbidden" | null) => void,
+) {
+  const change = (
+    member: MemberPermissionsDto,
+    key: keyof MemberPermissionsDto["overrides"],
+    state: "default" | "allow" | "deny",
+  ) => {
+    setFeedback(null);
+    setDrafts((old) => ({
+      ...old,
+      [member.userId]: {
+        overrides: { ...(old[member.userId]?.overrides ?? member.overrides), [key]: state },
+        restrictions: old[member.userId]?.restrictions ?? member.restrictions,
+      },
+    }));
+  };
+  const changeRestriction = (
+    member: MemberPermissionsDto,
+    key: keyof MemberPermissionsDto["restrictions"],
+    blocked: boolean,
+  ) => {
+    setFeedback(null);
+    setDrafts((old) => ({
+      ...old,
+      [member.userId]: {
+        overrides: old[member.userId]?.overrides ?? member.overrides,
+        restrictions: {
+          ...(old[member.userId]?.restrictions ?? member.restrictions),
+          [key]: blocked ? "deny" : "default",
+        },
+      },
+    }));
+  };
+  return { change, changeRestriction };
 }

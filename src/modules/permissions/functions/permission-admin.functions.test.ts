@@ -28,7 +28,7 @@ vi.mock("@/lib/server/db.server", () => ({
   },
 }));
 const companyId = "70000000-0000-4000-8000-000000000001";
-const input = { companyId, userId: "mona", overrides: toStates([]) };
+const input = { companyId, userId: "mona", ...toStates([]) };
 beforeEach(() => {
   vi.clearAllMocks();
   state.owner = true;
@@ -100,4 +100,49 @@ describe("owner permission server boundaries", () => {
     ).rejects.toThrow();
     expect(state.query).not.toHaveBeenCalled();
   });
+});
+
+it("replaces all eleven managed keys and only inserts deny for restrictions", async () => {
+  await saveMemberOverridesFn({
+    data: {
+      ...input,
+      restrictions: {
+        ...input.restrictions,
+        "attendance.record": "deny",
+        "reports.read": "deny",
+      },
+    },
+  });
+  const removal = state.query.mock.calls.find(([sql]) => String(sql).startsWith("delete"));
+  expect(removal?.[1][2]).toEqual([
+    "pos.access",
+    "reports.view",
+    "attendance.correct",
+    "staff.manage",
+    "services.manage",
+    "discounts.manage",
+    "attendance.record",
+    "attendance.manage_devices",
+    "attendance.manage_cards",
+    "sessions.record",
+    "reports.read",
+  ]);
+  const inserts = state.query.mock.calls.filter(([sql]) =>
+    String(sql).startsWith("insert into public.permission_overrides"),
+  );
+  expect(inserts.map(([, params]) => params)).toEqual([
+    [companyId, "mona", "attendance.record", "deny"],
+    [companyId, "mona", "reports.read", "deny"],
+  ]);
+});
+it("rejects restriction allow before entering the transaction", async () => {
+  await expect(async () =>
+    saveMemberOverridesFn({
+      data: {
+        ...input,
+        restrictions: { ...input.restrictions, "attendance.record": "allow" },
+      },
+    }),
+  ).rejects.toThrow();
+  expect(state.query).not.toHaveBeenCalled();
 });

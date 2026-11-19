@@ -21,6 +21,7 @@ export function PermissionCards({ members, actorId, editor }: PermissionLayoutPr
               [member.userId]: !(old[member.userId] ?? !member.isOwner),
             }))
           }
+          onRestrictionChange={(key, blocked) => editor.changeRestriction(member, key, blocked)}
           onChange={(key, state) => editor.change(member, key, state)}
         />
       ))}
@@ -41,6 +42,7 @@ export function PermissionDesktop({ members, actorId, editor }: PermissionLayout
             expanded={false}
             selected={selected?.userId === member.userId}
             onSelect={() => editor.setSelectedId(member.userId)}
+            onRestrictionChange={(key, blocked) => editor.changeRestriction(member, key, blocked)}
             onChange={(key, state) => editor.change(member, key, state)}
           />
         ))}
@@ -52,6 +54,7 @@ export function PermissionDesktop({ members, actorId, editor }: PermissionLayout
             member={editor.draftMember(selected)}
             locked={selected.isOwner || actorId === selected.userId}
             pending={editor.pending}
+            onRestrictionChange={(key, blocked) => editor.changeRestriction(selected, key, blocked)}
             onChange={(key, state) => editor.change(selected, key, state)}
           />
         </section>

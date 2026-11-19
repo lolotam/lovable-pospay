@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { saveOverridesInput } from "../contracts";
-import { toStates } from "../domain/override-states";
+import { MANAGED_KEYS, RESTRICTION_KEYS, toStates } from "../domain/override-states";
 import type {
   MemberOverrideRow,
   PermissionAdminRepository,
@@ -14,6 +14,7 @@ function fixture() {
     owner: true,
     rows: [
       { userId: "mona", permission: "attendance.record", effect: "deny" },
+      { userId: "mona", permission: "future.key", effect: "allow" },
     ] as MemberOverrideRow[],
     audits: [] as unknown[],
   };
@@ -33,7 +34,9 @@ function fixture() {
     replaceOverrides: async ({ userId, rows }) => {
       const before = state.rows.filter((row) => row.userId === userId);
       state.rows = state.rows
-        .filter((row) => row.userId !== userId || row.permission === "attendance.record")
+        .filter(
+          (row) => row.userId !== userId || !new Set<string>(MANAGED_KEYS).has(row.permission),
+        )
         .concat(rows.map((row) => ({ ...row, userId })));
       state.audits.push({ before, after: state.rows.filter((row) => row.userId === userId) });
     },
@@ -52,7 +55,7 @@ describe("owner permission use cases", () => {
       "services.manage",
       "discounts.manage",
     ]);
-    expect(members[1]?.otherRestrictions).toEqual(["attendance.record"]);
+    expect(members[1]?.restrictions["attendance.record"]).toBe("deny");
     expect(members[0]?.isOwner).toBe(true);
   });
   it("saves an allow, clears defaults, preserves legacy restrictions and writes one audit", async () => {
@@ -61,14 +64,17 @@ describe("owner permission use cases", () => {
     const result = await saveMemberOverrides(repository, "owner", {
       companyId,
       userId: "mona",
-      overrides: { ...toStates([]), "pos.access": "allow" },
+      overrides: { ...toStates([]).overrides, "pos.access": "allow" },
+      restrictions: { ...toStates([]).restrictions, "attendance.record": "deny" },
     });
     expect(result.overrides["pos.access"]).toBe("allow");
     expect(result.effective).toContain("reports.view");
     expect(state.rows).toEqual([
-      { userId: "mona", permission: "attendance.record", effect: "deny" },
+      { userId: "mona", permission: "future.key", effect: "allow" },
       { userId: "mona", permission: "pos.access", effect: "allow" },
+      { userId: "mona", permission: "attendance.record", effect: "deny" },
     ]);
+    expect(result.unknownKeys).toEqual(["future.key"]);
     expect(state.audits).toHaveLength(1);
   });
   it("refuses a missing member without writing", async () => {
@@ -77,7 +83,7 @@ describe("owner permission use cases", () => {
       saveMemberOverrides(repository, "owner", {
         companyId,
         userId: "outsider",
-        overrides: toStates([]),
+        ...toStates([]),
       }),
     ).rejects.toThrow("MEMBER_NOT_FOUND");
     expect(state.audits).toHaveLength(0);
@@ -93,7 +99,7 @@ describe("owner permission use cases", () => {
           : saveMemberOverrides(repository, "manager", {
               companyId,
               userId: "mona",
-              overrides: toStates([]),
+              ...toStates([]),
             }),
       ).rejects.toThrow("FORBIDDEN");
       expect(state.audits).toHaveLength(0);
@@ -105,7 +111,7 @@ describe("owner permission use cases", () => {
   ])("rejects target %s", async (userId, actorId, error) => {
     const { repository, state } = fixture();
     await expect(
-      saveMemberOverrides(repository, actorId, { companyId, userId, overrides: toStates([]) }),
+      saveMemberOverrides(repository, actorId, { companyId, userId, ...toStates([]) }),
     ).rejects.toThrow(error);
     expect(state.audits).toHaveLength(0);
   });
@@ -114,7 +120,8 @@ describe("owner permission use cases", () => {
       saveOverridesInput.safeParse({
         companyId,
         userId: "mona",
-        overrides: { ...toStates([]), "permissions.manage": "allow" },
+        ...toStates([]),
+        overrides: { ...toStates([]).overrides, "permissions.manage": "allow" },
       }).success,
     ).toBe(false);
   });
@@ -123,8 +130,47 @@ describe("owner permission use cases", () => {
       saveOverridesInput.safeParse({
         companyId,
         userId: "mona",
+        restrictions: toStates([]).restrictions,
         overrides: { "pos.access": "allow" },
       }).success,
+    ).toBe(false);
+  });
+});
+
+describe("deny-only restriction saves", () => {
+  it.each(RESTRICTION_KEYS)("rejects allow for %s", (key) => {
+    expect(
+      saveOverridesInput.safeParse({
+        companyId,
+        userId: "mona",
+        ...toStates([]),
+        restrictions: { ...toStates([]).restrictions, [key]: "allow" },
+      }).success,
+    ).toBe(false);
+  });
+  it.each(RESTRICTION_KEYS)("blocks and clears %s while keeping unknown rows", async (key) => {
+    const { repository, state } = fixture();
+    const blocked = await saveMemberOverrides(repository, "owner", {
+      companyId,
+      userId: "mona",
+      ...toStates([]),
+      restrictions: { ...toStates([]).restrictions, [key]: "deny" },
+    });
+    expect(blocked.restrictions[key]).toBe("deny");
+    expect(state.rows).toContainEqual({ userId: "mona", permission: key, effect: "deny" });
+    const cleared = await saveMemberOverrides(repository, "owner", {
+      companyId,
+      userId: "mona",
+      ...toStates([]),
+    });
+    expect(cleared.restrictions[key]).toBe("default");
+    expect(state.rows).toEqual([{ userId: "mona", permission: "future.key", effect: "allow" }]);
+    expect(state.audits).toHaveLength(2);
+  });
+  it("requires all five restriction states", () => {
+    expect(
+      saveOverridesInput.safeParse({ companyId, userId: "mona", ...toStates([]), restrictions: {} })
+        .success,
     ).toBe(false);
   });
 });

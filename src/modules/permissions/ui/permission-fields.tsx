@@ -1,13 +1,19 @@
 import { LockKey, ShieldCheck } from "@phosphor-icons/react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { t, type MessageKey } from "@/i18n";
-import { editablePermissionSchema, type MemberPermissionsDto } from "../contracts";
+import { t } from "@/i18n";
+import {
+  editablePermissionSchema,
+  restrictionKeySchema,
+  type MemberPermissionsDto,
+} from "../contracts";
 import { effectivePermissions } from "../index";
 
 export interface PermissionEditorProps {
   member: MemberPermissionsDto;
   locked: boolean;
   pending?: boolean;
+  onRestrictionChange: (key: keyof MemberPermissionsDto["restrictions"], blocked: boolean) => void;
   onChange: (
     key: keyof MemberPermissionsDto["overrides"],
     state: "default" | "allow" | "deny",
@@ -57,13 +63,40 @@ function PermissionField({
     </fieldset>
   );
 }
-const restrictionLabels: Record<string, MessageKey> = {
-  "attendance.record": "permissionAdmin.attendance.record",
-  "attendance.manage_devices": "permissionAdmin.attendance.manage_devices",
-  "attendance.manage_cards": "permissionAdmin.attendance.manage_cards",
-  "sessions.record": "permissionAdmin.sessions.record",
-  "reports.read": "permissionAdmin.reports.read",
-};
+function RestrictionFields({
+  member,
+  locked,
+  pending,
+  onRestrictionChange,
+}: PermissionEditorProps) {
+  return (
+    <section className="space-y-3 border-t border-border pt-4">
+      <h3 className="text-sm font-medium">{t("permissionAdmin.restrictions")}</h3>
+      {restrictionKeySchema.options.map((key) => (
+        <label key={key} className="flex min-h-11 items-center justify-between gap-3">
+          <span className="min-w-0 text-sm">
+            <span className="block">{t(`permissionAdmin.${key}`)}</span>
+            <span className="block text-xs text-muted-foreground">
+              {t("permissionAdmin.blocked")}
+            </span>
+          </span>
+          {locked ? (
+            <span className="text-sm">{t(`permissionAdmin.${member.restrictions[key]}`)}</span>
+          ) : (
+            <Switch
+              dir="ltr"
+              className="relative after:absolute after:inset-0 after:-inset-y-3"
+              aria-label={t(`permissionAdmin.${key}`)}
+              checked={member.restrictions[key] === "deny"}
+              disabled={pending}
+              onCheckedChange={(blocked) => onRestrictionChange(key, blocked)}
+            />
+          )}
+        </label>
+      ))}
+    </section>
+  );
+}
 function ReadOnlyPermissions({ member }: { member: MemberPermissionsDto }) {
   return (
     <>
@@ -71,13 +104,16 @@ function ReadOnlyPermissions({ member }: { member: MemberPermissionsDto }) {
         <ShieldCheck aria-hidden weight="duotone" className="size-5 shrink-0" />
         {t("permissionAdmin.permissions.manage")}
       </p>
-      {member.otherRestrictions.length > 0 && (
+      {member.unknownKeys.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium">{t("permissionAdmin.otherRestrictions")}</h3>
-          {member.otherRestrictions.map((key) => (
-            <p key={key} className="flex items-center gap-2 text-sm text-muted-foreground">
+          <h3 className="text-sm font-medium">{t("permissionAdmin.unknownKeys")}</h3>
+          {member.unknownKeys.map((key) => (
+            <p
+              key={key}
+              className="flex min-w-0 items-center gap-2 break-all text-sm text-muted-foreground"
+            >
               <LockKey aria-hidden className="size-4 shrink-0" />
-              {t(restrictionLabels[key] ?? "permissionAdmin.unknownRestriction")}
+              {t("permissionAdmin.unknownRestriction")} · {key}
             </p>
           ))}
         </div>
@@ -97,6 +133,7 @@ export function PermissionEditor(props: PermissionEditorProps) {
           allowed={defaults.includes(permission)}
         />
       ))}
+      <RestrictionFields {...props} />
       <ReadOnlyPermissions member={props.member} />
     </div>
   );

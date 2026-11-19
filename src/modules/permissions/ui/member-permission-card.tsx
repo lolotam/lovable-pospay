@@ -17,6 +17,7 @@ export interface MemberPermissionCardProps extends Omit<
   pending?: boolean;
   variant?: "card" | "list";
   onSelect: () => void;
+  onRestrictionChange: PermissionEditorProps["onRestrictionChange"];
   onChange: PermissionEditorProps["onChange"];
 }
 function MemberSummary({
@@ -77,6 +78,7 @@ export const MemberPermissionCard = forwardRef<HTMLElement, MemberPermissionCard
       variant = "card",
       onSelect,
       onChange,
+      onRestrictionChange,
       className,
       ...props
     },
@@ -107,6 +109,7 @@ export const MemberPermissionCard = forwardRef<HTMLElement, MemberPermissionCard
               locked={locked}
               pending={pending}
               onChange={onChange}
+              onRestrictionChange={onRestrictionChange}
             />
           </div>
         )}

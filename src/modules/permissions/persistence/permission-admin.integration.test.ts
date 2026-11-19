@@ -12,7 +12,7 @@ const url = process.env["POSPAY_TEST_DATABASE_URL"];
 const a = "80000000-0000-4000-8000-000000000001";
 const b = "80000000-0000-4000-8000-000000000002";
 const branch = "80000000-0000-4000-8000-000000000003";
-const base = { companyId: a, userId: "c1-manager", overrides: toStates([]) };
+const base = { companyId: a, userId: "c1-manager", ...toStates([]) };
 describe.skipIf(!url)("C1 real owner permissions under RLS", () => {
   let admin: pg.Pool;
   beforeAll(async () => {
@@ -39,7 +39,7 @@ describe.skipIf(!url)("C1 real owner permissions under RLS", () => {
       [a, b, branch],
     );
     await admin.query(
-      "insert into public.permission_overrides(company_id,user_id,permission,effect) values($1,'c1-manager','attendance.record','deny'),($1,'c1-manager','permissions.manage','allow')",
+      "insert into public.permission_overrides(company_id,user_id,permission,effect) values($1,'c1-manager','attendance.record','deny'),($1,'c1-manager','permissions.manage','allow'),($1,'c1-manager','future.key','deny')",
       [a],
     );
   });
@@ -59,10 +59,12 @@ describe.skipIf(!url)("C1 real owner permissions under RLS", () => {
       saveMemberOverrides(pgPermissionAdminRepository(db, "c1-owner"), "c1-owner", {
         ...base,
         overrides: { ...base.overrides, "pos.access": "allow" },
+        restrictions: { ...base.restrictions, "attendance.record": "deny" },
       }),
     );
     expect(result.overrides["pos.access"]).toBe("allow");
-    expect(result.otherRestrictions).toEqual(["attendance.record"]);
+    expect(result.unknownKeys).toEqual(["future.key"]);
+    expect(result.restrictions["attendance.record"]).toBe("deny");
     expect(
       await withUser(
         "c1-manager",
@@ -86,13 +88,13 @@ describe.skipIf(!url)("C1 real owner permissions under RLS", () => {
       effect: "allow",
     });
   });
-  it("clearing an override restores the role default without removing restrictions", async () => {
+  it("clearing managed overrides restores defaults and removes restriction rows", async () => {
     const result = await withUser("c1-owner", (db) =>
       saveMemberOverrides(pgPermissionAdminRepository(db, "c1-owner"), "c1-owner", base),
     );
     expect(result.overrides["pos.access"]).toBe("default");
     expect(result.effective).not.toContain("pos.access");
-    expect(result.otherRestrictions).toEqual(["attendance.record"]);
+    expect(result.restrictions["attendance.record"]).toBe("default");
   });
   it("manager cannot list or save even with permissions.manage=allow", async () => {
     await expect(

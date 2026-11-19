@@ -18,7 +18,7 @@ export async function saveMemberOverrides(
   await repository.replaceOverrides({
     companyId: input.companyId,
     userId: input.userId,
-    rows: toRows(input.overrides),
+    rows: toRows(input.overrides, input.restrictions),
   });
   const fresh = (await listMemberPermissions(repository, input.companyId)).find(
     (member) => member.userId === input.userId,

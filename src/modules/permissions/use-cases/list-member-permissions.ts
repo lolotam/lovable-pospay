@@ -1,6 +1,6 @@
 import type { MemberPermissionsDto, PermissionKey } from "../contracts";
 import { effectivePermissions, ROLE_DEFAULTS } from "../domain/permission-matrix";
-import { toStates } from "../domain/override-states";
+import { MANAGED_KEYS, toStates } from "../domain/override-states";
 import type { PermissionAdminRepository } from "../ports/permission-admin-repository";
 
 export async function listMemberPermissions(
@@ -19,11 +19,15 @@ export async function listMemberPermissions(
     return {
       ...member,
       isOwner: member.roles.includes("owner"),
-      overrides: toStates(rows),
-      otherRestrictions: [
+      ...toStates(rows),
+      unknownKeys: [
         ...new Set(
           rows
-            .filter((row) => !known.has(row.permission) && row.effect === "deny")
+            .filter(
+              (row) =>
+                !new Set<string>(MANAGED_KEYS).has(row.permission) &&
+                row.permission !== "permissions.manage",
+            )
             .map((row) => row.permission),
         ),
       ],

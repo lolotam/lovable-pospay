@@ -1,6 +1,6 @@
 import type { PoolClient } from "pg";
 import type { CompanyRole } from "../contracts";
-import { EDITABLE_PERMISSIONS, type OverrideRow } from "../domain/override-states";
+import { MANAGED_KEYS, type OverrideRow } from "../domain/override-states";
 import type {
   PermissionAdminRepository,
   MemberOverrideRow,
@@ -46,7 +46,7 @@ export async function replaceOverrides(
   );
   await db.query(
     "delete from public.permission_overrides where company_id=$1 and user_id=$2 and permission=any($3::text[])",
-    [input.companyId, input.userId, EDITABLE_PERMISSIONS],
+    [input.companyId, input.userId, MANAGED_KEYS],
   );
   for (const row of input.rows) {
     await db.query(

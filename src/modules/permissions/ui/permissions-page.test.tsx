@@ -14,8 +14,8 @@ const owner: MemberPermissionsDto = {
   email: "owner@example.test",
   roles: ["owner"],
   isOwner: true,
-  overrides: toStates([]),
-  otherRestrictions: [],
+  ...toStates([]),
+  unknownKeys: [],
   effective: [],
 };
 const member: MemberPermissionsDto = {
@@ -47,8 +47,9 @@ describe("owner permission editor", () => {
     if (!card) throw new Error("Owner card absent");
     fireEvent.click(within(card).getByRole("button"));
     expect(within(card).queryByRole("button", { name: t("permissionAdmin.allow") })).toBeNull();
+    expect(within(card).queryByRole("switch")).toBeNull();
   });
-  it("sends exactly the six-key payload after changing pos.access", async () => {
+  it("sends exactly the eleven-key payload after changing pos.access", async () => {
     const { save } = setup();
     const group = screen.getAllByRole("group", { name: t("permissionAdmin.pos.access") })[0];
     if (!group) throw new Error("Permission control absent");
@@ -58,7 +59,8 @@ describe("owner permission editor", () => {
       expect(save).toHaveBeenCalledWith({
         companyId,
         userId: "mona",
-        overrides: { ...toStates([]), "pos.access": "allow" },
+        overrides: { ...toStates([]).overrides, "pos.access": "allow" },
+        restrictions: toStates([]).restrictions,
       }),
     );
   });
@@ -78,4 +80,22 @@ describe("owner permission editor", () => {
     await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
     expect(screen.getByRole("status")).toHaveTextContent(t("permissionAdmin.removed"));
   });
+});
+
+it("saves a restriction-only edit without changing permissions", async () => {
+  const { save } = setup();
+  const control = screen.getAllByRole("switch", {
+    name: t("permissionAdmin.attendance.record"),
+  })[0];
+  if (!control) throw new Error("Restriction control absent");
+  fireEvent.click(control);
+  fireEvent.click(screen.getByRole("button", { name: t("permissionAdmin.save") }));
+  await waitFor(() =>
+    expect(save).toHaveBeenCalledWith({
+      companyId,
+      userId: "mona",
+      ...toStates([]),
+      restrictions: { ...toStates([]).restrictions, "attendance.record": "deny" },
+    }),
+  );
 });

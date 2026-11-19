@@ -11,3 +11,13 @@ export type EditablePermission =
   | "discounts.manage";
 /** الحالة الافتراضية أو السماح أو المنع لكل مفتاح قابل للتعديل. */
 export type EditableOverrideStates = Record<EditablePermission, "default" | "allow" | "deny">;
+
+/** مفاتيح القيود التي تقرأها RLS كمنع فقط. */
+export type RestrictionKey =
+  | "attendance.record"
+  | "attendance.manage_devices"
+  | "attendance.manage_cards"
+  | "sessions.record"
+  | "reports.read";
+/** غياب الصف هو الافتراضي؛ السماح غير صالح للقيود. */
+export type RestrictionStates = Record<RestrictionKey, "default" | "deny">;
