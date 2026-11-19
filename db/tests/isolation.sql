@@ -588,7 +588,15 @@ begin
       current_setting('test.s20svc2')::uuid,current_setting('test.s20staff1')::uuid,'96500000012',now(),
       '20000000-0000-4000-8000-000000000049'::uuid)
     then raise exception 'Duplicate session was not detected'; end if;
-  -- Wrong PIN: returns invalid without raising and records the attempt.
+  -- Wrong PIN: returns exactly one invalid row, creates no approval, records the attempt.
+  select count(*) into v_count from public.discount_approvals
+    where company_id = '20000000-0000-4000-8000-000000000002';
+  if (select count(*) from public.verify_manager_pin_approval('20000000-0000-4000-8000-000000000002',current_setting('test.s20b1')::uuid,
+      current_setting('test.s20sess_b1')::uuid,current_setting('test.s20svc1')::uuid,100000,85000,'user-20bm1','0000','test-agent')) <> 1
+    then raise exception 'Wrong PIN returned more than one row'; end if;
+  if (select count(*) from public.discount_approvals
+      where company_id = '20000000-0000-4000-8000-000000000002') <> v_count
+    then raise exception 'Wrong PIN created a discount approval'; end if;
   select status, approval_id into v_status, v_approval
     from public.verify_manager_pin_approval('20000000-0000-4000-8000-000000000002',current_setting('test.s20b1')::uuid,
       current_setting('test.s20sess_b1')::uuid,current_setting('test.s20svc1')::uuid,100000,85000,'user-20bm1','0000','test-agent');

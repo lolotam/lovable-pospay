@@ -366,6 +366,7 @@ begin
     values (_company, public.current_app_user(), 'manager_pin.failed', 'discount_approval',
             _session_id::text, jsonb_build_object('approverUserId', _approver));
     return query select 'invalid'::text, null::uuid;
+    return;
   end if;
   insert into public.discount_approvals
     (company_id, branch_id, session_id, service_id, list_price_mills,
@@ -726,7 +727,7 @@ begin
     'sessionId', _session_id, 'serviceId', _service_id, 'serviceName', v_service_name,
     'staffId', _staff_id, 'branchId', v_branch,
     'clientId', v_client_id, 'clientName', _client_name,
-    'clientPhoneLast3', right(coalesce(v_old_client.phone, _client_phone), 3),
+    'clientPhoneLast3', right(coalesce(_client_phone, v_old_client.phone), 3),
     'occurredAt', _occurred_at, 'listPriceMills', v_list_price,
     'priceMills', _price_mills, 'discountReason', nullif(trim(coalesce(_discount_reason, '')), ''),
     'approvedBy', v_approved_by);

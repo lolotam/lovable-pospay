@@ -75,7 +75,7 @@ insert into public.commission_plan_tiers
   (company_id, version_id, tier_order, rate_bp,
    threshold_mills, threshold_salary_multiple_milli)
 select v.company_id, v.id, 1, v.tier_rate_bp,
-       coalesce(v.tier_threshold_mills, 0),
+       v.tier_threshold_mills,
        v.tier_salary_multiple_milli
 from public.commission_plan_versions v
 where v.tier_mode is not null
