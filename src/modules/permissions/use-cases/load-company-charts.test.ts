@@ -26,9 +26,13 @@ const reader: ChartReader = {
   platform: vi.fn(async () => []),
 };
 const remembered = { kind: "company", companyId, role: "branch_manager" } as const;
-it("uses the active manager branch and leaves sessions disabled", async () => {
+it("uses the active manager branch and leaves sessions disabled when the flag is false", async () => {
   await loadCompanyCharts(repo, reader, user, remembered, companyId, 14, false);
   expect(reader.company).toHaveBeenLastCalledWith(companyId, branchId, 14, false);
+});
+it("passes enabled session recording to the chart reader", async () => {
+  await loadCompanyCharts(repo, reader, user, remembered, companyId, 14, true);
+  expect(reader.company).toHaveBeenLastCalledWith(companyId, branchId, 14, true);
 });
 it("denied reports cannot read charts even with a manager role", async () => {
   await expect(

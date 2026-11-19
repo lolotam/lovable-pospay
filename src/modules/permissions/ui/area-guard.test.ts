@@ -34,8 +34,9 @@ describe("pageAllowed", () => {
     expect(pageAllowed(context, "/pos/qr")).toBe(false);
     expect(pageAllowed({ ...context, permissions: ["pos.access"] }, "/pos/qr")).toBe(true);
   });
-  it("keeps sessions gated and permits team management", () => {
-    expect(pageAllowed({ ...context, permissions: ["pos.access"] }, "/pos/sessions")).toBe(false);
+  it("/pos/sessions needs pos.access and permits team management", () => {
+    expect(pageAllowed({ ...context, permissions: ["pos.access"] }, "/pos/sessions")).toBe(true);
+    expect(pageAllowed(context, "/pos/sessions")).toBe(false);
     expect(pageAllowed(context, "/app/staff/team")).toBe(true);
   });
 });

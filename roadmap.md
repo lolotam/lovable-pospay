@@ -89,8 +89,8 @@
 
 ## 011 Service session recording (12:40 Kuwait)
 - [x] Migration 0013 prepares client and session storage. Public session recording is deferred pending D-44. Operational reports exclude client phone fields under the slice 003 acceptance rule.
-- [ ] TODO(spec) ق-1: price override and discount limit (D-44) — sessions use the catalog price snapshot until approved.
-- [ ] Before enabling session recording, bind reused request IDs to the original normalized client, service, staff and occurrence data. Verify identical retries return the existing session and changed requests return a conflict.
+- [x] ق-1 price override and discount limit (D-44): enforced by 013 (domain + RLS); slice 018 turns recording on. Over-limit manager approval and other open points: `docs/specs/018-session-recording/spec.md` Q1–Q5.
+- [x] 018 (migration 0023): before enabling session recording, bind reused request IDs to the original normalized client, service, staff and occurrence data. Verify identical retries return the existing session and changed requests return a conflict.
 - [x] Migrations 0011–0013 applied in production after PR #5.
 - [x] Migrations 0014–0015 applied in production from PR #7 commit d33fdd8 (2026-11-18, backup `/root/pospay-backups/pre-0014-0015-20261118T162803Z.dump`).
 - [x] 015 Team invites page `/team` and acceptance page `/invite` (Lovable d180eae, merged into lovable with main's reviewed backend; the invite link is emailed only)
@@ -100,8 +100,8 @@
 - [ ] 016 follow-ups (#11): fixes on `fix/016-followups-issue-11`; migration 0019 (owner unbinds phones despite a device deny) applied manually in production by Waleed (2026-11-19) and verified read-only: the `phone_unbind` policy text matches the file, it is a DELETE policy, it is granted to `pospay_app`, and only one copy exists
 - [ ] Authenticated UI acceptance unverified (preview auth not configured).
 - [x] 012 تصدير تقارير الحضور/المصححة/الجلسات CSV وPDF
-- [ ] ق-1 قرار تعديل السعر وحد الخصم (D-44) — مستني وليد
-- [ ] 013 صلاحية الخصم (ق-1) — الكود وmigration 0014 للمراجعة. إتاحة تسجيل الجلسات تنتظر اعتماد D-44.
+- [x] ق-1 قرار تعديل السعر وحد الخصم (D-44) — مطبّق في 013؛ الأسئلة المتبقية في spec 018 (Q1–Q5)
+- [x] 013 صلاحية الخصم (ق-1) — مدموج (PR #7). إتاحة تسجيل الجلسات في slice 018.
 - [x] 014 تنزيل PDF مباشر من التقارير
 
 ## 016-A frontend structure

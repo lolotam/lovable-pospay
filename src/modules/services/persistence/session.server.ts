@@ -28,15 +28,15 @@ export function pgSessionRepository(
       if (!row || row.round_trip !== local) throw new Error("INVALID_SESSION_TIME");
       return row.occurred_at;
     },
-    async lockRecordedSession(id) {
+    async claimRequest(id, payload) {
       await db.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [
         `service-session:${companyId.toLowerCase()}:${id.toLowerCase()}`,
       ]);
-      const { rows } = await db.query<{ owned: boolean }>(
-        "select public.owns_recorded_session($1,$2) as owned",
-        [companyId, id],
+      const { rows } = await db.query<{ state: "new" | "replay" | "conflict" }>(
+        "select public.recorded_session_replay($1,$2,$3) as state",
+        [companyId, id, payload],
       );
-      return rows[0]?.owned === true;
+      return rows[0]?.state ?? "conflict";
     },
     async upsertClient(branchId, name, phone) {
       const r = await db.query("select public.upsert_session_client($1,$2,$3,$4) as id", [
@@ -89,8 +89,8 @@ async function insertSession(
   session: NewSession,
 ) {
   await db.query(
-    `insert into public.service_sessions(company_id,id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,price_mills,recorded_by,list_price_mills,discount_reason)
-     values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+    `insert into public.service_sessions(company_id,id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,price_mills,recorded_by,list_price_mills,discount_reason,request_fingerprint)
+     values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,public.session_request_fingerprint($13))`,
     [
       companyId,
       session.id,
@@ -104,6 +104,7 @@ async function insertSession(
       userId,
       session.listPriceMills.toString(),
       session.discountReason,
+      session.requestPayload,
     ],
   );
 }
