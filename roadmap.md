@@ -1,7 +1,7 @@
 # Roadmap
 
 ## 016-D (2026-11-19)
-- [ ] Workspace move request (2026-11-19): verify and connect Resend in the current workspace; old connections are not applicable. Do not change Dokploy credentials.
+- [ ] Workspace move request (2026-11-19): no current Resend connection available; connect card declined. Waiting for Waleed to complete a new connection; Dokploy untouched.
 - [ ] Priority continuation (Waleed 2026-11-19): finish D2 including R2 image checks, responsive editor/public-page verification, review and commit series before other work. No SQL execution or production changes.
 - [x] D1 tasks 1–5 implementation: scoped charts and SQL prepared; 376 tests passed, 143 SQL tests skipped; 6 fixture browser checks. Real DB/auth acceptance and duplicate 0021 ledger review await Claude Code. See verification-D1.md.
 - [ ] D2 Task 6b (Waleed 2026-11-19): R2 images, owner-only uploads, 2 MB / 20 company assets, published-only media, gallery and validation; prepare SQL only.

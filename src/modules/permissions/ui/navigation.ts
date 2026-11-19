@@ -104,6 +104,7 @@ const NAV: Record<Area, NavGroup[]> = {
         },
       ],
     },
+    { to: "/app/page", label: "nav.companyPage", icon: Storefront },
     { to: "/pos", label: "nav.openReception", icon: Storefront, requires: "pos.access" },
     {
       to: "/app/permissions",
@@ -111,7 +112,6 @@ const NAV: Record<Area, NavGroup[]> = {
       icon: ShieldCheck,
       requires: "permissions.manage",
     },
-    { to: "/app/page", label: "nav.companyPage", icon: Storefront },
     { to: "/app/settings", label: "nav.settings", icon: GearSix },
   ],
   pos: [

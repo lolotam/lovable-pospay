@@ -10,19 +10,19 @@ export const savePageDraftFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => savePageInput.parse(input))
   .handler(async ({ data }) => {
     const { ownerRun } = await import("../persistence/owner-run.server");
-    return ownerRun(repo => saveDraft(repo, data));
+    return ownerRun((repo) => saveDraft(repo, data));
   });
 export const checkSlugFn = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => pageSlugInput.parse(input))
   .handler(async ({ data }) => {
     const { ownerRun } = await import("../persistence/owner-run.server");
-    return ownerRun(repo => checkSlug(repo, data.slug));
+    return ownerRun((repo) => checkSlug(repo, data.slug));
   });
 export const publishPageFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => pageVersionInput.parse(input))
   .handler(async ({ data }) => {
     const { ownerRun } = await import("../persistence/owner-run.server");
-    return ownerRun(repo => publishPage(repo, data.version));
+    return ownerRun((repo) => publishPage(repo, data.version));
   });
 export const unpublishPageFn = createServerFn({ method: "POST" }).handler(async () => {
   const { ownerRun } = await import("../persistence/owner-run.server");

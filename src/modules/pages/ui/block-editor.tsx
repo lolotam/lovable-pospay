@@ -84,24 +84,35 @@ export function BlockEditor({ block, onChange }: BlockEditorProps) {
       </label>
     );
   if (block.type === "branches") return <BranchFields block={block} onChange={onChange} />;
-  if (block.type === "contact")
-    return (
-      <div className="space-y-3">
-        {(["whatsapp", "phone", "instagram"] as const).map((key) => (
-          <label key={key} className="grid gap-1 text-sm">
-            {t(`pages.${key}`)}
-            <Input
-              className="min-h-11"
-              dir="ltr"
-              value={block[key]}
-              maxLength={key === "instagram" ? 30 : 15}
-              inputMode={key === "instagram" ? "text" : "numeric"}
-              onChange={(e) => onChange({ ...block, [key]: e.target.value })}
-            />
-          </label>
-        ))}
-      </div>
-    );
+  if (block.type === "contact") return <ContactFields block={block} onChange={onChange} />;
+  return <CtaFields block={block} onChange={onChange} />;
+}
+function ContactFields({
+  block,
+  onChange,
+}: BlockEditorProps & { block: Extract<PageBlock, { type: "contact" }> }) {
+  return (
+    <div className="space-y-3">
+      {(["whatsapp", "phone", "instagram"] as const).map((key) => (
+        <label key={key} className="grid gap-1 text-sm">
+          {t(`pages.${key}`)}
+          <Input
+            className="min-h-11"
+            dir="ltr"
+            value={block[key]}
+            maxLength={key === "instagram" ? 30 : 15}
+            inputMode={key === "instagram" ? "text" : "numeric"}
+            onChange={(e) => onChange({ ...block, [key]: e.target.value })}
+          />
+        </label>
+      ))}
+    </div>
+  );
+}
+function CtaFields({
+  block,
+  onChange,
+}: BlockEditorProps & { block: Extract<PageBlock, { type: "cta" }> }) {
   return (
     <div className="space-y-4">
       <TextFields
@@ -131,43 +142,12 @@ function BranchFields({
   return (
     <div className="space-y-5">
       {block.items.map((branch, i) => (
-        <fieldset key={i} className="space-y-3 border-b border-border pb-4">
-          <TextFields
-            label="pages.name"
-            value={branch.name}
-            max={80}
-            onChange={(name) => change(i, { ...branch, name })}
-          />
-          <TextFields
-            label="pages.address"
-            value={branch.address}
-            max={200}
-            onChange={(address) => change(i, { ...branch, address })}
-          />
-          <TextFields
-            label="pages.hours"
-            value={branch.hours}
-            max={200}
-            onChange={(hours) => change(i, { ...branch, hours })}
-          />
-          <label className="grid gap-1 text-sm">
-            {t("pages.map")}
-            <Input
-              className="min-h-11"
-              dir="ltr"
-              type="url"
-              value={branch.mapUrl}
-              onChange={(e) => change(i, { ...branch, mapUrl: e.target.value })}
-            />
-          </label>
-          <Button
-            variant="outline"
-            className="min-h-11"
-            onClick={() => onChange({ ...block, items: block.items.filter((_, j) => i !== j) })}
-          >
-            {t("pages.remove")}
-          </Button>
-        </fieldset>
+        <BranchItemFields
+          key={i}
+          branch={branch}
+          change={(value) => change(i, value)}
+          remove={() => onChange({ ...block, items: block.items.filter((_, j) => i !== j) })}
+        />
       ))}
       <Button
         variant="outline"
@@ -191,5 +171,48 @@ function BranchFields({
         {t("pages.addBranch")}
       </Button>
     </div>
+  );
+}
+
+interface BranchItemFieldsProps {
+  branch: Extract<PageBlock, { type: "branches" }>["items"][number];
+  change: (branch: BranchItemFieldsProps["branch"]) => void;
+  remove: () => void;
+}
+function BranchItemFields({ branch, change, remove }: BranchItemFieldsProps) {
+  return (
+    <fieldset className="space-y-3 border-b border-border pb-4">
+      <TextFields
+        label="pages.name"
+        value={branch.name}
+        max={80}
+        onChange={(name) => change({ ...branch, name })}
+      />
+      <TextFields
+        label="pages.address"
+        value={branch.address}
+        max={200}
+        onChange={(address) => change({ ...branch, address })}
+      />
+      <TextFields
+        label="pages.hours"
+        value={branch.hours}
+        max={200}
+        onChange={(hours) => change({ ...branch, hours })}
+      />
+      <label className="grid gap-1 text-sm">
+        {t("pages.map")}
+        <Input
+          className="min-h-11"
+          dir="ltr"
+          type="url"
+          value={branch.mapUrl}
+          onChange={(e) => change({ ...branch, mapUrl: e.target.value })}
+        />
+      </label>
+      <Button variant="outline" className="min-h-11" onClick={remove}>
+        {t("pages.remove")}
+      </Button>
+    </fieldset>
   );
 }

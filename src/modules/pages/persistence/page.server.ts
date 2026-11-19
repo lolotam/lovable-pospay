@@ -1,6 +1,11 @@
 import type pg from "pg";
 import { validateDocumentAssets, lockPageAssets } from "./assets.server";
-import { pageDraftSchema, publicPageSchema, type PageDraftDto } from "../contracts";
+import {
+  pageDraftSchema,
+  publicPageSchema,
+  type PageDraftDto,
+  type SavePageInput,
+} from "../contracts";
 import type { PageRepository, PublicPageReader } from "../ports/page-repository";
 export function pgPageRepository(
   db: pg.PoolClient,
@@ -15,27 +20,7 @@ export function pgPageRepository(
       return result.rows[0]?.allowed === true;
     },
     draft: () => readDraft(db, companyId),
-    async save(input) {
-      await validateDocumentAssets(db, companyId, input.document);
-      try {
-        const result =
-          input.version === 0
-            ? await db.query(
-                "insert into public.company_pages(company_id,slug,draft,updated_by) values($1,$2,$3::jsonb,$4) on conflict(company_id) do nothing returning version",
-                [companyId, input.slug, JSON.stringify(input.document), userId],
-              )
-            : await db.query(
-                "update public.company_pages set slug=$2,draft=$3::jsonb,version=version+1,updated_by=$4,updated_at=now() where company_id=$1 and version=$5 returning version",
-                [companyId, input.slug, JSON.stringify(input.document), userId, input.version],
-              );
-        if (result.rowCount !== 1) throw new Error("PAGE_CONFLICT");
-        return readDraft(db, companyId);
-      } catch (error) {
-        if (error && typeof error === "object" && "code" in error && error.code === "23505")
-          throw new Error("SLUG_TAKEN");
-        throw error;
-      }
-    },
+    save: (input) => saveDocument(db, companyId, userId, input),
     async publish(version) {
       await lockPageAssets(db, companyId);
       const result = await db.query(
@@ -101,4 +86,31 @@ export function pgPublicPageReader(db: pg.PoolClient): PublicPageReader {
       return result.rows[0]?.page ? publicPageSchema.parse(result.rows[0].page) : null;
     },
   };
+}
+
+async function saveDocument(
+  db: pg.PoolClient,
+  companyId: string,
+  userId: string,
+  input: SavePageInput,
+) {
+  await validateDocumentAssets(db, companyId, input.document);
+  try {
+    const result =
+      input.version === 0
+        ? await db.query(
+            "insert into public.company_pages(company_id,slug,draft,updated_by) values($1,$2,$3::jsonb,$4) on conflict(company_id) do nothing returning version",
+            [companyId, input.slug, JSON.stringify(input.document), userId],
+          )
+        : await db.query(
+            "update public.company_pages set slug=$2,draft=$3::jsonb,version=version+1,updated_by=$4,updated_at=now() where company_id=$1 and version=$5 returning version",
+            [companyId, input.slug, JSON.stringify(input.document), userId, input.version],
+          );
+    if (result.rowCount !== 1) throw new Error("PAGE_CONFLICT");
+    return readDraft(db, companyId);
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "23505")
+      throw new Error("SLUG_TAKEN");
+    throw error;
+  }
 }

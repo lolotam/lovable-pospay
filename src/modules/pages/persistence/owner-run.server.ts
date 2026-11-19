@@ -10,5 +10,5 @@ export async function ownerRun<T>(run: (repo: PageRepository) => Promise<T>): Pr
   const active = readWorkspaceCookie().remembered;
   if (active?.kind !== "company" || active.role !== "owner") throw new Error("FORBIDDEN");
   setResponseHeader("Cache-Control", "private, no-store");
-  return withUser(user.id, db => run(pgPageRepository(db, active.companyId, user.id)));
+  return withUser(user.id, (db) => run(pgPageRepository(db, active.companyId, user.id)));
 }

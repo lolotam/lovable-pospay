@@ -44,8 +44,8 @@ export function addBlock(doc: PageDocument, type: PageBlock["type"], id: string)
             ? { ...base, type, items: [] }
             : type === "gallery"
               ? { ...base, type, images: [] }
-            : type === "contact"
-              ? { ...base, type, whatsapp: "", phone: "", instagram: "" }
-              : { ...base, type: "cta", label: { ...text }, message: { ...text } };
+              : type === "contact"
+                ? { ...base, type, whatsapp: "", phone: "", instagram: "" }
+                : { ...base, type: "cta", label: { ...text }, message: { ...text } };
   return { ...doc, blocks: [...doc.blocks, block] };
 }

@@ -1,5 +1,10 @@
 /** بيانات الصورة الآمنة التي تظهر للمالك دون مفتاح التخزين. */
-export interface PageAsset { id: string; contentType: string; byteSize: number; alt: { ar: string; en: string }; }
+export interface PageAsset {
+  id: string;
+  contentType: string;
+  byteSize: number;
+  alt: { ar: string; en: string };
+}
 /** منفذ صور الشركة؛ التنسيق والحماية في معاملة واحدة. */
 export interface AssetRepository {
   lock(): Promise<void>;

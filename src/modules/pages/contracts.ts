@@ -33,10 +33,18 @@ export const pageBlockSchema = z.discriminatedUnion("type", [
       .or(z.literal("")),
     instagram: z.string().regex(/^[A-Za-z0-9._]{0,30}$/),
   }),
-  z.object({ ...base, type: z.literal("gallery"), images: z.array(z.object({ assetId: z.uuid(), alt: text(200) })).max(6) }),
+  z.object({
+    ...base,
+    type: z.literal("gallery"),
+    images: z.array(z.object({ assetId: z.uuid(), alt: text(200) })).max(6),
+  }),
   z.object({ ...base, type: z.literal("cta"), label: text(40), message: text(200) }),
 ]);
-export const pageDocumentSchema = z.object({ logoAssetId: z.uuid().nullable().optional(), heroImageAssetId: z.uuid().nullable().optional(), blocks: z.array(pageBlockSchema).max(12) });
+export const pageDocumentSchema = z.object({
+  logoAssetId: z.uuid().nullable().optional(),
+  heroImageAssetId: z.uuid().nullable().optional(),
+  blocks: z.array(pageBlockSchema).max(12),
+});
 export const slugSchema = z
   .string()
   .regex(/^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/)

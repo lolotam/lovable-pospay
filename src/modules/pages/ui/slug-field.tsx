@@ -11,7 +11,10 @@ export interface SlugFieldProps {
 export function SlugField({ value, onChange, check, onValidity }: SlugFieldProps) {
   const checkRef = useRef(check);
   const validityRef = useRef(onValidity);
-  useEffect(() => { checkRef.current = check; validityRef.current = onValidity; });
+  useEffect(() => {
+    checkRef.current = check;
+    validityRef.current = onValidity;
+  });
   const [status, setStatus] = useState<
     "invalidSlug" | "checking" | "available" | "taken" | "failed"
   >("invalidSlug");
@@ -24,7 +27,8 @@ export function SlugField({ value, onChange, check, onValidity }: SlugFieldProps
     }
     setStatus("checking");
     const timer = setTimeout(() => {
-      void checkRef.current(value)
+      void checkRef
+        .current(value)
         .then((available) => {
           if (alive) {
             setStatus(available ? "available" : "taken");

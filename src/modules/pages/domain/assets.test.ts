@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { assertAssetCapacity, assertAssetUnused, assertOwnedAssets, inspectImage, referencedAssets } from "./assets";
+import {
+  assertAssetCapacity,
+  assertAssetUnused,
+  assertOwnedAssets,
+  inspectImage,
+  referencedAssets,
+} from "./assets";
 import { pageDocumentSchema } from "../contracts";
 
 const id = "92000000-0000-4000-8000-000000000001";
@@ -11,7 +17,12 @@ describe("page image rules", () => {
   ])("detects signature %s", (bytes, ext, contentType) => {
     expect(inspectImage(Uint8Array.from(bytes))).toEqual({ ext, contentType });
   });
-  it.each([[60, 115, 118, 103], [82, 73, 70, 70], [137, 80, 78, 71], [1, 2, 3]])("refuses unsupported/truncated signature %s", (...bytes) => {
+  it.each([
+    [60, 115, 118, 103],
+    [82, 73, 70, 70],
+    [137, 80, 78, 71],
+    [1, 2, 3],
+  ])("refuses unsupported/truncated signature %s", (...bytes) => {
     expect(() => inspectImage(Uint8Array.from(bytes))).toThrow("IMAGE_TYPE");
   });
   it("accepts exactly 2 MB, refuses 2 MB + 1", () => {
@@ -20,7 +31,8 @@ describe("page image rules", () => {
     expect(inspectImage(bytes).ext).toBe("jpg");
     expect(() => inspectImage(new Uint8Array(2097153))).toThrow("IMAGE_SIZE");
   });
-  it("refuses an empty file", () => expect(() => inspectImage(new Uint8Array())).toThrow("IMAGE_SIZE"));
+  it("refuses an empty file", () =>
+    expect(() => inspectImage(new Uint8Array())).toThrow("IMAGE_SIZE"));
   it("permits the twentieth image but refuses the twenty-first", () => {
     expect(() => assertAssetCapacity(19)).not.toThrow();
     expect(() => assertAssetCapacity(20)).toThrow("ASSET_LIMIT");
@@ -29,7 +41,7 @@ describe("page image rules", () => {
     expect(() => assertOwnedAssets([id], [])).toThrow("FOREIGN_ASSET");
     expect(() => assertOwnedAssets([id], [id])).not.toThrow();
   });
-  it.each(["logoAssetId", "heroImageAssetId"])("protects %s references", key => {
+  it.each(["logoAssetId", "heroImageAssetId"])("protects %s references", (key) => {
     expect(() => assertAssetUnused(id, [{ blocks: [], [key]: id }])).toThrow("ASSET_IN_USE");
   });
   it("protects hidden gallery references in either draft or published document", () => {
@@ -41,6 +53,9 @@ describe("page image rules", () => {
     const image = { assetId: id, alt: { ar: "", en: "" } };
     const block = { id, type: "gallery", hidden: false, images: Array(6).fill(image) };
     expect(pageDocumentSchema.safeParse({ blocks: [block] }).success).toBe(true);
-    expect(pageDocumentSchema.safeParse({ blocks: [{ ...block, images: [...block.images, image] }] }).success).toBe(false);
+    expect(
+      pageDocumentSchema.safeParse({ blocks: [{ ...block, images: [...block.images, image] }] })
+        .success,
+    ).toBe(false);
   });
 });

@@ -26,7 +26,96 @@ export function usePageEditor(initial: PageDraftDto, actions: PageEditorActions)
     setDocument(next.document);
     setSlug(next.slug);
   };
-  const execute = async (kind: "save" | "publish" | "unpublish") => {
+  const execute = useEditorExecution({
+    busy,
+    setBusy,
+    setMessage,
+    updateDraft,
+    draft,
+    document,
+    slug,
+    dirty,
+    actions,
+  });
+  const add = (type: PageBlock["type"]) => {
+    const id = crypto.randomUUID();
+    setDocument((doc) => addBlock(doc, type, id));
+    setSelected(id);
+  };
+  return editorControls({
+    draft,
+    document,
+    setDocument,
+    slug,
+    setSlug,
+    selected,
+    setSelected,
+    busy,
+    valid,
+    setValid,
+    message,
+    mobile,
+    setMobile,
+    dirty,
+    execute,
+    add,
+    check: actions.check,
+  });
+}
+interface EditorControls {
+  draft: PageDraftDto;
+  document: PageDocument;
+  setDocument: React.Dispatch<React.SetStateAction<PageDocument>>;
+  slug: string;
+  setSlug: (slug: string) => void;
+  selected: string | null;
+  setSelected: (id: string | null) => void;
+  busy: boolean;
+  valid: boolean;
+  setValid: (valid: boolean) => void;
+  message: MessageKey | null;
+  mobile: "edit" | "preview";
+  setMobile: (tab: "edit" | "preview") => void;
+  dirty: boolean;
+  execute: (kind: "save" | "publish" | "unpublish") => Promise<void>;
+  add: (type: PageBlock["type"]) => void;
+  check: PageEditorActions["check"];
+}
+function editorControls(state: EditorControls) {
+  const { document, setDocument, selected, setSelected, valid } = state;
+  const replace = (block: PageBlock) =>
+    setDocument((doc) => ({
+      ...doc,
+      blocks: doc.blocks.map((b) => (b.id === block.id ? block : b)),
+    }));
+  return {
+    ...state,
+    replace,
+    canPublish:
+      visibleBlocks(document).length > 0 && valid && pageDocumentSchema.safeParse(document).success,
+    move: (id: string, d: -1 | 1) => setDocument((doc) => moveBlock(doc, id, d)),
+    toggle: (id: string) => setDocument((doc) => toggleBlock(doc, id)),
+    remove: (id: string) => {
+      setDocument((doc) => ({ ...doc, blocks: doc.blocks.filter((b) => b.id !== id) }));
+      if (selected === id) setSelected(null);
+    },
+  };
+}
+
+interface EditorExecutionOptions {
+  busy: boolean;
+  setBusy: (busy: boolean) => void;
+  setMessage: (message: MessageKey | null) => void;
+  updateDraft: (draft: PageDraftDto) => void;
+  draft: PageDraftDto;
+  document: PageDocument;
+  slug: string;
+  dirty: boolean;
+  actions: PageEditorActions;
+}
+function useEditorExecution(options: EditorExecutionOptions) {
+  const { busy, setBusy, setMessage, updateDraft, draft, document, slug, dirty, actions } = options;
+  return async (kind: "save" | "publish" | "unpublish") => {
     if (busy) return;
     setBusy(true);
     setMessage(null);
@@ -53,41 +142,5 @@ export function usePageEditor(initial: PageDraftDto, actions: PageEditorActions)
     } finally {
       setBusy(false);
     }
-  };
-  const add = (type: PageBlock["type"]) => {
-    const id = crypto.randomUUID();
-    setDocument((doc) => addBlock(doc, type, id));
-    setSelected(id);
-  };
-  const replace = (block: PageBlock) =>
-    setDocument((doc) => ({ ...doc, blocks: doc.blocks.map((b) => (b.id === block.id ? block : b)) }));
-  const check = actions.check;
-  return {
-    draft,
-    document,
-    setDocument,
-    slug,
-    setSlug,
-    selected,
-    setSelected,
-    busy,
-    valid,
-    setValid,
-    message,
-    mobile,
-    setMobile,
-    dirty,
-    execute,
-    add,
-    replace,
-    check,
-    canPublish:
-      visibleBlocks(document).length > 0 && valid && pageDocumentSchema.safeParse(document).success,
-    move: (id: string, d: -1 | 1) => setDocument((doc) => moveBlock(doc, id, d)),
-    toggle: (id: string) => setDocument((doc) => toggleBlock(doc, id)),
-    remove: (id: string) => {
-      setDocument((doc) => ({ ...doc, blocks: doc.blocks.filter((b) => b.id !== id) }));
-      if (selected === id) setSelected(null);
-    },
   };
 }

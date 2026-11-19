@@ -16,6 +16,7 @@ export interface PageEditorProps {
 }
 export function PageEditor({ initial, actions }: PageEditorProps) {
   const [desktop, setDesktop] = useState(false);
+  const [imagesEnabled, setImagesEnabled] = useState(false);
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1024px)");
     const update = () => setDesktop(media.matches);
@@ -28,7 +29,11 @@ export function PageEditor({ initial, actions }: PageEditorProps) {
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 pb-40 sm:px-6">
       <h1 className="mb-5 text-3xl">{t("pages.title")}</h1>
-      <EditorBody editor={editor} />
+      <EditorBody
+        editor={editor}
+        imagesEnabled={imagesEnabled}
+        onImagesEnabled={setImagesEnabled}
+      />
       <EditorFooter editor={editor} />
       <BlockSheet
         block={block}
@@ -40,8 +45,12 @@ export function PageEditor({ initial, actions }: PageEditorProps) {
   );
 }
 
-function EditorBody({ editor }: { editor: ReturnType<typeof usePageEditor> }) {
-  const block = editor.document.blocks.find((b) => b.id === editor.selected);
+interface EditorBodyProps {
+  editor: ReturnType<typeof usePageEditor>;
+  imagesEnabled: boolean;
+  onImagesEnabled: (enabled: boolean) => void;
+}
+function EditorBody({ editor, imagesEnabled, onImagesEnabled }: EditorBodyProps) {
   return (
     <>
       <div className="mb-4 flex gap-2 lg:hidden">
@@ -57,37 +66,11 @@ function EditorBody({ editor }: { editor: ReturnType<typeof usePageEditor> }) {
         ))}
       </div>
       <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-        <div
-          className={`min-w-0 space-y-5 ${editor.mobile === "preview" ? "hidden lg:block" : ""}`}
-        >
-          <SlugField
-            value={editor.slug}
-            onChange={editor.setSlug}
-            check={editor.check}
-            onValidity={editor.setValid}
-          />
-          <AssetLibrary document={editor.document} onChange={editor.setDocument} />
-          <AddBlocks
-            disabled={editor.document.blocks.length >= 12 || editor.busy}
-            add={editor.add}
-          />
-          <BlockList
-            document={editor.document}
-            selected={editor.selected}
-            select={editor.setSelected}
-            move={editor.move}
-            toggle={editor.toggle}
-            remove={editor.remove}
-          />
-          <div className="hidden lg:block">
-            {block && (
-              <section className="space-y-4 border-t border-border pt-5">
-                <h2 className="text-xl">{t(`pages.${block.type}`)}</h2>
-                <BlockEditor block={block} onChange={editor.replace} />
-              </section>
-            )}
-          </div>
-        </div>
+        <EditorFields
+          editor={editor}
+          imagesEnabled={imagesEnabled}
+          onImagesEnabled={onImagesEnabled}
+        />
         <div
           className={`min-w-0 overflow-hidden border border-border lg:sticky lg:top-6 lg:self-start ${editor.mobile === "edit" ? "hidden lg:block" : ""}`}
         >
@@ -95,5 +78,44 @@ function EditorBody({ editor }: { editor: ReturnType<typeof usePageEditor> }) {
         </div>
       </div>
     </>
+  );
+}
+function EditorFields({ editor, imagesEnabled, onImagesEnabled }: EditorBodyProps) {
+  const block = editor.document.blocks.find((b) => b.id === editor.selected);
+  return (
+    <div className={`min-w-0 space-y-5 ${editor.mobile === "preview" ? "hidden lg:block" : ""}`}>
+      <SlugField
+        value={editor.slug}
+        onChange={editor.setSlug}
+        check={editor.check}
+        onValidity={editor.setValid}
+      />
+      <AssetLibrary
+        document={editor.document}
+        onChange={editor.setDocument}
+        onEnabled={onImagesEnabled}
+      />
+      <AddBlocks
+        imagesEnabled={imagesEnabled}
+        disabled={editor.document.blocks.length >= 12 || editor.busy}
+        add={editor.add}
+      />
+      <BlockList
+        document={editor.document}
+        selected={editor.selected}
+        select={editor.setSelected}
+        move={editor.move}
+        toggle={editor.toggle}
+        remove={editor.remove}
+      />
+      <div className="hidden lg:block">
+        {block && (
+          <section className="space-y-4 border-t border-border pt-5">
+            <h2 className="text-xl">{t(`pages.${block.type}`)}</h2>
+            <BlockEditor block={block} onChange={editor.replace} />
+          </section>
+        )}
+      </div>
+    </div>
   );
 }

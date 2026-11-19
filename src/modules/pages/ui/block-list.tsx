@@ -70,24 +70,28 @@ export function BlockList({ document, selected, select, move, toggle, remove }: 
 }
 export interface AddBlocksProps {
   disabled: boolean;
+  imagesEnabled?: boolean;
   add: (type: PageBlock["type"]) => void;
 }
-export function AddBlocks({ disabled, add }: AddBlocksProps) {
+export function AddBlocks({ disabled, add, imagesEnabled = false }: AddBlocksProps) {
   return (
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium">{t("pages.add")}</legend>
       <div className="flex flex-wrap gap-2">
-        {(["hero", "about", "services", "branches", "contact", "cta", "gallery"] as const).map((type) => (
-          <Button
-            key={type}
-            variant="outline"
-            className="min-h-11"
-            disabled={disabled}
-            onClick={() => add(type)}
-          >
-            {t(`pages.${type}`)}
-          </Button>
-        ))}
+        {(["hero", "about", "services", "branches", "contact", "cta", "gallery"] as const).map(
+          (type) =>
+            type === "gallery" && !imagesEnabled ? null : (
+              <Button
+                key={type}
+                variant="outline"
+                className="min-h-11"
+                disabled={disabled}
+                onClick={() => add(type)}
+              >
+                {t(`pages.${type}`)}
+              </Button>
+            ),
+        )}
       </div>
     </fieldset>
   );
