@@ -4,6 +4,18 @@ import pg from "pg";
 import { acceptInviteAsSignedInFn } from "../functions/invitation.functions";
 import { hashInviteToken } from "../domain/invite-token";
 const session = vi.hoisted(() => ({ email: "c3-existing@example.test" }));
+vi.mock("@tanstack/react-start", () => ({
+  createServerOnlyFn: (fn: unknown) => fn,
+  createServerFn: () => ({
+    handler: (fn: unknown) => fn,
+    inputValidator: (validate: (v: unknown) => unknown) => ({
+      handler:
+        (fn: (arg: { data: unknown }) => unknown) =>
+        ({ data }: { data: unknown }) =>
+          fn({ data: validate(data) }),
+    }),
+  }),
+}));
 vi.mock("@/lib/server/session.server", () => ({
   requireSession: async () => ({ user: { id: "c3-existing", email: session.email } }),
 }));

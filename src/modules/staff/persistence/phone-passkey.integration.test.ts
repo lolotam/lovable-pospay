@@ -6,6 +6,18 @@ import { withUser } from "@/lib/server/db.server";
 import { getAuth } from "@/lib/server/auth.server";
 import { unbindPhoneFn } from "../functions/phone.functions";
 const identity = vi.hoisted(() => ({ userId: "c2-staff" }));
+vi.mock("@tanstack/react-start", () => ({
+  createServerOnlyFn: (fn: unknown) => fn,
+  createServerFn: () => ({
+    handler: (fn: unknown) => fn,
+    inputValidator: (validate: (v: unknown) => unknown) => ({
+      handler:
+        (fn: (arg: { data: unknown }) => unknown) =>
+        ({ data }: { data: unknown }) =>
+          fn({ data: validate(data) }),
+    }),
+  }),
+}));
 vi.mock("@/lib/server/session.server", () => ({ requireUserId: async () => identity.userId }));
 vi.mock("@tanstack/react-start/server", () => ({ getCookie: () => undefined, setCookie: vi.fn() }));
 const url = process.env["POSPAY_TEST_DATABASE_URL"];
