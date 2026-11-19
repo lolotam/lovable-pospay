@@ -7,7 +7,10 @@ const company = "91000000-0000-4000-8000-000000000001",
   branch = "91000000-0000-4000-8000-000000000002",
   staff = "91000000-0000-4000-8000-000000000003",
   otherBranch = "91000000-0000-4000-8000-000000000004",
-  otherStaff = "91000000-0000-4000-8000-000000000005";
+  otherStaff = "91000000-0000-4000-8000-000000000005",
+  service = "91000000-0000-4000-8000-000000000006",
+  client = "91000000-0000-4000-8000-000000000007",
+  session = "91000000-0000-4000-8000-000000000008";
 describe.skipIf(!url)("D1 dashboard SQL with disposable RLS", () => {
   let pool: pg.Pool;
   beforeAll(async () => {
@@ -27,7 +30,7 @@ describe.skipIf(!url)("D1 dashboard SQL with disposable RLS", () => {
   afterAll(async () => {
     if (pool) await pool.end();
   });
-  async function read(user: string, sql: string) {
+  async function read(user: string, sql: string, fixture: "attendance" | "session" = "attendance") {
     const db = await pool.connect();
     try {
       await db.query("begin");
@@ -50,6 +53,21 @@ describe.skipIf(!url)("D1 dashboard SQL with disposable RLS", () => {
           (gen_random_uuid(),$1,$4,$5,'2026-11-01','2026-11-01T08:00Z',20)`,
         [company, staff, branch, otherStaff, otherBranch],
       );
+      if (fixture === "session") {
+        await db.query(
+          "insert into public.service_catalog(company_id,id,name,price_mills) values($1,$2,'Hair',12500)",
+          [company, service],
+        );
+        await db.query(
+          "insert into public.clients(company_id,id,name,phone) values($1,$2,'Noura','96555551234')",
+          [company, client],
+        );
+        await db.query(
+          `insert into public.service_sessions(company_id,id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,price_mills,recorded_by,list_price_mills)
+           values($1,$2,$3,$4,$5,$6,'2026-11-01T10:00Z','Hair',12500,'d1-owner',12500)`,
+          [company, session, service, staff, branch, client],
+        );
+      }
       await db.query("set local role pospay_app");
       await db.query("select set_config('app.user_id',$1,true)", [user]);
       return (await db.query(sql)).rows;
@@ -88,6 +106,14 @@ describe.skipIf(!url)("D1 dashboard SQL with disposable RLS", () => {
         `select * from public.attendance_daily('${company}',null,'2026-11-01','2026-11-14')`,
       ),
     ).toHaveLength(0);
+  });
+  it("returns the recorded session count and exact daily revenue", async () => {
+    const rows = await read(
+      "d1-owner",
+      `select day::text,sessions,revenue_mills::text from public.session_daily('${company}',null,'2026-11-01','2026-11-01')`,
+      "session",
+    );
+    expect(rows).toEqual([{ day: "2026-11-01", sessions: 1, revenue_mills: "12500" }]);
   });
   it("refuses non-admin growth", async () => {
     expect(await read("d1-owner", "select * from public.platform_growth(12)")).toHaveLength(0);

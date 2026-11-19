@@ -17,13 +17,15 @@ export interface NewSession {
   priceMills: bigint;
   listPriceMills: bigint;
   discountReason: string | null;
+  requestPayload: string;
 }
 /** منفذ تخزين الجلسات داخل معاملة المستخدم الحالي. */
 export interface SessionRepository {
   assignedService(serviceId: string, staffId: string): Promise<AssignedService | null>;
   canWrite(branchId: string): Promise<boolean>;
   resolveTime(local: string, timeZone: string): Promise<Date>;
-  lockRecordedSession(id: string): Promise<boolean>;
+  /** يقفل مفتاح الطلب داخل المعاملة ويحدد هل هو جديد أو تكرار صالح أو تعارض. */
+  claimRequest(id: string, payload: string): Promise<"new" | "replay" | "conflict">;
   upsertClient(branchId: string, name: string, phone: string): Promise<string>;
   /** أقصى نسبة خصم مسموحة للمستخدم الحالي (0 = بدون صلاحية). */
   discountCap(): Promise<number>;

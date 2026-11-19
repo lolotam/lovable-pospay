@@ -39,6 +39,7 @@ insert into public.company_assets(company_id,id,object_key,content_type,byte_siz
  ('00000000-0000-0000-0000-00000000000b','10000000-0000-4000-8000-000000000001','companies/b/pages/image.png','image/png',8,'user-b');
 select set_config('test.b_branch' , (select id::text from public.branches where name='B-1'), true);
 select set_config('test.a_branch' , (select id::text from public.branches where name='A-1'), true);
+select set_config('test.b_session', (select id::text from public.service_sessions where company_id='00000000-0000-0000-0000-00000000000b' limit 1), true);
 insert into public.memberships (company_id, user_id, role, branch_id)
  values ('00000000-0000-0000-0000-00000000000b','user-bm','branch_manager',current_setting('test.b_branch')::uuid);
 insert into public."user"(id,email,name,"emailVerified") values
@@ -123,6 +124,13 @@ do $$ begin
   if exists(select 1 from public.attendance_daily('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign attendance chart'; end if;
   if exists(select 1 from public.late_leaders('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign late leaders'; end if;
   if exists(select 1 from public.session_daily('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign session chart'; end if;
+  if current_setting('test.b_session','') = '' then raise exception 'Fixture missing a company B session'; end if;
+  begin
+    perform public.recorded_session_replay('00000000-0000-0000-0000-00000000000b',current_setting('test.b_session')::uuid,'x');
+    raise exception 'LEAK foreign session replay state';
+  exception when others then
+    if sqlerrm <> 'FORBIDDEN' then raise; end if;
+  end;
   if exists(select 1 from public.platform_growth(12)) then raise exception 'LEAK platform growth'; end if;
   if exists(select 1 from public.company_member_directory('00000000-0000-0000-0000-00000000000b'))
     then raise exception 'LEAK foreign member directory'; end if;
