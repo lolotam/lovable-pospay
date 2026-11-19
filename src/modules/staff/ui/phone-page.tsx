@@ -122,24 +122,26 @@ export function PhonePage({ mode }: { mode: "binding" | "management" }) {
 function usePhoneActions(companyId: string, busy: boolean, setBusy: (busy: boolean) => void) {
   const { data, isFetching } = useSuspenseQuery(managementQuery(companyId));
   const queryClient = useQueryClient();
+  const session = authClient.useSession();
   const [userId, setUser] = useState("");
   const [confirm, setConfirm] = useState(false);
   const [message, setMessage] = useState("");
   const begin = useServerFn(startBindingFn);
   const finish = useServerFn(finishBindingFn);
   const unbind = useServerFn(unbindPhoneFn);
-  async function run(remove: boolean) {
+  async function run(remove: boolean, targetUserId = userId) {
     if (busy || (!remove && (isFetching || !data.canBind || data.isBound))) return;
     setBusy(true);
     setMessage("");
     try {
       if (remove) {
-        if (
-          !data.canManage ||
-          !data.staff.some((staff) => staff.userId === userId && staff.isBound)
-        )
+        if (!(
+          (targetUserId === session.data?.user.id && data.isBound) ||
+          (data.canManage &&
+            data.staff.some((staff) => staff.userId === targetUserId && staff.isBound))
+        ))
           return;
-        await unbind({ data: { companyId, userId } });
+        await unbind({ data: { companyId, userId: targetUserId } });
         setUser("");
         setConfirm(false);
       } else {
@@ -160,7 +162,18 @@ function usePhoneActions(companyId: string, busy: boolean, setBusy: (busy: boole
       setBusy(false);
     }
   }
-  return { data, userId, setUser, confirm, setConfirm, busy, isFetching, message, run };
+  return {
+    selfId: session.data?.user.id,
+    data,
+    userId,
+    setUser,
+    confirm,
+    setConfirm,
+    busy,
+    isFetching,
+    message,
+    run,
+  };
 }
 
 function PhoneActions({
@@ -195,6 +208,21 @@ function PhoneActions({
             </Button>
           </>
         ))}
+      {mode === "binding" && data.isBound && actions.selfId && (
+        <div className="space-y-3">
+          {actions.confirm && <p role="alert">{t("phone.confirmUnbind")}</p>}
+          <Button
+            variant="destructive"
+            className="min-h-11"
+            disabled={busy}
+            onClick={() =>
+              actions.confirm ? void run(true, actions.selfId) : actions.setConfirm(true)
+            }
+          >
+            {t("phone.unbind")}
+          </Button>
+        </div>
+      )}
       {mode === "management" && data.canManage && <StaffPhoneControls actions={actions} />}
       <p role="status">{message}</p>
     </section>

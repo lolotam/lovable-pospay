@@ -407,6 +407,8 @@
   "meta.root.description": "PosPay — attendance and commissions for salons",
   "cards.pendingScanRecovery": "A card scan from this device has no confirmed result yet. You can recover it, but you cannot start a new scan.",
   "nav.permissions": "Permissions",
+  "signIn.phone": "Sign in with my phone",
+  "signIn.passkeyFailed": "Phone sign-in failed. Try again or use your password.",
   "permissionAdmin.title": "Member permissions",
   "permissionAdmin.description": "Company access and individual permissions",
   "permissionAdmin.members": "Members",

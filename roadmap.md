@@ -114,3 +114,8 @@
 - [x] Task 12 local checks/evidence: 248 tests passed / 124 database tests skipped; lint 0 errors / 8 existing warnings; harness build OK; 10 public browser checks. See verification.md; no PR requested.
 - [ ] Task 12 authenticated acceptance and TODO(spec): supplied SQL aggregates company roles while DTO uses active role; supplied stale-choice test conflicts with immediate R2 single-workspace entry. Requires Waleed/Codex decision, not silently changed.
 - [ ] Codex: execute SQL integration, migration double-application and isolation on disposable pospay_test; production migration and deploy require separate Waleed approval.
+
+## 016-C C2 / C3 (order update 2026-11-19)
+- [x] C2 source: bound-phone passkey guard, user/owner unbind credential deletion, prepared 0021 self-unbind policy, phone sign-in UI; 350 tests passed / 137 skipped, lint 0 errors / 8 warnings, six sign-in viewport/theme checks. Real WebAuthn and SQL acceptance unverified.
+- [ ] C3: signed-in invitation acceptance, matching/mismatch/sign-in UI, workspace selection and tests.
+- [ ] Claude Code: real passkey and authenticated acceptance, database/RLS integration; feature branch handoff from lovable commits (branch switching unavailable).

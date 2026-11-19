@@ -20,7 +20,9 @@ vi.mock("@tanstack/react-router", async (original) => ({
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (handler: unknown) => handler }));
 vi.mock("@simplewebauthn/browser", () => ({ startAuthentication: authenticate }));
-vi.mock("@/lib/auth-client", () => ({ authClient: { passkey: { addPasskey } } }));
+vi.mock("@/lib/auth-client", () => ({
+  authClient: { useSession: () => ({ data: { user: { id: "staff" } } }), passkey: { addPasskey } },
+}));
 vi.mock("@/lib/tenancy.functions", () => ({ getMyCompanies: getCompanies }));
 vi.mock("@/modules/staff", () => ({
   getPhoneManagementFn: getManagement,

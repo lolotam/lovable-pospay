@@ -407,6 +407,8 @@
   "meta.root.description": "PosPay — الحضور والعمولات للصالونات",
   "cards.pendingScanRecovery": "فيه مسح كارت من الجهاز ده لسه نتيجته ماوصلتش. تقدر تسترجعها، بس مش هتقدر تعمل مسح جديد.",
   "nav.permissions": "الصلاحيات",
+  "signIn.phone": "الدخول بهاتفي",
+  "signIn.passkeyFailed": "تعذّر الدخول بالهاتف. حاول مرة أخرى أو استخدم كلمة المرور.",
   "permissionAdmin.title": "صلاحيات الأعضاء",
   "permissionAdmin.description": "صلاحيات الشركة لكل عضو",
   "permissionAdmin.members": "الأعضاء",
