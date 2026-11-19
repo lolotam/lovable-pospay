@@ -64,3 +64,10 @@ Owner-only `/app/permissions`, six editable permission states and five deny-only
 - Fixture browser: 4 visible member cards, no horizontal overflow at 375/768/1280 light/dark; block + save and clear + save verified with full eleven-key payload; no page errors. Screenshots inspected. Actual signed-out permissions route redirects to sign-in.
 - Real authenticated owner/staff attendance scan, database/RLS suites and double migration application not verified: Claude Code owns these checks on pospay_test. No SQL commands, PR, merge, deploy, secrets or auth changes. Branch remains lovable because branch switching is unavailable.
 - Writes: AGENTS.md, roadmap.md, both i18n JSON files, contracts.ts, domain/{override-states.ts,override-states.test.ts,permission-admin-types.ts}, use-cases/{list-member-permissions.ts,save-member-overrides.ts,permission-admin.test.ts}, persistence/{permission-admin.server.ts,permission-admin.integration.test.ts}, functions/permission-admin.functions.test.ts, ui/{permission-fields.tsx,permission-layouts.tsx,member-permission-card.tsx,use-permission-editor.ts,permissions-page.test.tsx}, this verification and restrictions-update-plan.md.
+
+## Exhaustive fixture recheck — 10:06 Kuwait, 2026-11-19
+
+- Checked every member: owner read-only and all three editable members, at 375/768/1280 in both themes.
+- Exercised all five restriction keys for each editable member in all six combinations: 90 switches, 36 saves (blocked then cleared), full payloads verified, saved states read back through the editor, save disabled after completion.
+- All 24 member/layout combinations passed; no horizontal overflow or page errors. Inspected blocked-state screenshots for phone/dark and desktop/light. No source fix needed.
+- This remains isolated fixture verification, not real authenticated database acceptance; no database writes or migrations executed. Only this verification note was written in the recheck.
