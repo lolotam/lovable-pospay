@@ -36,13 +36,16 @@ Verify each screen at 375, 768 and 1280 px, light and dark, RTL.
 **Files:** modify `src/modules/permissions/contracts.ts`; create
 `src/modules/permissions/domain/override-states.ts` and `override-states.test.ts`.
 
-- [ ] Add `editablePermissionSchema`, `overrideStateSchema`, `memberPermissionsSchema`,
-  `saveOverridesInput` from the spec.
-- [ ] `EDITABLE_PERMISSIONS` constant (6 keys). `toStates(rows)` maps override rows to a full
-  record (`default` when absent). `toRows(states)` returns rows only for `allow`/`deny`.
+- [ ] Add `editablePermissionSchema`, `overrideStateSchema`, `restrictionKeySchema`,
+  `restrictionStateSchema`, `memberPermissionsSchema`, `saveOverridesInput` from the spec.
+- [ ] `EDITABLE_PERMISSIONS` (6 keys) and `RESTRICTION_KEYS` (5 keys); `MANAGED_KEYS` = both.
+  `toStates(rows)` maps override rows to the two full records (`default` when absent).
+  `toRows(overrides, restrictions)` returns rows only for `allow`/`deny`, and only `deny` for a
+  restriction key.
 - [ ] `assertEditableTarget({ actorId, target })` throws `OWNER_LOCKED` when the target holds
   `owner`, `SELF_EDIT` when `actorId === target.userId`.
-- [ ] Tests: round-trip for the 3 states with `test.each`; `OWNER_LOCKED`; `SELF_EDIT`.
+- [ ] Tests: round-trip for permission states and restriction states with `test.each`;
+  `OWNER_LOCKED`; `SELF_EDIT`.
 
 ### Task 3: Persistence and use cases
 
@@ -53,15 +56,17 @@ Verify each screen at 375, 768 and 1280 px, light and dark, RTL.
 - [ ] `readMembers(db, companyId)` → `select * from company_member_directory($1)`.
 - [ ] `readOverrides(db, companyId)` → all rows of the company (owner can read by RLS).
 - [ ] `replaceOverrides(db, { companyId, userId, rows })` in one transaction: delete rows of that
-  user whose `permission` is in `EDITABLE_PERMISSIONS`, insert the new rows, insert the
+  user whose `permission` is in `MANAGED_KEYS`, insert the new rows, insert the
   `audit_log` row (`permissions.changed`, `details={before, after}`).
 - [ ] `listMemberPermissions`: join members + overrides; `effective` from
-  `effectivePermissions(roles, overrides)`; `otherRestrictions` = keys not in the matrix.
+  `effectivePermissions(roles, overrides)`; `restrictions` from the deny rows of the 5 keys;
+  `unknownKeys` = any other key found.
 - [ ] `saveMemberOverrides`: require owner role of the actor (`has_company_role` via a query),
   target must be in the directory (`MEMBER_NOT_FOUND`), `assertEditableTarget`, then
   `replaceOverrides`, return the fresh DTO.
 - [ ] Integration test on `pospay_test`: owner saves `pos.access=allow` for a branch manager →
-  `has_permission` true; legacy `attendance.record` deny row survives; exactly 1 audit row;
+  `has_permission` true; blocking `attendance.record` writes one deny row and clearing it removes
+  it; an unknown key row survives a save; exactly 1 audit row;
   manager with a `permissions.manage` allow row gets `FORBIDDEN`; owner of A with B's ids gets
   `FORBIDDEN`/`MEMBER_NOT_FOUND`.
 
@@ -86,8 +91,9 @@ Verify each screen at 375, 768 and 1280 px, light and dark, RTL.
 - [ ] Layout: phone = one column of member cards, each card expands to the 6 keys as a 3-way
   segmented control (default / allow / deny) with the role default shown under the label and a
   sticky save bar at the bottom above the tab bar; tablet = 2-column card grid; desktop =
-  member list (start) + editor panel (end). Owner card read-only with a lock badge. Legacy keys
-  under "other restrictions", read-only.
+  member list (start) + editor panel (end). Owner card read-only with a lock badge. A second
+  group "restrictions" lists the 5 restriction keys, each a switch "blocked" with a one-line
+  explanation (for example "cannot record attendance"). Unknown keys read-only.
 - [ ] Save shows success/failure via the existing route feedback; on `MEMBER_NOT_FOUND`
   refetch the list.
 - [ ] Tests: owner card has no controls; changing `pos.access` to allow and saving sends the

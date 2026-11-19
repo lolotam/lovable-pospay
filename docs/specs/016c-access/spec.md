@@ -26,9 +26,15 @@ All UI follows Souk Tiles and is fully responsive on phone, tablet and desktop.
 - **B3.** Editable keys: `pos.access`, `reports.view`, `attendance.correct`, `staff.manage`,
   `services.manage`, `discounts.manage`. `permissions.manage` is shown read-only and is never
   written, so an override cannot create a second owner.
-- **B4.** Each key per person has exactly one state: `default` (no row), `allow`, or `deny`.
-  Saving replaces that person's rows for the editable keys in one transaction, so `allow` and
-  `deny` never coexist for one key.
+- **B3b (Waleed, 2026-11-19).** The owner also manages the five restriction keys that existing
+  RLS reads as deny-only: `attendance.record` (cannot record attendance),
+  `attendance.manage_devices` (cannot manage staff phones), `attendance.manage_cards` (cannot
+  manage staff cards), `sessions.record` (cannot record service sessions), `reports.read` (cannot
+  read reports). Each has two states only: `default` (no row) or `deny`. An `allow` row is never
+  written for them, because no SQL function reads it.
+- **B4.** Each permission key per person has exactly one state: `default` (no row), `allow`, or
+  `deny`; each restriction key has `default` or `deny`. Saving replaces that person's rows for all
+  managed keys in one transaction, so `allow` and `deny` never coexist for one key.
 - **B5.** Owner rows are listed but not editable. A person cannot edit their own overrides.
 - **B6.** Every save writes one `audit_log` row: `action='permissions.changed'`,
   `entity='user'`, `entity_id=<target user id>`, `details={before, after}` with the two override
@@ -49,9 +55,8 @@ All UI follows Souk Tiles and is fully responsive on phone, tablet and desktop.
   with a link to `/app/staff/team`.
 - A member with several roles (for example `branch_manager` + `reception`): defaults are the
   union; the card lists every role.
-- A legacy deny-only key in the table (`attendance.record`, `attendance.manage_devices`,
-  `attendance.manage_cards`, `sessions.record`, `reports.read`) is kept untouched by a save and is
-  shown read-only under "other restrictions". Managing these keys is out of scope.
+- A restriction key is shown in its own "restrictions" group with an on/off switch ("blocked").
+  An unknown key found in the table (none today) is kept untouched by a save and shown read-only.
 - A target removed from the company between page load and save: save fails with
   `MEMBER_NOT_FOUND`, the page shows the error and reloads the list.
 - Two owners editing the same person at once: last write wins; both writes are in `audit_log`.
@@ -84,6 +89,10 @@ All UI follows Souk Tiles and is fully responsive on phone, tablet and desktop.
 8. Signed-in existing user opens an invite for their email, taps "join", gets a new membership and
    the new company appears in the workspace switcher; the user count in `"user"` is unchanged.
 
+9. Owner blocks `attendance.record` for a staff member; that person's next attendance scan is
+   refused, and clearing the block allows it again. The same save never writes an `allow` row
+   for a restriction key.
+
 ## Schema changes (tables, RLS, grants, isolation test)
 
 Migration `db/migrations/0020_permission_admin.sql` (idempotent, prepared by Lovable, applied in
@@ -109,6 +118,14 @@ In `src/modules/permissions/contracts.ts`:
 ```ts
 export const editablePermissionSchema = permissionKeySchema.exclude(["permissions.manage"]);
 export const overrideStateSchema = z.enum(["default", "allow", "deny"]);
+export const restrictionKeySchema = z.enum([
+  "attendance.record",
+  "attendance.manage_devices",
+  "attendance.manage_cards",
+  "sessions.record",
+  "reports.read",
+]);
+export const restrictionStateSchema = z.enum(["default", "deny"]);
 
 export const memberPermissionsSchema = z.object({
   userId: z.string(),
@@ -117,7 +134,8 @@ export const memberPermissionsSchema = z.object({
   roles: z.array(companyRoleSchema).min(1),
   isOwner: z.boolean(),
   overrides: z.record(editablePermissionSchema, overrideStateSchema),
-  otherRestrictions: z.array(z.string()),
+  restrictions: z.record(restrictionKeySchema, restrictionStateSchema),
+  unknownKeys: z.array(z.string()),
   effective: z.array(permissionKeySchema),
 });
 export type MemberPermissionsDto = z.infer<typeof memberPermissionsSchema>;
@@ -126,6 +144,7 @@ export const saveOverridesInput = z.object({
   companyId: z.uuid(),
   userId: z.string().min(1),
   overrides: z.record(editablePermissionSchema, overrideStateSchema),
+  restrictions: z.record(restrictionKeySchema, restrictionStateSchema),
 });
 ```
 
@@ -164,5 +183,4 @@ C3 in `src/modules/invitations/functions/invitation.functions.ts`:
 
 ## Open questions → owner-questions.ar.md
 
-- None blocking. Legacy deny-only keys stay out of the page in this slice (recommended); say if
-  the owner should manage them too.
+- None. Waleed decided on 2026-11-19 that the owner manages the five restriction keys too (B3b).
