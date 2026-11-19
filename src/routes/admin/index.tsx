@@ -36,8 +36,9 @@ function Home() {
   const { session } = Route.useRouteContext();
   return (
     <>
-      <Dashboard area="admin" context={session} />
-      <PlatformOverview />
+      <Dashboard area="admin" context={session}>
+        <PlatformOverview />
+      </Dashboard>
       <SystemStatus />
     </>
   );

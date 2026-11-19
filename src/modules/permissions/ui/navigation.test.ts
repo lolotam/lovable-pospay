@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { visibleNavigation } from "./navigation";
+import { tabNavigation, visibleNavigation } from "./navigation";
 
 const paths = (
   area: "admin" | "app" | "pos" | "me",
@@ -33,5 +33,46 @@ describe("visibleNavigation", () => {
       "/admin/diagnose",
       "/admin/settings",
     ]);
+  });
+});
+
+describe("tabNavigation", () => {
+  const owner: import("../contracts").PermissionKey[] = [
+    "pos.access",
+    "reports.view",
+    "attendance.correct",
+    "staff.manage",
+    "services.manage",
+    "discounts.manage",
+  ];
+  const ownerTabs = (pathname: string) =>
+    tabNavigation(visibleNavigation("app", owner, false), pathname);
+  const activeLabels = (pathname: string) =>
+    ownerTabs(pathname)
+      .filter((tab) => tab.active)
+      .map((tab) => tab.label);
+
+  it("keeps the first four sections and opens a group at its first child", () => {
+    expect(ownerTabs("/app").map((tab) => tab.to)).toEqual([
+      "/app",
+      "/app/attendance/reports",
+      "/app/staff/cards",
+      "/app/services",
+    ]);
+  });
+  it("opens a group at the first child the user may see", () => {
+    const groups = visibleNavigation("app", ["attendance.correct"], false);
+    expect(tabNavigation(groups, "/app").map((tab) => tab.to)).toEqual([
+      "/app",
+      "/app/attendance/corrections",
+      "/app/settings",
+    ]);
+  });
+  it.each<[string, string, string[]]>([
+    ["a child page lights its group", "/app/staff/team", ["nav.group.staff"]],
+    ["a leaf lights only on its own path", "/app", ["nav.dashboard"]],
+    ["a page outside the first four sections lights nothing", "/app/settings", []],
+  ])("%s", (_scenario, pathname, expected) => {
+    expect(activeLabels(pathname)).toEqual(expected);
   });
 });

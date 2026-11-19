@@ -25,8 +25,9 @@ function Home() {
   const { session } = Route.useRouteContext();
   return (
     <>
-      <Dashboard area="me" context={session} />
-      <MyOverview context={session} />
+      <Dashboard area="me" context={session}>
+        <MyOverview context={session} />
+      </Dashboard>
     </>
   );
 }
