@@ -19,6 +19,7 @@
 - No current build-errors.log is present in this sandbox. Vite served the changed modules and fresh browser fixtures rendered them; a separate production build was not run. Server log contains SSR cleanup warnings and inputValidator deprecation warnings; these are not represented as a passing production build.
 
 ## Review / external gates
+- Actual route access follow-up (2026-11-19): opened `/app`, `/me`, `/admin`, `/app/page`, `/s/nonexistent-016d` at 375/1280 in both themes. Protected routes displayed blank content during the observation window, not working dashboards/editor; do not count these as acceptance passes. The valid-format public slug returned 500/error UI because DATABASE_URL is absent, rather than a verified unpublished-page 404. The error page home link returned to `/`. Anonymous media request returned 404 with storage disabled. Both DATABASE_URL and BETTER_AUTH_SECRET are absent; authenticated read/write acceptance is blocked by environment configuration. No credentials, SQL or production settings were changed to bypass this blocker.
 - Prepared `0022_company_pages.sql` and isolation cases only; no SQL was executed anywhere.
 - Claude Code must verify double application, tenant RLS, database integration and duplicate 0021 migration numbering (D1 plus earlier phone unbind migration).
 - Authenticated owner save/upload/publish/readback, live R2 and Lighthouse thresholds remain unverified. Storage credentials and production settings were not changed.
