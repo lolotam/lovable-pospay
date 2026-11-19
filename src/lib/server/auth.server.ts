@@ -57,6 +57,12 @@ function createAuth() {
         rpName: "PosPay",
         rpID: baseURL ? new URL(baseURL).hostname : "localhost",
         origin: baseURL,
+        authentication: {
+          afterVerification: async ({ clientData }) => {
+            const { assertBoundPhonePasskey } = await import("./phone-passkey.server");
+            await assertBoundPhonePasskey(clientData.id);
+          },
+        },
       }),
       tanstackStartCookies(),
     ],

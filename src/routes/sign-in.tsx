@@ -9,6 +9,7 @@ import { isAuthNotConfigured } from "@/lib/auth-errors";
 import { getSignInOptions } from "@/lib/auth-options.functions";
 import { t } from "@/i18n";
 import { Button } from "@/components/ui/button";
+import { PhoneSignIn } from "@/lib/phone-sign-in";
 import { Input } from "@/components/ui/input";
 
 type Step = "login" | "request" | "code" | "choice" | "password" | "totp";
@@ -181,6 +182,7 @@ function useSignInFlow() {
     totp,
     message,
     busy,
+    setBusy,
     google,
     setEmail,
     setPassword,
@@ -190,6 +192,7 @@ function useSignInFlow() {
     setStep,
     changeStep,
     submit,
+    finish,
   };
 }
 
@@ -215,6 +218,9 @@ function SignIn() {
         <p role="status" className="mt-4 text-sm">
           {flow.message}
         </p>
+      )}
+      {flow.step === "login" && (
+        <PhoneSignIn disabled={flow.busy} onSuccess={flow.finish} onPendingChange={flow.setBusy} />
       )}
       {flow.step === "login" && <GoogleSignIn flow={flow} />}
       <Button

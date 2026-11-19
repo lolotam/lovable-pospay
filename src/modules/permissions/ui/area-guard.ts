@@ -60,6 +60,8 @@ export function signInDestination(
   context: SessionContextDto | null,
   redirect: string | undefined,
 ): string {
+  const requested = safeRedirectPath(redirect);
+  if (requested && /^\/invite(?:[?#]|$)/.test(requested)) return requested;
   const allowed = context && allowedDestination(context, redirect);
   if (allowed) return allowed;
   const landing = landingPath(context?.workspaces ?? [], context?.active ?? null);

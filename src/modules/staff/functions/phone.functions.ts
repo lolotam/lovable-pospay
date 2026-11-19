@@ -44,18 +44,24 @@ export const unbindPhoneFn = createServerFn({ method: "POST" })
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
     const userId = await requireUserId();
-    return withUser(userId, async (db) => {
+    const credentialId = await withUser(userId, async (db) => {
       const { requireDeviceManager } = await import("../persistence/phone-management.server");
-      await requireDeviceManager(db, data.companyId);
-      const r = await db.query(
-        "delete from public.phone_bindings where company_id=$1 and user_id=$2 returning id",
+      if (data.userId !== userId) await requireDeviceManager(db, data.companyId);
+      const r = await db.query<{ credential_id: string }>(
+        "delete from public.phone_bindings where company_id=$1 and user_id=$2 returning credential_id",
         [data.companyId, data.userId],
       );
-      if (!r.rows[0]) throw new Error("FORBIDDEN");
+      const binding = r.rows[0];
+      if (!binding) throw new Error("FORBIDDEN");
       await db.query(
         `insert into public.audit_log (company_id,actor_user_id,action,entity_id) values ($1,$2,'phone.unbound',$3)`,
         [data.companyId, userId, data.userId],
       );
-      return { ok: true };
+      return binding.credential_id;
     });
+    // After commit: a failed audit must not leave a binding whose passkey is already gone.
+    // Sign-in still needs the binding row, so a passkey left behind by a later failure cannot sign in.
+    const { deletePhonePasskey } = await import("@/lib/server/phone-passkey.server");
+    await deletePhonePasskey(credentialId);
+    return { ok: true };
   });
