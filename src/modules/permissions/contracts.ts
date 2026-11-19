@@ -87,3 +87,37 @@ export const saveOverridesInput = z
   })
   .strict();
 export type SaveOverridesInput = z.infer<typeof saveOverridesInput>;
+
+export const chartRangeSchema = z.union([z.literal(7), z.literal(14), z.literal(30)]);
+export type ChartRange = z.infer<typeof chartRangeSchema>;
+export const attendanceDaySchema = z.object({
+  day: z.iso.date(),
+  onTime: z.number().int(),
+  late: z.number().int(),
+  forgotten: z.number().int(),
+  avgLate: z.number().nullable(),
+});
+export type AttendanceDay = z.infer<typeof attendanceDaySchema>;
+export const companyChartsSchema = z.object({
+  attendance: z.array(attendanceDaySchema),
+  lateLeaders: z.array(
+    z.object({ staffId: z.uuid(), name: z.string(), lateMinutes: z.number().int() }),
+  ),
+  sessions: z
+    .array(
+      z.object({
+        day: z.iso.date(),
+        sessions: z.number().int(),
+        revenueMills: z.string().regex(/^\d+$/),
+      }),
+    )
+    .nullable(),
+});
+export type CompanyChartsDto = z.infer<typeof companyChartsSchema>;
+export const growthSchema = z.array(
+  z.object({ week: z.iso.date(), companies: z.number().int(), users: z.number().int() }),
+);
+export type GrowthDto = z.infer<typeof growthSchema>;
+export const companyChartsInput = z
+  .object({ companyId: z.uuid(), range: chartRangeSchema })
+  .strict();

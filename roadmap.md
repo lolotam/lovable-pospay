@@ -1,5 +1,9 @@
 # Roadmap
 
+## 016-D (2026-11-19)
+- [x] D1 tasks 1–5 implementation: scoped charts and SQL prepared; 376 tests passed, 143 SQL tests skipped; 6 fixture browser checks. Real DB/auth acceptance and duplicate 0021 ledger review await Claude Code. See verification-D1.md.
+- [ ] D2 tasks 6–11: owner page builder, published SSR pages, SQL sources and verification. Prepare SQL only; no PR or merge.
+
 ## Approved request (2026-11-18, 11:47 Kuwait)
 - [x] 003 barcode fallback implementation: manager-only issue, immediate manager revocation, one active method per employee; company policy approval screen, printable cards and reception scanning. Decisions approved by Waleed.
 - [x] Services catalog implementation: create/edit prices in bigint mills and employee assignments.

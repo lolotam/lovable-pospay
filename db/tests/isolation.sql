@@ -111,6 +111,10 @@ do $$ begin
 end $$;
 select set_config('app.user_id','user-a',true);
 do $$ begin
+  if exists(select 1 from public.attendance_daily('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign attendance chart'; end if;
+  if exists(select 1 from public.late_leaders('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign late leaders'; end if;
+  if exists(select 1 from public.session_daily('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign session chart'; end if;
+  if exists(select 1 from public.platform_growth(12)) then raise exception 'LEAK platform growth'; end if;
   if exists(select 1 from public.company_member_directory('00000000-0000-0000-0000-00000000000b'))
     then raise exception 'LEAK foreign member directory'; end if;
   insert into public.branches (company_id, name)
@@ -170,6 +174,7 @@ do $$ begin
 end $$;
 select set_config('app.user_id','',true);
 do $$ begin
+  if exists(select 1 from public.attendance_daily('00000000-0000-0000-0000-00000000000a',null,current_date-13,current_date)) then raise exception 'LEAK attendance chart without reports'; end if;
   if (select count(*) from public.companies) <> 0 then raise exception 'anonymous sees rows'; end if;
 end $$;
 reset role;
