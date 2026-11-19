@@ -66,8 +66,10 @@ async function submitPermissionChanges(
 ) {
   setPending(true);
   setFeedback(null);
+  let current: MemberPermissionsDto | undefined;
   try {
     for (const member of dirty) {
+      current = member;
       await save({
         companyId,
         userId: member.userId,
@@ -96,7 +98,13 @@ async function submitPermissionChanges(
     } catch {
       setFeedback("failed");
     }
-    if (message === "MEMBER_NOT_FOUND") setDrafts({});
+    const removedId = message === "MEMBER_NOT_FOUND" ? current?.userId : undefined;
+    if (removedId)
+      setDrafts((old) => {
+        const next = { ...old };
+        delete next[removedId];
+        return next;
+      });
   } finally {
     setPending(false);
   }
