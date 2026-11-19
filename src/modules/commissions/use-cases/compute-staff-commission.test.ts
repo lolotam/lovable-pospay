@@ -35,6 +35,7 @@ function fakes(
   salaryMills: bigint | null | ((date: string) => bigint),
 ) {
   const salaryDates: string[] = [];
+  const reads: string[] = [];
   const plans: CommissionPlanRepository = {
     createPlan: async () => {
       throw new Error("Unexpected createPlan");
@@ -45,16 +46,25 @@ function fakes(
     assign: async () => {
       throw new Error("Unexpected assign");
     },
-    resolve: async () => plan,
+    resolve: async (companyId, staffId) => {
+      reads.push(`plan:${companyId}:${staffId}`);
+      return plan;
+    },
   };
-  const sales: CommissionSalesSource = { listLines: async () => lines };
+  const sales: CommissionSalesSource = {
+    listLines: async (companyId, staffId) => {
+      reads.push(`sales:${companyId}:${staffId}`);
+      return lines;
+    },
+  };
   const salary: SalarySource = {
-    salaryOn: async (_companyId, _staffId, date) => {
+    salaryOn: async (companyId, staffId, date) => {
+      reads.push(`salary:${companyId}:${staffId}`);
       salaryDates.push(date);
       return typeof salaryMills === "function" ? salaryMills(date) : salaryMills;
     },
   };
-  return { deps: { plans, sales, salary }, salaryDates };
+  return { deps: { plans, sales, salary }, salaryDates, reads };
 }
 
 const input = { companyId: "company-1", staffId: "staff-1", period: PERIOD };
@@ -73,6 +83,11 @@ describe("computeStaffCommission", () => {
       result: { thresholdMills: 1000000n, totalMills: 30000n },
     });
     expect(f.salaryDates).toEqual(["2027-02-28"]);
+    expect(f.reads).toEqual([
+      "plan:company-1:staff-1",
+      "sales:company-1:staff-1",
+      "salary:company-1:staff-1",
+    ]);
   });
 
   test("acceptance row 14 rejects a salary-linked tier when no salary exists", async () => {
@@ -86,7 +101,7 @@ describe("computeStaffCommission", () => {
   test("acceptance row 16 reports NO_PLAN without reading sales or salary", async () => {
     const f = fakes(null, [], 500000n);
     await expect(computeStaffCommission(f.deps, input)).resolves.toEqual({ status: "no_plan" });
-    expect(f.salaryDates).toEqual([]);
+    expect(f.reads).toEqual(["plan:company-1:staff-1"]);
   });
 
   test.each([

@@ -1,5 +1,10 @@
 -- Acceptance #4 (negative test): company A must not read any row of company B.
--- Run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/isolation.sql
+-- Run: psql "$POSPAY_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/isolation.sql
+do $$ begin
+  if current_database() <> 'pospay_test' then
+    raise exception 'isolation.sql runs only against the disposable pospay_test database';
+  end if;
+end $$;
 begin;
 insert into public.companies (id, name) values
   ('00000000-0000-0000-0000-00000000000a','A'),('00000000-0000-0000-0000-00000000000b','B');
