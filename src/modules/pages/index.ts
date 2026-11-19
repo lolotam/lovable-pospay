@@ -9,3 +9,5 @@ export {
   unpublishPageFn,
   getPublicPageFn,
 } from "./functions/page.functions";
+
+export { getPageAssetsFn, uploadPageAssetFn, deletePageAssetFn } from "./functions/assets.functions";

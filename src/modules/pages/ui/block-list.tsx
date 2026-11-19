@@ -77,7 +77,7 @@ export function AddBlocks({ disabled, add }: AddBlocksProps) {
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium">{t("pages.add")}</legend>
       <div className="flex flex-wrap gap-2">
-        {(["hero", "about", "services", "branches", "contact", "cta"] as const).map((type) => (
+        {(["hero", "about", "services", "branches", "contact", "cta", "gallery"] as const).map((type) => (
           <Button
             key={type}
             variant="outline"

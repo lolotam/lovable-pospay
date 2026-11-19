@@ -92,6 +92,18 @@ and dark, RTL.
   `services` block and returns prices as text mills.
 - [ ] Isolation cases from the spec.
 
+### Task 6b: R2 page images (Waleed 2026-11-19)
+
+- Implement fetch-based S3 storage with `aws4fetch` in `object-storage.server.ts`.
+- Extend 0022 with owner-only asset RLS, public published-reference lookup, and isolation cases.
+- Add image signature/limit/reference rules and tests; serialize asset writes and page saves
+  per company in `withUser()` to prevent quota/reference races. Compensate failed uploads.
+- Add owner upload/list/delete functions and `/media/$assetId`, without presigned URLs.
+- Wire image library, bilingual alt fields, logo/hero selection and six-image galleries into
+  editor and shared public preview. Hide controls when storage is disabled.
+- Run serial non-SQL tests, lint, responsive fixture checks; DB/RLS and real R2 acceptance
+  remain with Claude Code. Do not execute SQL or change environment/production resources.
+
 ### Task 7: Pages module domain and contracts
 
 **Files:** create `src/modules/pages/contracts.ts`, `index.ts`, `domain/page-document.ts`,

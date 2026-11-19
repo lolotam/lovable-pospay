@@ -60,11 +60,12 @@ export function usePageEditor(initial: PageDraftDto, actions: PageEditorActions)
     setSelected(id);
   };
   const replace = (block: PageBlock) =>
-    setDocument((doc) => ({ blocks: doc.blocks.map((b) => (b.id === block.id ? block : b)) }));
+    setDocument((doc) => ({ ...doc, blocks: doc.blocks.map((b) => (b.id === block.id ? block : b)) }));
   const check = actions.check;
   return {
     draft,
     document,
+    setDocument,
     slug,
     setSlug,
     selected,
@@ -85,7 +86,7 @@ export function usePageEditor(initial: PageDraftDto, actions: PageEditorActions)
     move: (id: string, d: -1 | 1) => setDocument((doc) => moveBlock(doc, id, d)),
     toggle: (id: string) => setDocument((doc) => toggleBlock(doc, id)),
     remove: (id: string) => {
-      setDocument((doc) => ({ blocks: doc.blocks.filter((b) => b.id !== id) }));
+      setDocument((doc) => ({ ...doc, blocks: doc.blocks.filter((b) => b.id !== id) }));
       if (selected === id) setSelected(null);
     },
   };

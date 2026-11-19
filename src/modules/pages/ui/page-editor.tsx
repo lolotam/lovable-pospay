@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AssetLibrary } from "./asset-library";
 import { EditorFooter } from "./editor-footer";
 import { BlockSheet } from "./block-sheet";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,7 @@ function EditorBody({ editor }: { editor: ReturnType<typeof usePageEditor> }) {
             check={editor.check}
             onValidity={editor.setValid}
           />
+          <AssetLibrary document={editor.document} onChange={editor.setDocument} />
           <AddBlocks
             disabled={editor.document.blocks.length >= 12 || editor.busy}
             add={editor.add}

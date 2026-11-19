@@ -1,3 +1,4 @@
+import { GalleryEditor } from "./gallery-editor";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -45,6 +46,7 @@ export interface BlockEditorProps {
   onChange: (block: PageBlock) => void;
 }
 export function BlockEditor({ block, onChange }: BlockEditorProps) {
+  if (block.type === "gallery") return <GalleryEditor block={block} onChange={onChange} />;
   if (block.type === "hero")
     return (
       <div className="space-y-4">

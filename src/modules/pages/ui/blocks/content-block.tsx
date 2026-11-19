@@ -14,6 +14,7 @@ export function ContentBlock({ block, page, lang, whatsapp }: ContentBlockProps)
     return (
       <section className="tile-hem bg-tile-teal text-tile-teal-foreground px-5 py-12 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-4xl">
+          {page.document.heroImageAssetId && <img src={`/media/${page.document.heroImageAssetId}`} alt={page.companyName} className="mb-6 aspect-video w-full object-cover" />}
           <p className="mb-3 text-sm">{page.companyName}</p>
           <h1 className="text-4xl break-words sm:text-5xl">
             {pageText(block.title, lang) || page.companyName}
@@ -24,34 +25,27 @@ export function ContentBlock({ block, page, lang, whatsapp }: ContentBlockProps)
         </div>
       </section>
     );
-  if (block.type === "about")
-    return (
-      <section className="mx-auto max-w-4xl px-5 py-10">
-        <h2 className="mb-4 text-2xl">{t("pages.about", lang)}</h2>
-        <p className="whitespace-pre-wrap break-words">{pageText(block.body, lang)}</p>
-      </section>
-    );
-  if (block.type === "services")
-    return (
-      <section className="bg-muted px-5 py-10">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="mb-5 text-2xl">{t("pages.services", lang)}</h2>
-          {!page.services.length && <p>{t("pages.noServices", lang)}</p>}
-          <ul className="divide-y divide-border">
-            {page.services.map((service) => (
-              <li key={service.id} className="flex flex-wrap justify-between gap-3 py-4">
-                <span className="break-words">{service.name}</span>
-                {block.showPrices && (
-                  <span className="tabular-nums">
-                    {formatKwd(BigInt(service.priceMills))} {page.currency}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-    );
+  if (block.type === "about" || block.type === "services") return <InfoBlock block={block} page={page} lang={lang} />;
+  if (block.type === "branches" || block.type === "contact") return <DetailsBlock block={block} lang={lang} />;
+  if (block.type === "gallery") return <section className="mx-auto grid max-w-4xl gap-4 px-5 py-10 sm:grid-cols-2 lg:grid-cols-3">
+    {block.images.map((image, index) => <img key={`${image.assetId}-${index}`} src={`/media/${image.assetId}`} alt={pageText(image.alt, lang)} loading="lazy" className="aspect-square w-full object-cover" />)}
+  </section>;
+  return (
+    <section className="mx-auto max-w-4xl px-5 py-10">
+      {whatsapp && (
+        <Button asChild className="min-h-11 max-w-full whitespace-normal">
+          <a
+            href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(pageText(block.message, lang))}`}
+          >
+            {pageText(block.label, lang) || t("pages.whatsapp", lang)}
+          </a>
+        </Button>
+      )}
+    </section>
+  );
+}
+
+function DetailsBlock({ block, lang }: { block: Extract<PageBlock, { type: "branches" | "contact" }>; lang: Locale }) {
   if (block.type === "branches")
     return (
       <section className="mx-auto max-w-4xl px-5 py-10">
@@ -107,17 +101,37 @@ export function ContentBlock({ block, page, lang, whatsapp }: ContentBlockProps)
         </div>
       </section>
     );
-  return (
-    <section className="mx-auto max-w-4xl px-5 py-10">
-      {whatsapp && (
-        <Button asChild className="min-h-11 max-w-full whitespace-normal">
-          <a
-            href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(pageText(block.message, lang))}`}
-          >
-            {pageText(block.label, lang) || t("pages.whatsapp", lang)}
-          </a>
-        </Button>
-      )}
-    </section>
-  );
+  return null;
+}
+
+function InfoBlock({ block, page, lang }: { block: Extract<PageBlock, { type: "about" | "services" }>; page: PublicPageDto; lang: Locale }) {
+  if (block.type === "about")
+    return (
+      <section className="mx-auto max-w-4xl px-5 py-10">
+        <h2 className="mb-4 text-2xl">{t("pages.about", lang)}</h2>
+        <p className="whitespace-pre-wrap break-words">{pageText(block.body, lang)}</p>
+      </section>
+    );
+  if (block.type === "services")
+    return (
+      <section className="bg-muted px-5 py-10">
+        <div className="mx-auto max-w-4xl">
+          <h2 className="mb-5 text-2xl">{t("pages.services", lang)}</h2>
+          {!page.services.length && <p>{t("pages.noServices", lang)}</p>}
+          <ul className="divide-y divide-border">
+            {page.services.map((service) => (
+              <li key={service.id} className="flex flex-wrap justify-between gap-3 py-4">
+                <span className="break-words">{service.name}</span>
+                {block.showPrices && (
+                  <span className="tabular-nums">
+                    {formatKwd(BigInt(service.priceMills))} {page.currency}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    );
+  return null;
 }

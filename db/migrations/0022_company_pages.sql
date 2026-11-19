@@ -33,3 +33,36 @@ language sql stable security definer set search_path=public as $$
 $$;
 revoke all on function public.public_company_page(text),public.slug_available(text) from public;
 grant execute on function public.public_company_page(text),public.slug_available(text) to pospay_app;
+
+create table if not exists public.company_assets (
+ company_id uuid not null references public.companies(id) on delete cascade,
+ id uuid not null, object_key text not null unique,
+ content_type text not null check(content_type in ('image/png','image/jpeg','image/webp')),
+ byte_size integer not null check(byte_size between 1 and 2097152),
+ alt jsonb not null default '{"ar":"","en":""}'::jsonb,
+ created_by text not null, created_at timestamptz not null default now(),
+ primary key(company_id,id), unique(id)
+);
+grant select,insert,delete on public.company_assets to pospay_app;
+alter table public.company_assets enable row level security;
+drop policy if exists asset_owner_select on public.company_assets;
+create policy asset_owner_select on public.company_assets for select to pospay_app using(public.has_company_role(company_id,'owner'));
+drop policy if exists asset_owner_insert on public.company_assets;
+create policy asset_owner_insert on public.company_assets for insert to pospay_app with check(public.has_company_role(company_id,'owner') and created_by=public.current_app_user());
+drop policy if exists asset_owner_delete on public.company_assets;
+create policy asset_owner_delete on public.company_assets for delete to pospay_app using(public.has_company_role(company_id,'owner'));
+create or replace function public.page_asset_ids(_doc jsonb) returns setof uuid
+language sql immutable set search_path=public as $$
+ select (_doc->>'logoAssetId')::uuid where _doc->>'logoAssetId' is not null
+ union select (_doc->>'heroImageAssetId')::uuid where _doc->>'heroImageAssetId' is not null
+ union select (i->>'assetId')::uuid from jsonb_array_elements(coalesce(_doc->'blocks','[]'::jsonb)) b,
+ lateral jsonb_array_elements(coalesce(b->'images','[]'::jsonb)) i where b->>'type'='gallery'
+$$;
+create or replace function public.public_asset(_id uuid) returns table(object_key text,content_type text)
+language sql stable security definer set search_path=public as $$
+ select a.object_key,a.content_type from company_assets a join company_pages p using(company_id)
+ where a.id=_id and p.published is not null
+ and a.id in(select public.page_asset_ids(p.published))
+$$;
+revoke all on function public.public_asset(uuid),public.page_asset_ids(jsonb) from public;
+grant execute on function public.public_asset(uuid),public.page_asset_ids(jsonb) to pospay_app;

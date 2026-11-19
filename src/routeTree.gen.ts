@@ -41,6 +41,7 @@ import { Route as MeIndexRouteImport } from './routes/me/index'
 import { Route as MeAttendRouteImport } from './routes/me/attend'
 import { Route as MePhoneRouteImport } from './routes/me/phone'
 import { Route as MeSettingsRouteImport } from './routes/me/settings'
+import { Route as MediaAssetIdRouteImport } from './routes/media/$assetId'
 import { Route as PosIndexRouteImport } from './routes/pos/index'
 import { Route as PosCardsRouteImport } from './routes/pos/cards'
 import { Route as PosQrRouteImport } from './routes/pos/qr'
@@ -219,6 +220,11 @@ const MeSettingsRoute = MeSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => MeRouteRoute,
 } as any)
+const MediaAssetIdRoute = MediaAssetIdRouteImport.update({
+  id: '/media/$assetId',
+  path: '/media/$assetId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PosIndexRoute = PosIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -336,6 +342,7 @@ export interface FileRoutesByFullPath {
   '/me/attend': typeof MeAttendRoute
   '/me/phone': typeof MePhoneRoute
   '/me/settings': typeof MeSettingsRoute
+  '/media/$assetId': typeof MediaAssetIdRoute
   '/pos/cards': typeof PosCardsRoute
   '/pos/qr': typeof PosQrRoute
   '/pos/sessions': typeof PosSessionsRoute
@@ -383,6 +390,7 @@ export interface FileRoutesByTo {
   '/me/attend': typeof MeAttendRoute
   '/me/phone': typeof MePhoneRoute
   '/me/settings': typeof MeSettingsRoute
+  '/media/$assetId': typeof MediaAssetIdRoute
   '/pos/cards': typeof PosCardsRoute
   '/pos/qr': typeof PosQrRoute
   '/pos/sessions': typeof PosSessionsRoute
@@ -435,6 +443,7 @@ export interface FileRoutesById {
   '/me/attend': typeof MeAttendRoute
   '/me/phone': typeof MePhoneRoute
   '/me/settings': typeof MeSettingsRoute
+  '/media/$assetId': typeof MediaAssetIdRoute
   '/pos/cards': typeof PosCardsRoute
   '/pos/qr': typeof PosQrRoute
   '/pos/sessions': typeof PosSessionsRoute
@@ -488,6 +497,7 @@ export interface FileRouteTypes {
     | '/me/attend'
     | '/me/phone'
     | '/me/settings'
+    | '/media/$assetId'
     | '/pos/cards'
     | '/pos/qr'
     | '/pos/sessions'
@@ -535,6 +545,7 @@ export interface FileRouteTypes {
     | '/me/attend'
     | '/me/phone'
     | '/me/settings'
+    | '/media/$assetId'
     | '/pos/cards'
     | '/pos/qr'
     | '/pos/sessions'
@@ -586,6 +597,7 @@ export interface FileRouteTypes {
     | '/me/attend'
     | '/me/phone'
     | '/me/settings'
+    | '/media/$assetId'
     | '/pos/cards'
     | '/pos/qr'
     | '/pos/sessions'
@@ -629,6 +641,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   TeamRoute: typeof TeamRoute
   WorkspacesRoute: typeof WorkspacesRoute
+  MediaAssetIdRoute: typeof MediaAssetIdRoute
   ReceptionCardsRoute: typeof ReceptionCardsRoute
   ReceptionQrRoute: typeof ReceptionQrRoute
   SSlugRoute: typeof SSlugRoute
@@ -860,6 +873,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/me/settings'
       preLoaderRoute: typeof MeSettingsRouteImport
       parentRoute: typeof MeRouteRoute
+    }
+    '/media/$assetId': {
+      id: '/media/$assetId'
+      path: '/media/$assetId'
+      fullPath: '/media/$assetId'
+      preLoaderRoute: typeof MediaAssetIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/pos/': {
       id: '/pos/'
@@ -1093,6 +1113,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   TeamRoute: TeamRoute,
   WorkspacesRoute: WorkspacesRoute,
+  MediaAssetIdRoute: MediaAssetIdRoute,
   ReceptionCardsRoute: ReceptionCardsRoute,
   ReceptionQrRoute: ReceptionQrRoute,
   SSlugRoute: SSlugRoute,

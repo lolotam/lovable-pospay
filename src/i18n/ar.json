@@ -518,5 +518,14 @@
   "pages.noServices": "لا توجد خدمات متاحة",
   "pages.currency": "العملة",
   "pages.dirty": "تغييرات غير محفوظة",
-  "nav.companyPage": "صفحة الشركة"
+  "nav.companyPage": "صفحة الشركة",
+  "pages.images": "الصور",
+  "pages.upload": "رفع صورة",
+  "pages.imageFailed": "تعذّر تعديل الصورة؛ قد تكون مستخدمة أو تجاوزت الحدود.",
+  "pages.logo": "اختيار أو إزالة الشعار",
+  "pages.heroImage": "اختيار أو إزالة صورة الغلاف",
+  "pages.gallery": "معرض الصور",
+  "pages.altAr": "وصف الصورة بالعربية",
+  "pages.altEn": "وصف الصورة بالإنجليزية",
+  "pages.addImage": "إضافة صورة للمعرض"
 }

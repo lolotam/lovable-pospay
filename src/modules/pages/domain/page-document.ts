@@ -22,11 +22,11 @@ export function moveBlock(doc: PageDocument, id: string, direction: -1 | 1): Pag
   if (!current || !other) return doc;
   blocks[index] = other;
   blocks[target] = current;
-  return { blocks };
+  return { ...doc, blocks };
 }
 /** يخفي أو يظهر البلوك دون حذفه من المسودة. */
 export function toggleBlock(doc: PageDocument, id: string): PageDocument {
-  return { blocks: doc.blocks.map((b) => (b.id === id ? { ...b, hidden: !b.hidden } : b)) };
+  return { ...doc, blocks: doc.blocks.map((b) => (b.id === id ? { ...b, hidden: !b.hidden } : b)) };
 }
 /** ينشئ بلوكاً فارغاً؛ المعرّف يأتي من واجهة المستخدم وليس من ساعة المجال. */
 export function addBlock(doc: PageDocument, type: PageBlock["type"], id: string): PageDocument {
@@ -42,8 +42,10 @@ export function addBlock(doc: PageDocument, type: PageBlock["type"], id: string)
           ? { ...base, type, showPrices: true }
           : type === "branches"
             ? { ...base, type, items: [] }
+            : type === "gallery"
+              ? { ...base, type, images: [] }
             : type === "contact"
               ? { ...base, type, whatsapp: "", phone: "", instagram: "" }
               : { ...base, type: "cta", label: { ...text }, message: { ...text } };
-  return { blocks: [...doc.blocks, block] };
+  return { ...doc, blocks: [...doc.blocks, block] };
 }

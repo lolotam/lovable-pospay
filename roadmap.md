@@ -2,6 +2,7 @@
 
 ## 016-D (2026-11-19)
 - [x] D1 tasks 1–5 implementation: scoped charts and SQL prepared; 376 tests passed, 143 SQL tests skipped; 6 fixture browser checks. Real DB/auth acceptance and duplicate 0021 ledger review await Claude Code. See verification-D1.md.
+- [ ] D2 Task 6b (Waleed 2026-11-19): R2 images, owner-only uploads, 2 MB / 20 company assets, published-only media, gallery and validation; prepare SQL only.
 - [ ] D2 tasks 6–11: owner page builder, published SSR pages, SQL sources and verification. Prepare SQL only; no PR or merge.
 
 ## Approved request (2026-11-18, 11:47 Kuwait)

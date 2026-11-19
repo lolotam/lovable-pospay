@@ -1,4 +1,5 @@
 import type pg from "pg";
+import { validateDocumentAssets, lockPageAssets } from "./assets.server";
 import { pageDraftSchema, publicPageSchema, type PageDraftDto } from "../contracts";
 import type { PageRepository, PublicPageReader } from "../ports/page-repository";
 export function pgPageRepository(
@@ -15,6 +16,7 @@ export function pgPageRepository(
     },
     draft: () => readDraft(db, companyId),
     async save(input) {
+      await validateDocumentAssets(db, companyId, input.document);
       try {
         const result =
           input.version === 0
@@ -35,6 +37,7 @@ export function pgPageRepository(
       }
     },
     async publish(version) {
+      await lockPageAssets(db, companyId);
       const result = await db.query(
         "update public.company_pages set published=draft,published_at=now(),version=version+1,updated_by=$2,updated_at=now() where company_id=$1 and version=$3 returning version",
         [companyId, userId, version],
@@ -43,6 +46,7 @@ export function pgPageRepository(
       return readDraft(db, companyId);
     },
     async unpublish() {
+      await lockPageAssets(db, companyId);
       await db.query(
         "update public.company_pages set published=null,published_at=null,version=version+1,updated_by=$2,updated_at=now() where company_id=$1",
         [companyId, userId],

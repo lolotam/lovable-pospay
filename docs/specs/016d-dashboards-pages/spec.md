@@ -58,8 +58,19 @@ Charts per dashboard:
   default with a toggle; an empty English field falls back to Arabic.
 - **P5.** Draft and published: edits save to `draft`; "publish" copies draft to `published`.
   The public route reads `published` only. "Unpublish" makes `/s/<slug>` show not-found again.
-- **P6.** No image upload in this slice (no storage decision yet). The hero uses the brand
-  pattern and the company name; a logo upload is a later slice.
+- **P6.** Page images use Cloudflare R2 through its S3 API, server-side only. Configuration:
+  `STORAGE_ENDPOINT`, `STORAGE_REGION` (default `auto`), `STORAGE_BUCKET`,
+  `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY`; no values in repository/browser/logs.
+  Unset bucket disables uploads and hides upload controls. Owner uploads PNG/JPEG/WebP verified
+  by magic bytes, maximum 2097152 bytes and 20 assets per company. Server chooses
+  `companies/<company_id>/pages/<uuid>.<ext>`. Failed DB insert compensates by deleting the object.
+  `company_assets` stores owner-only metadata; `public_asset(uuid)` exposes key/type only when
+  referenced by a published document. Documents add nullable `logoAssetId`, `heroImageAssetId`
+  and gallery blocks with at most 6 `{assetId, alt: {ar,en}}` images. Foreign IDs are refused on
+  save. Draft/published references prevent deletion (`ASSET_IN_USE`). `/media/$assetId` serves
+  own owner assets or published assets, otherwise 404; `nosniff` and immutable one-year public
+  cache headers. Tests cover signatures, 2097153 bytes, 21st asset, foreign IDs, unpublished
+  media 404, referenced deletion, and storage requests mocked at fetch boundary.
 - **P7.** The public page is server-rendered, has `<title>`, description, `og:*` from the hero,
   `robots: index` only while published, and a canonical URL `https://app2.pospay.systems/s/<slug>`.
 - **P8.** The public read goes through a `security definer` SQL function that returns only the

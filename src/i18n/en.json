@@ -518,5 +518,14 @@
   "pages.noServices": "No services available",
   "pages.currency": "Currency",
   "pages.dirty": "Unsaved changes",
-  "nav.companyPage": "Company page"
+  "nav.companyPage": "Company page",
+  "pages.images": "Images",
+  "pages.upload": "Upload image",
+  "pages.imageFailed": "Image could not be changed. It may be in use or exceed the limits.",
+  "pages.logo": "Toggle logo",
+  "pages.heroImage": "Toggle cover image",
+  "pages.gallery": "Gallery",
+  "pages.altAr": "Arabic image description",
+  "pages.altEn": "English image description",
+  "pages.addImage": "Add image to gallery"
 }
