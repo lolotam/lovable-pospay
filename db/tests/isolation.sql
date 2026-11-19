@@ -124,7 +124,7 @@ do $$ begin
   if exists(select 1 from public.attendance_daily('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign attendance chart'; end if;
   if exists(select 1 from public.late_leaders('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign late leaders'; end if;
   if exists(select 1 from public.session_daily('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign session chart'; end if;
-  if current_setting('test.b_session','') = '' then raise exception 'Fixture missing a company B session'; end if;
+  if coalesce(current_setting('test.b_session',true),'') = '' then raise exception 'Fixture missing a company B session'; end if;
   begin
     perform public.recorded_session_replay('00000000-0000-0000-0000-00000000000b',current_setting('test.b_session')::uuid,'x');
     raise exception 'LEAK foreign session replay state';
