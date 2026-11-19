@@ -1,5 +1,10 @@
 -- Acceptance #4 (negative test): company A must not read any row of company B.
--- Run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/isolation.sql
+-- Run: psql "$POSPAY_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/isolation.sql
+do $$ begin
+  if current_database() <> 'pospay_test' then
+    raise exception 'isolation.sql runs only against the disposable pospay_test database';
+  end if;
+end $$;
 begin;
 insert into public.companies (id, name) values
   ('00000000-0000-0000-0000-00000000000a','A'),('00000000-0000-0000-0000-00000000000b','B');
@@ -204,5 +209,139 @@ do $$ begin
       and (rolsuper or rolcreatedb or rolcreaterole or rolinherit or rolreplication or rolbypassrls)
   ) then raise exception 'Unsafe pospay_server attributes'; end if;
 end $$;
+
+insert into public.companies(id,name) values
+  ('19000000-0000-4000-8000-000000000001','Commission A'),
+  ('19000000-0000-4000-8000-000000000002','Commission B');
+insert into public.branches(company_id,id,name) values
+  ('19000000-0000-4000-8000-000000000001','19000000-0000-4000-8000-000000000011','Commission A-1'),
+  ('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000012','Commission B-1'),
+  ('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000013','Commission B-2');
+insert into public.memberships(company_id,user_id,role,branch_id) values
+  ('19000000-0000-4000-8000-000000000001','user-a','owner',null),
+  ('19000000-0000-4000-8000-000000000002','user-b','owner',null),
+  ('19000000-0000-4000-8000-000000000002','commission-bm-1','branch_manager','19000000-0000-4000-8000-000000000012'),
+  ('19000000-0000-4000-8000-000000000002','commission-bm-2','branch_manager','19000000-0000-4000-8000-000000000013'),
+  ('19000000-0000-4000-8000-000000000002','commission-reception','reception','19000000-0000-4000-8000-000000000012');
+insert into public.staff_members(company_id,id,branch_id,display_name) values
+  ('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000021','19000000-0000-4000-8000-000000000012','Commission staff 1'),
+  ('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000022','19000000-0000-4000-8000-000000000013','Commission staff 2');
+insert into public.commission_plans(company_id,id,name,created_by) values
+  ('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000031','B commission plan','user-b');
+insert into public.commission_plan_versions(
+  company_id,id,plan_id,version,effective_month,base_rate_bp,created_by
+) values (
+  '19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000032',
+  '19000000-0000-4000-8000-000000000031',1,'2027-01-01',100,'user-b'
+);
+insert into public.staff_commission_plans(company_id,id,staff_id,plan_id,effective_month,assigned_by) values
+  ('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000033',
+   '19000000-0000-4000-8000-000000000021','19000000-0000-4000-8000-000000000031','2027-01-01','user-b');
+
+set local role pospay_app;
+select set_config('app.user_id','user-a',true);
+do $$ begin
+  if exists(select 1 from public.commission_plans where company_id='19000000-0000-4000-8000-000000000002')
+    then raise exception 'LEAK commission plans'; end if;
+  if exists(select 1 from public.commission_plan_versions where company_id='19000000-0000-4000-8000-000000000002')
+    then raise exception 'LEAK commission versions'; end if;
+  if exists(select 1 from public.staff_commission_plans where company_id='19000000-0000-4000-8000-000000000002')
+    then raise exception 'LEAK commission assignments'; end if;
+  begin
+    insert into public.commission_plans(company_id,name,created_by)
+      values('19000000-0000-4000-8000-000000000002','Foreign plan','user-a');
+    raise exception 'A inserted a commission plan into B';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.commission_plan_versions(company_id,plan_id,version,effective_month,base_rate_bp,created_by)
+      values('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000031',9,'2027-01-01',100,'user-a');
+    raise exception 'A inserted a commission version into B';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.staff_commission_plans(company_id,staff_id,plan_id,effective_month,assigned_by)
+      values('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000021',
+             '19000000-0000-4000-8000-000000000031','2027-03-01','user-a');
+    raise exception 'A assigned a commission plan in B';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+select set_config('app.user_id','user-b',true);
+do $$ begin
+  if (select count(*) from public.commission_plans) <> 1
+     or (select count(*) from public.commission_plan_versions) <> 1
+     or (select count(*) from public.staff_commission_plans) <> 1
+    then raise exception 'Owner B cannot read its own commission rows'; end if;
+end $$;
+select set_config('app.user_id','commission-bm-1',true);
+do $$ begin
+  insert into public.staff_commission_plans(company_id,staff_id,plan_id,effective_month,assigned_by)
+    values('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000021',
+           '19000000-0000-4000-8000-000000000031','2027-02-01','commission-bm-1');
+  begin
+    insert into public.staff_commission_plans(company_id,staff_id,plan_id,effective_month,assigned_by)
+      values('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000022',
+             '19000000-0000-4000-8000-000000000031','2027-02-01','commission-bm-1');
+    raise exception 'Branch manager assigned staff from another branch';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+select set_config('app.user_id','commission-reception',true);
+do $$ begin
+  if exists(select 1 from public.commission_plans where company_id='19000000-0000-4000-8000-000000000002')
+    then raise exception 'Reception read commission plans'; end if;
+  if exists(select 1 from public.commission_plan_versions where company_id='19000000-0000-4000-8000-000000000002')
+    then raise exception 'Reception read commission versions'; end if;
+  if exists(select 1 from public.staff_commission_plans where company_id='19000000-0000-4000-8000-000000000002')
+    then raise exception 'Reception read commission assignments'; end if;
+end $$;
+select set_config('app.user_id','user-b',true);
+do $$ begin
+  begin
+    insert into public.commission_plan_versions(company_id,plan_id,version,effective_month,base_rate_bp,created_by)
+      values('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000031',9,'2027-01-01',100,'commission-bm-1');
+    raise exception 'Owner B spoofed created_by';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.staff_commission_plans(company_id,staff_id,plan_id,effective_month,assigned_by)
+      values('19000000-0000-4000-8000-000000000002','19000000-0000-4000-8000-000000000021',
+             '19000000-0000-4000-8000-000000000031','2027-03-01','commission-bm-1');
+    raise exception 'Owner B spoofed assigned_by';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    update public.commission_plans set name='Changed' where company_id='19000000-0000-4000-8000-000000000002';
+    raise exception 'Commission plan update was allowed';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    update public.commission_plan_versions set version=2 where company_id='19000000-0000-4000-8000-000000000002';
+    raise exception 'Commission version update was allowed';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    update public.staff_commission_plans set effective_month='2027-02-01' where company_id='19000000-0000-4000-8000-000000000002';
+    raise exception 'Commission assignment update was allowed';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    delete from public.commission_plans where company_id='19000000-0000-4000-8000-000000000002';
+    raise exception 'Commission plan delete was allowed';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    delete from public.commission_plan_versions where company_id='19000000-0000-4000-8000-000000000002';
+    raise exception 'Commission version delete was allowed';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    delete from public.staff_commission_plans where company_id='19000000-0000-4000-8000-000000000002';
+    raise exception 'Commission assignment delete was allowed';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
 rollback;
 \echo 'isolation: PASS'
