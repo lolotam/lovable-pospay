@@ -226,3 +226,8 @@ follow-up slice. Until then production keeps the behavior described above.
 - **Q5 → reception may edit its own session within a short window** (option 2); after the window
   only a manager may correct it. Every edit is audited (who, when, old and new value). The window
   length is not decided; proposal 15 minutes.
+  - **Superseded (2026-11-19):** Waleed later replaced this Q5 answer. Editing is now controlled by
+    the `sessions.edit` permission (default on for owner and branch manager, grantable to
+    reception), with a mandatory reason and before/after audit, and is blocked once the owner
+    closes the month. There is no time window. See
+    `docs/specs/020-session-controls/spec.md` (Rule D).
