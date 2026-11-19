@@ -16,10 +16,11 @@ Database provisioning is a separate approved operation. Run `db/seeds/super-admi
 
 ## Password recovery through Resend
 
-- The linked Resend connection is gateway-backed; `RESEND_API_KEY` is a connection key, not a raw provider key.
-- Dokploy needs both `LOVABLE_API_KEY` and the linked `RESEND_API_KEY` through secure environment configuration, plus the existing `BETTER_AUTH_URL`.
+- The Lovable preview keeps the gateway-backed linked Resend connection; there, `RESEND_API_KEY` is a connection key and both `LOVABLE_API_KEY` and `RESEND_API_KEY` are required.
+- Dokploy must use a raw Resend API key in `RESEND_API_KEY` and must not set `LOVABLE_API_KEY`; with only the raw key, the app sends directly to Resend. Keep the existing `BETTER_AUTH_URL` configured for password reset and email OTP.
+- Password reset, email OTP, and staff invitation emails use the same selected transport.
 - Default sender: `PosPay <noreply@pospay.systems>`; `RESEND_FROM` can override it with a verified sender.
-- Resend reports DKIM and SPF verified for `pospay.systems`; only receiving MX is pending. No Lovable email domain is configured, so there is no delegation conflict.
+- Resend reports DKIM and SPF verified for `pospay.systems` on the linked connection; only receiving MX is pending. Confirm the domain is also verified in the Resend account that owns the Dokploy raw key. No Lovable email domain is configured, so there is no delegation conflict.
 - Linking in Lovable does not synchronize secrets to Dokploy. Do not copy redacted values or commit credentials; production environment changes require explicit approval.
 - Verify delivered link → password reset → old password rejected after deployment and database connectivity are working.
 
