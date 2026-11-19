@@ -92,6 +92,21 @@ and dark, RTL.
   `services` block and returns prices as text mills.
 - [ ] Isolation cases from the spec.
 
+### Task 6b: R2 storage adapter
+
+**Files:** create `src/lib/server/object-storage.server.ts` (+ test),
+`src/modules/pages/domain/image-type.ts` (+ test); modify `package.json` (add `aws4fetch`).
+
+- [ ] `storageConfig()` reads the five `STORAGE_*` env vars and returns `null` when
+  `STORAGE_BUCKET` is unset (feature off). Never log the keys.
+- [ ] `putObject(key, bytes, contentType)`, `getObject(key)` (stream + content type) and
+  `deleteObject(key)`, signed with `aws4fetch` `AwsClient` (service `s3`, region `auto`) against
+  `${STORAGE_ENDPOINT}/${STORAGE_BUCKET}/${key}`.
+- [ ] `detectImageType(bytes)` from magic bytes: PNG `89 50 4E 47`, JPEG `FF D8 FF`, WebP
+  `RIFF....WEBP`; anything else returns `null`.
+- [ ] Tests: magic-byte table with `test.each`; config `null` without a bucket; the adapter calls
+  the right URL and method with a mocked `fetch`.
+
 ### Task 7: Pages module domain and contracts
 
 **Files:** create `src/modules/pages/contracts.ts`, `index.ts`, `domain/page-document.ts`,
@@ -115,6 +130,15 @@ and dark, RTL.
 - [ ] `getPublicPageFn` uses `withUser("")` and `public_company_page`.
 - [ ] Each owner write inserts an `audit_log` row (`page.saved`, `page.published`,
   `page.unpublished`).
+- [ ] `uploadPageImageFn`: owner only, `detectImageType`, 2 MB limit, 20-image limit, key
+  `companies/<company_id>/pages/<uuid>.<ext>`, `putObject` then insert into `company_assets`;
+  if the insert fails, delete the object again.
+- [ ] `deletePageImageFn`: refuse when the asset id appears in `draft` or `published`
+  (`ASSET_IN_USE`); otherwise delete the row, then the object.
+- [ ] Save refuses asset ids that are not in the company's `company_assets`.
+- [ ] Server route `src/routes/media/$assetId.ts`: an owner session gets its own assets; anyone
+  else goes through `public_asset(id)`; stream from `getObject` with the headers in the spec;
+  404 otherwise.
 - [ ] Integration tests from the spec.
 
 ### Task 9: Editor
@@ -130,6 +154,8 @@ and dark, RTL.
 - [ ] Desktop: editor (start) + live preview (end) rendered with the same component as the public
   page.
 - [ ] Slug field checks availability after 400 ms of no typing.
+- [ ] Image picker (logo, hero background, gallery): upload with progress, list existing images,
+  alt text in Arabic and English required before publish; hidden entirely when storage is off.
 - [ ] Tests: add/hide/reorder updates the preview; publish disabled with no visible block;
   `PAGE_CONFLICT` reloads.
 
