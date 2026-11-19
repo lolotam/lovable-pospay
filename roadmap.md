@@ -2,10 +2,11 @@
 
 ## 016-D (2026-11-19)
 - [ ] Workspace move request (2026-11-19): no current Resend connection available; connect card declined. Waiting for Waleed to complete a new connection; Dokploy untouched.
-- [ ] Priority continuation (Waleed 2026-11-19): finish D2 including R2 image checks, responsive editor/public-page verification, review and commit series before other work. No SQL execution or production changes.
+- [x] Priority continuation (2026-11-19): D2 implementation committed through df68f3c; final serial suite 449 passed / 143 SQL tests skipped, lint 0 errors / 8 warnings, 6 fresh responsive fixture checks. Final delivery notes committed separately; no SQL execution or production changes.
 - [x] D1 tasks 1–5 implementation: scoped charts and SQL prepared; 376 tests passed, 143 SQL tests skipped; 6 fixture browser checks. Real DB/auth acceptance and duplicate 0021 ledger review await Claude Code. See verification-D1.md.
-- [ ] D2 Task 6b (Waleed 2026-11-19): R2 images, owner-only uploads, 2 MB / 20 company assets, published-only media, gallery and validation; prepare SQL only.
-- [ ] D2 tasks 6–11: owner page builder, published SSR pages, SQL sources and verification. Prepare SQL only; no PR or merge.
+- [x] D2 Task 6b implementation (Waleed 2026-11-19): R2 images, owner-only uploads, 2 MB / 20 company assets, published-only media, gallery and validation; prepare SQL only.
+- [x] D2 tasks 6–11 implementation: owner editor, published SSR pages, R2 sources, SQL and tests prepared. See verification-D2.md; no PR or merge.
+- [ ] 016-D external acceptance: Claude Code DB/RLS tests, double migration application and duplicate 0021 numbering review; authenticated owner save/readback, real R2, Lighthouse and production build/CI remain unverified. No database, secrets or deployment changes authorized here.
 
 ## Approved request (2026-11-18, 11:47 Kuwait)
 - [x] 003 barcode fallback implementation: manager-only issue, immediate manager revocation, one active method per employee; company policy approval screen, printable cards and reception scanning. Decisions approved by Waleed.
