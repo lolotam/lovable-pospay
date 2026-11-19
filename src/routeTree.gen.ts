@@ -34,12 +34,14 @@ import { Route as AdminConnectorsRouteImport } from './routes/admin/connectors'
 import { Route as AdminDiagnoseRouteImport } from './routes/admin/diagnose'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppPageRouteImport } from './routes/app/page'
 import { Route as AppPermissionsRouteImport } from './routes/app/permissions'
 import { Route as AppSettingsRouteImport } from './routes/app/settings'
 import { Route as MeIndexRouteImport } from './routes/me/index'
 import { Route as MeAttendRouteImport } from './routes/me/attend'
 import { Route as MePhoneRouteImport } from './routes/me/phone'
 import { Route as MeSettingsRouteImport } from './routes/me/settings'
+import { Route as MediaAssetIdRouteImport } from './routes/media/$assetId'
 import { Route as PosIndexRouteImport } from './routes/pos/index'
 import { Route as PosCardsRouteImport } from './routes/pos/cards'
 import { Route as PosQrRouteImport } from './routes/pos/qr'
@@ -183,6 +185,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppPageRoute = AppPageRouteImport.update({
+  id: '/page',
+  path: '/page',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppPermissionsRoute = AppPermissionsRouteImport.update({
   id: '/permissions',
   path: '/permissions',
@@ -212,6 +219,11 @@ const MeSettingsRoute = MeSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => MeRouteRoute,
+} as any)
+const MediaAssetIdRoute = MediaAssetIdRouteImport.update({
+  id: '/media/$assetId',
+  path: '/media/$assetId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PosIndexRoute = PosIndexRouteImport.update({
   id: '/',
@@ -324,11 +336,13 @@ export interface FileRoutesByFullPath {
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/app/page': typeof AppPageRoute
   '/app/permissions': typeof AppPermissionsRoute
   '/app/settings': typeof AppSettingsRoute
   '/me/attend': typeof MeAttendRoute
   '/me/phone': typeof MePhoneRoute
   '/me/settings': typeof MeSettingsRoute
+  '/media/$assetId': typeof MediaAssetIdRoute
   '/pos/cards': typeof PosCardsRoute
   '/pos/qr': typeof PosQrRoute
   '/pos/sessions': typeof PosSessionsRoute
@@ -370,11 +384,13 @@ export interface FileRoutesByTo {
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/app/page': typeof AppPageRoute
   '/app/permissions': typeof AppPermissionsRoute
   '/app/settings': typeof AppSettingsRoute
   '/me/attend': typeof MeAttendRoute
   '/me/phone': typeof MePhoneRoute
   '/me/settings': typeof MeSettingsRoute
+  '/media/$assetId': typeof MediaAssetIdRoute
   '/pos/cards': typeof PosCardsRoute
   '/pos/qr': typeof PosQrRoute
   '/pos/sessions': typeof PosSessionsRoute
@@ -421,11 +437,13 @@ export interface FileRoutesById {
   '/admin/connectors': typeof AdminConnectorsRoute
   '/admin/diagnose': typeof AdminDiagnoseRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/app/page': typeof AppPageRoute
   '/app/permissions': typeof AppPermissionsRoute
   '/app/settings': typeof AppSettingsRoute
   '/me/attend': typeof MeAttendRoute
   '/me/phone': typeof MePhoneRoute
   '/me/settings': typeof MeSettingsRoute
+  '/media/$assetId': typeof MediaAssetIdRoute
   '/pos/cards': typeof PosCardsRoute
   '/pos/qr': typeof PosQrRoute
   '/pos/sessions': typeof PosSessionsRoute
@@ -473,11 +491,13 @@ export interface FileRouteTypes {
     | '/admin/connectors'
     | '/admin/diagnose'
     | '/admin/settings'
+    | '/app/page'
     | '/app/permissions'
     | '/app/settings'
     | '/me/attend'
     | '/me/phone'
     | '/me/settings'
+    | '/media/$assetId'
     | '/pos/cards'
     | '/pos/qr'
     | '/pos/sessions'
@@ -519,11 +539,13 @@ export interface FileRouteTypes {
     | '/admin/connectors'
     | '/admin/diagnose'
     | '/admin/settings'
+    | '/app/page'
     | '/app/permissions'
     | '/app/settings'
     | '/me/attend'
     | '/me/phone'
     | '/me/settings'
+    | '/media/$assetId'
     | '/pos/cards'
     | '/pos/qr'
     | '/pos/sessions'
@@ -569,11 +591,13 @@ export interface FileRouteTypes {
     | '/admin/connectors'
     | '/admin/diagnose'
     | '/admin/settings'
+    | '/app/page'
     | '/app/permissions'
     | '/app/settings'
     | '/me/attend'
     | '/me/phone'
     | '/me/settings'
+    | '/media/$assetId'
     | '/pos/cards'
     | '/pos/qr'
     | '/pos/sessions'
@@ -617,6 +641,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   TeamRoute: typeof TeamRoute
   WorkspacesRoute: typeof WorkspacesRoute
+  MediaAssetIdRoute: typeof MediaAssetIdRoute
   ReceptionCardsRoute: typeof ReceptionCardsRoute
   ReceptionQrRoute: typeof ReceptionQrRoute
   SSlugRoute: typeof SSlugRoute
@@ -800,6 +825,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/page': {
+      id: '/app/page'
+      path: '/page'
+      fullPath: '/app/page'
+      preLoaderRoute: typeof AppPageRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/permissions': {
       id: '/app/permissions'
       path: '/permissions'
@@ -841,6 +873,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/me/settings'
       preLoaderRoute: typeof MeSettingsRouteImport
       parentRoute: typeof MeRouteRoute
+    }
+    '/media/$assetId': {
+      id: '/media/$assetId'
+      path: '/media/$assetId'
+      fullPath: '/media/$assetId'
+      preLoaderRoute: typeof MediaAssetIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/pos/': {
       id: '/pos/'
@@ -983,6 +1022,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 )
 
 interface AppRouteRouteChildren {
+  AppPageRoute: typeof AppPageRoute
   AppPermissionsRoute: typeof AppPermissionsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -997,6 +1037,7 @@ interface AppRouteRouteChildren {
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppPageRoute: AppPageRoute,
   AppPermissionsRoute: AppPermissionsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
@@ -1072,6 +1113,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   TeamRoute: TeamRoute,
   WorkspacesRoute: WorkspacesRoute,
+  MediaAssetIdRoute: MediaAssetIdRoute,
   ReceptionCardsRoute: ReceptionCardsRoute,
   ReceptionQrRoute: ReceptionQrRoute,
   SSlugRoute: SSlugRoute,

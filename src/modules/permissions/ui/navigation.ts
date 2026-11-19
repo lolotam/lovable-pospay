@@ -104,6 +104,7 @@ const NAV: Record<Area, NavGroup[]> = {
         },
       ],
     },
+    { to: "/app/page", label: "nav.companyPage", icon: Storefront },
     { to: "/pos", label: "nav.openReception", icon: Storefront, requires: "pos.access" },
     {
       to: "/app/permissions",
@@ -148,7 +149,7 @@ export function visibleNavigation(
   role?: import("../contracts").CompanyRole,
 ): NavGroup[] {
   return NAV[area].flatMap((group) => {
-    if (group.to === "/app/permissions" && role !== "owner") return [];
+    if (["/app/permissions", "/app/page"].includes(group.to ?? "") && role !== "owner") return [];
     if (!group.children) return allowed(group, perms, recording) ? [group] : [];
     const children = group.children.filter((c) => allowed(c, perms, recording));
     return children.length ? [{ ...group, children }] : [];

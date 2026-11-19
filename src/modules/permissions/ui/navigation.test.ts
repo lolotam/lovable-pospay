@@ -11,6 +11,14 @@ const paths = (
   );
 
 describe("visibleNavigation", () => {
+  it("shows the company page only to owners and before settings", () => {
+    const owner = visibleNavigation("app", [], false, "owner").map((item) => item.to);
+    expect(owner).toContain("/app/page");
+    expect(owner.indexOf("/app/page")).toBeLessThan(owner.indexOf("/app/settings"));
+    expect(
+      visibleNavigation("app", [], false, "branch_manager").some((item) => item.to === "/app/page"),
+    ).toBe(false);
+  });
   it("puts owner permissions before settings", () => {
     const items = visibleNavigation("app", ["permissions.manage"], false, "owner");
     expect(items.slice(-2).map((item) => item.to)).toEqual(["/app/permissions", "/app/settings"]);

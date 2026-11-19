@@ -33,6 +33,10 @@ insert into public.invitations(company_id,email,role,token_hash,expires_at,invit
  values ('00000000-0000-0000-0000-00000000000b','invite-b@example.test','staff',repeat('b',64),now()+interval '1 day','user-b');
 insert into public.permission_overrides(company_id,user_id,permission,effect) values
  ('00000000-0000-0000-0000-00000000000b','user-b','reports.view','allow');
+insert into public.company_pages(company_id,slug,updated_by) values
+ ('00000000-0000-0000-0000-00000000000b','isolation-b','user-b');
+insert into public.company_assets(company_id,id,object_key,content_type,byte_size,created_by) values
+ ('00000000-0000-0000-0000-00000000000b','10000000-0000-4000-8000-000000000001','companies/b/pages/image.png','image/png',8,'user-b');
 select set_config('test.b_branch' , (select id::text from public.branches where name='B-1'), true);
 select set_config('test.a_branch' , (select id::text from public.branches where name='A-1'), true);
 insert into public.memberships (company_id, user_id, role, branch_id)
@@ -77,6 +81,8 @@ do $$ begin
 end $$;
 select set_config('app.user_id','user-bm',true);
 do $$ begin
+  if exists(select 1 from public.company_pages) then raise exception 'LEAK draft to branch manager'; end if;
+  if exists(select 1 from public.company_assets) then raise exception 'LEAK assets to branch manager'; end if;
   if exists(select 1 from public.company_member_directory('00000000-0000-0000-0000-00000000000b'))
     then raise exception 'LEAK member directory to non-owner'; end if;
   begin
@@ -111,6 +117,9 @@ do $$ begin
 end $$;
 select set_config('app.user_id','user-a',true);
 do $$ begin
+  if exists(select 1 from public.company_pages where company_id='00000000-0000-0000-0000-00000000000b') then raise exception 'LEAK foreign page'; end if;
+  update public.company_pages set slug='hacked-page' where company_id='00000000-0000-0000-0000-00000000000b';
+  if found then raise exception 'LEAK foreign page update'; end if;
   if exists(select 1 from public.attendance_daily('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign attendance chart'; end if;
   if exists(select 1 from public.late_leaders('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign late leaders'; end if;
   if exists(select 1 from public.session_daily('00000000-0000-0000-0000-00000000000b',null,current_date-13,current_date)) then raise exception 'LEAK foreign session chart'; end if;
@@ -133,6 +142,7 @@ do $$ begin
     raise exception 'LEAK: A inserted override into B';
   exception when insufficient_privilege then null;
   end;
+  if exists(select 1 from public.company_assets) then raise exception 'LEAK foreign assets'; end if;
   if exists(select 1 from public.card_policies) then raise exception 'LEAK card policy'; end if;
   if exists(select 1 from public.invitations) then raise exception 'LEAK invitations'; end if;
   if exists(select 1 from public.attendance_cards) then raise exception 'LEAK cards'; end if;
@@ -174,6 +184,8 @@ do $$ begin
 end $$;
 select set_config('app.user_id','',true);
 do $$ begin
+  if exists(select 1 from public.public_asset('10000000-0000-4000-8000-000000000001')) then raise exception 'LEAK unpublished asset'; end if;
+  if public.public_company_page('isolation-b') is not null then raise exception 'LEAK unpublished page'; end if;
   if exists(select 1 from public.attendance_daily('00000000-0000-0000-0000-00000000000a',null,current_date-13,current_date)) then raise exception 'LEAK attendance chart without reports'; end if;
   if (select count(*) from public.companies) <> 0 then raise exception 'anonymous sees rows'; end if;
 end $$;
