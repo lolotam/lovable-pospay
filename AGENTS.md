@@ -41,6 +41,12 @@ use the editor.
 
 The old `CLAUDE.md` / `CLAUDE.architecture.md` (NestJS, monorepo) do not apply to this app.
 
+**Code map (graphify).** When a local `graphify-out/graph.json` exists (built on the coordinator's
+machine, never committed), ask it before broad grep/read sweeps: `graphify query "<question>"`,
+`graphify path "<A>" "<B>"`, `graphify explain "<symbol>"`. It links specs in `docs/` to the code
+that implements them. It reflects the commit it was built from, so confirm hits in the current
+files before editing; refresh it with `graphify update` after merges.
+
 ## Communication
 
 - Reply to Waleed in Arabic (Egyptian is fine), short and plain. Keep code, file paths, commands, identifiers and error messages in English.
