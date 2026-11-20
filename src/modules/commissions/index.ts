@@ -47,6 +47,7 @@ export type {
 } from "./contracts";
 export { CommissionError } from "./domain/plan";
 export { computeCommission } from "./domain/compute-commission";
+export { parseKwdToMills, parseMultipleToMilli, parsePercentToBp } from "./domain/parse";
 export { computeStaffCommission } from "./use-cases/compute-staff-commission";
 export type {
   ComputeStaffCommissionDeps,

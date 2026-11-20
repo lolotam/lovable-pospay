@@ -52,3 +52,4 @@ export {
   getManagerPinStatusFn,
   listFailedPinAttemptsFn,
 } from "./functions/discount.functions";
+export { pendingApprovalsQuery } from "./ui/approval-queries";

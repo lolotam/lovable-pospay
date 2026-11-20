@@ -1,10 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
 import * as Dialog from "@radix-ui/react-dialog";
 import { CaretDown, X } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
-import { serviceSessionRecordingAvailable } from "@/modules/services";
+import { pendingApprovalsQuery, serviceSessionRecordingAvailable } from "@/modules/services";
+import { useActiveCompany } from "@/lib/active-company";
 import type { Area, SessionContextDto } from "../contracts";
 import { isGroupActive, visibleNavigation, type NavGroup, type NavLeaf } from "./navigation";
 import { AreaTabBar } from "./area-tab-bar";
@@ -16,6 +18,21 @@ export interface AreaShellProps {
   area: Area;
   context: SessionContextDto;
   children: ReactNode;
+}
+
+const APPROVALS_PATH = "/app/services/approvals";
+
+/** عداد طلبات اعتماد الخصم المعلقة لشارة الغلاف؛ استطلاع كل 10 ثوان (020 B4.2). */
+function usePendingApprovalsCount(groups: NavGroup[]): number {
+  const activeCompany = useActiveCompany() ?? "";
+  const wanted = groups.some((group) =>
+    group.children?.some((leaf) => leaf.to === APPROVALS_PATH && leaf.badge),
+  );
+  const { data } = useQuery({
+    ...pendingApprovalsQuery(activeCompany),
+    enabled: wanted && activeCompany !== "",
+  });
+  return wanted ? (data?.length ?? 0) : 0;
 }
 
 function BrandMark() {
@@ -30,7 +47,15 @@ function BrandMark() {
   );
 }
 
-function NavigationLeaf({ item, close }: { item: NavLeaf; close: () => void }) {
+function NavigationLeaf({
+  item,
+  close,
+  badge,
+}: {
+  item: NavLeaf;
+  close: () => void;
+  badge?: number | undefined;
+}) {
   const LeafIcon = item.icon;
   return (
     <Link
@@ -40,7 +65,12 @@ function NavigationLeaf({ item, close }: { item: NavLeaf; close: () => void }) {
       className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground data-[status=active]:bg-sidebar-primary data-[status=active]:font-medium data-[status=active]:text-sidebar-primary-foreground"
     >
       <LeafIcon aria-hidden weight="duotone" className="size-5 shrink-0" />
-      <span className="break-words">{t(item.label)}</span>
+      <span className="min-w-0 flex-1 break-words">{t(item.label)}</span>
+      {item.badge && badge ? (
+        <span className="min-w-6 rounded-full bg-destructive px-1.5 py-0.5 text-center text-xs font-semibold text-destructive-foreground">
+          {badge}
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -49,10 +79,12 @@ function NavigationGroup({
   group,
   close,
   pathname,
+  leafBadge,
 }: {
   group: NavGroup;
   close: () => void;
   pathname: string;
+  leafBadge?: (item: NavLeaf) => number | undefined;
 }) {
   const active = isGroupActive(group, pathname);
   const [open, setOpen] = useState(active);
@@ -78,7 +110,7 @@ function NavigationGroup({
       {open && (
         <div className="ms-5 space-y-1 border-s border-sidebar-border py-1 ps-2">
           {group.children?.map((item) => (
-            <NavigationLeaf key={item.to} item={item} close={close} />
+            <NavigationLeaf key={item.to} item={item} close={close} badge={leafBadge?.(item)} />
           ))}
         </div>
       )}
@@ -97,6 +129,8 @@ function SidebarContents({
   pathname: string;
   close: () => void;
 }) {
+  const approvalsBadge = usePendingApprovalsCount(groups);
+  const leafBadge = (item: NavLeaf) => (item.to === APPROVALS_PATH ? approvalsBadge : undefined);
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-b border-sidebar-border px-3 py-4">
@@ -116,7 +150,13 @@ function SidebarContents({
         className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 py-4"
       >
         {groups.map((group) => (
-          <NavigationGroup key={group.label} group={group} close={close} pathname={pathname} />
+          <NavigationGroup
+            key={group.label}
+            group={group}
+            close={close}
+            pathname={pathname}
+            leafBadge={leafBadge}
+          />
         ))}
       </nav>
       <UserMenu user={context.user} />
