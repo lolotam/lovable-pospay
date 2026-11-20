@@ -1,10 +1,11 @@
 import type {
+  EditablePermission,
   PermissionCompanyRole,
   EditableOverrideStates,
   RestrictionStates,
 } from "./permission-admin-types";
 
-/** المفاتيح الستة التي يستطيع المالك تعديلها؛ إدارة الصلاحيات ليست قابلة للتفويض. */
+/** المفاتيح الثمانية التي يستطيع المالك تعديلها؛ إدارة الصلاحيات ليست قابلة للتفويض. */
 export const EDITABLE_PERMISSIONS = [
   "pos.access",
   "reports.view",
@@ -12,6 +13,8 @@ export const EDITABLE_PERMISSIONS = [
   "staff.manage",
   "services.manage",
   "discounts.manage",
+  "sessions.edit",
+  "commissions.overrides.manage",
 ] as const;
 /** القيود الخمسة لا تقبل السماح، والمفاتيح المدارة تجمع المجموعتين. */
 export const RESTRICTION_KEYS = [
@@ -22,6 +25,31 @@ export const RESTRICTION_KEYS = [
   "reports.read",
 ] as const;
 export const MANAGED_KEYS = [...EDITABLE_PERMISSIONS, ...RESTRICTION_KEYS] as const;
+/**
+ * الأدوار التي يسري عليها كل مفتاح قابل للتعديل؛ تخفي الصفحة المفتاح عن عضو
+ * بلا أي دور من أدواره، وترفض الحفظ بحالة غير افتراضية له (020 D1، 021 O4).
+ */
+export const PERMISSION_ROLES: Partial<
+  Record<EditablePermission, readonly PermissionCompanyRole[]>
+> = {
+  "sessions.edit": ["branch_manager", "reception"],
+  "commissions.overrides.manage": ["branch_manager"],
+};
+
+/**
+ * يحدد هل المفتاح قابل للتطبيق على عضو بأدوار معينة؛ المفتاح بلا قيود أدوار يسري على الجميع.
+ *
+ * @param permission المفتاح المطلوب فحصه
+ * @param roles أدوار العضو في الشركة
+ * @returns true عندما يُسمح بعرض المفتاح أو تخزين حالة غير افتراضية له
+ */
+export function permissionApplicable(
+  permission: string,
+  roles: readonly PermissionCompanyRole[],
+): boolean {
+  const allowed = PERMISSION_ROLES[permission as EditablePermission];
+  return !allowed || allowed.some((role) => roles.includes(role));
+}
 /** صف تجاوز مخزّن؛ قد يكون مفتاحاً قديماً خارج المصفوفة الحالية. */
 export interface OverrideRow {
   permission: string;
@@ -42,6 +70,8 @@ export function toStates(rows: readonly OverrideRow[]): {
     "staff.manage": "default",
     "services.manage": "default",
     "discounts.manage": "default",
+    "sessions.edit": "default",
+    "commissions.overrides.manage": "default",
   };
   for (const key of EDITABLE_PERMISSIONS) {
     const matching = rows.filter((row) => row.permission === key);

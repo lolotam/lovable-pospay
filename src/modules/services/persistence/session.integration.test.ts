@@ -4,6 +4,7 @@ import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 import pg from "pg";
 import { getPool, withUser } from "@/lib/server/db.server";
 import { pgSessionRepository, readSessionForm } from "./session.server";
+import { pgDiscountApprovalRepository } from "./discount-approval.server";
 import { loadSessionReport } from "../use-cases/read-session-report";
 import { readSessionReport } from "./session-report.server";
 import { recordSession } from "../use-cases/record-session";
@@ -18,11 +19,25 @@ const input = {
   staffId: staff,
   clientName: "Noura",
   clientPhone: "96555551234",
-  occurredAt: new Date(Date.now() - 3600_000).toISOString().slice(0, 16),
+  occurredAt: recentWithinUtcDay(),
 };
+
+/** قبل ساعة، مع تثبيت التاريخ عند منتصف الليل كي لا يصبح الوقت «متأخراً» زائفاً. */
+function recentWithinUtcDay(): string {
+  const recent = new Date(Date.now() - 3600_000);
+  if (recent.getUTCDate() === new Date().getUTCDate()) return recent.toISOString().slice(0, 16);
+  const clamped = new Date();
+  clamped.setUTCHours(0, 1, 0, 0);
+  return clamped.toISOString().slice(0, 16);
+}
 const run = (user: string, requestId = crypto.randomUUID()) =>
   withUser(user, (db) =>
-    recordSession(pgSessionRepository(db, user, company), { ...input, requestId }, new Date()),
+    recordSession(
+      pgSessionRepository(db, user, company),
+      pgDiscountApprovalRepository(db, company),
+      { ...input, requestId },
+      new Date(),
+    ),
   );
 describe.skipIf(!url)("service sessions real RLS", () => {
   let admin: pg.Pool;
@@ -44,6 +59,8 @@ describe.skipIf(!url)("service sessions real RLS", () => {
         "0014_discount_grants",
         "0016_discount_grant_membership",
         "0023_session_recording",
+        "0025_session_controls",
+        "0026_commission_methods_and_salaries",
       ])
         await admin.query(await readFile(`db/migrations/${f}.sql`, "utf8"));
     await admin.query(`insert into companies(id,name) values($1,'Sessions salon')`, [company]);
@@ -95,8 +112,8 @@ describe.skipIf(!url)("service sessions real RLS", () => {
     ]);
     expect(duplicates).toEqual(
       expect.arrayContaining([
-        { id: requestId, replayed: false },
-        { id: requestId, replayed: true },
+        { status: "saved", id: requestId, replayed: false },
+        { status: "saved", id: requestId, replayed: true },
       ]),
     );
     const rowsVisibleToWriter = await withUser("s-reception", async (db) => {
@@ -170,11 +187,21 @@ describe.skipIf(!url)("service sessions real RLS", () => {
       withUser(user, (db) =>
         recordSession(
           pgSessionRepository(db, user, company),
-          { ...input, requestId: crypto.randomUUID(), price, discountReason: "vip" },
+          pgDiscountApprovalRepository(db, company),
+          {
+            ...input,
+            requestId: crypto.randomUUID(),
+            price,
+            discountReason: "vip",
+            confirmDuplicate: true,
+          },
           new Date(),
         ),
       );
-    await expect(disc("s-reception", "11.250")).rejects.toThrow("DISCOUNT_OVER_LIMIT");
+    await expect(disc("s-reception", "11.250")).resolves.toEqual({
+      status: "pin_required",
+      approvers: [],
+    });
     await expect(
       withUser("s-reception", (db) =>
         db.query(
@@ -192,7 +219,10 @@ describe.skipIf(!url)("service sessions real RLS", () => {
     await withUser("s-owner", (db) =>
       saveDiscountGrant(db, "s-owner", company, { kind: "role", role: "reception" }, 10),
     );
-    await expect(disc("s-reception", "11.250")).resolves.toHaveProperty("id");
-    await expect(disc("s-reception", "11.249")).rejects.toThrow("DISCOUNT_OVER_LIMIT");
+    await expect(disc("s-reception", "11.250")).resolves.toHaveProperty("status", "saved");
+    await expect(disc("s-reception", "11.249")).resolves.toEqual({
+      status: "pin_required",
+      approvers: [],
+    });
   });
 });

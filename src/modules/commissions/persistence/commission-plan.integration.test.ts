@@ -17,13 +17,15 @@ const manager1 = "c19-manager-1";
 const manager2 = "c19-manager-2";
 const reception = "c19-reception";
 const period = { year: 2027, month: 1 };
-const version1Rules: PlanRules = { baseRateBp: 100n, tier: null };
+const version1Rules: PlanRules = { baseRateBp: 100n, baseFixedMills: null, tierSchedule: null };
 const version2Rules: PlanRules = {
   baseRateBp: 100n,
-  tier: {
+  baseFixedMills: null,
+  tierSchedule: {
+    accumulator: "sales_amount",
     mode: "all_after",
-    rateBp: 1000n,
-    threshold: { kind: "salary_multiple", multipleMilli: 3000n },
+    thresholdKind: "salary_multiple",
+    tiers: [{ rateBp: 1000n, threshold: { kind: "salary_multiple", multipleMilli: 3000n } }],
   },
 };
 
@@ -36,9 +38,15 @@ describe.skipIf(!url)("commission plan repository under PostgreSQL RLS", () => {
       throw new Error("Disposable database required");
     vi.stubEnv("DATABASE_URL", url);
     admin = new pg.Pool({ connectionString: url });
-    for (const file of ["0001_tenancy_foundation", "0002_attendance", "0024_commission_plans"]) {
-      await admin.query(await readFile(`db/migrations/${file}.sql`, "utf8"));
-    }
+    for (let pass = 0; pass < 2; pass++)
+      for (const file of [
+        "0001_tenancy_foundation",
+        "0002_attendance",
+        "0024_commission_plans",
+        "0026_commission_methods_and_salaries",
+      ]) {
+        await admin.query(await readFile(`db/migrations/${file}.sql`, "utf8"));
+      }
     await admin.query("insert into public.companies(id,name) values($1,'Commission salon')", [
       company,
     ]);
@@ -63,6 +71,7 @@ describe.skipIf(!url)("commission plan repository under PostgreSQL RLS", () => {
       for (const table of [
         "audit_log",
         "staff_commission_plans",
+        "commission_plan_tiers",
         "commission_plan_versions",
         "commission_plans",
         "staff_members",

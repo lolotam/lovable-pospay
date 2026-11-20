@@ -429,6 +429,8 @@
   "permissionAdmin.staff.manage": "إدارة الموظفات",
   "permissionAdmin.services.manage": "إدارة الخدمات",
   "permissionAdmin.discounts.manage": "إدارة الخصومات",
+  "permissionAdmin.sessions.edit": "تعديل الجلسات المسجلة",
+  "permissionAdmin.commissions.overrides.manage": "إدارة تجاوزات العمولات",
   "permissionAdmin.permissions.manage": "إدارة الصلاحيات · للمالك فقط",
   "permissionAdmin.restrictions": "القيود",
   "permissionAdmin.blocked": "محظور",

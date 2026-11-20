@@ -102,7 +102,7 @@ describe("owner permission server boundaries", () => {
   });
 });
 
-it("replaces all eleven managed keys and only inserts deny for restrictions", async () => {
+it("replaces all thirteen managed keys and only inserts deny for restrictions", async () => {
   await saveMemberOverridesFn({
     data: {
       ...input,
@@ -121,6 +121,8 @@ it("replaces all eleven managed keys and only inserts deny for restrictions", as
     "staff.manage",
     "services.manage",
     "discounts.manage",
+    "sessions.edit",
+    "commissions.overrides.manage",
     "attendance.record",
     "attendance.manage_devices",
     "attendance.manage_cards",

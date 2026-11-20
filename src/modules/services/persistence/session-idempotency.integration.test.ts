@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import pg from "pg";
 import { getPool, withUser } from "@/lib/server/db.server";
 import { pgSessionRepository } from "./session.server";
+import { pgDiscountApprovalRepository } from "./discount-approval.server";
 import { recordSession, type RecordSessionInput } from "../use-cases/record-session";
 
 const url = process.env["POSPAY_TEST_DATABASE_URL"];
@@ -27,6 +28,7 @@ function run(user: string, overrides: Partial<RecordSessionInput> = {}) {
   return withUser(user, (db) =>
     recordSession(
       pgSessionRepository(db, user, company),
+      pgDiscountApprovalRepository(db, company),
       { ...baseInput, ...overrides },
       new Date(),
     ),
@@ -106,11 +108,15 @@ describe.skipIf(!url)("service session idempotency with real RLS", () => {
     expect(duplicates).toHaveLength(2);
     expect(duplicates).toEqual(
       expect.arrayContaining([
-        { id: baseInput.requestId, replayed: false },
-        { id: baseInput.requestId, replayed: true },
+        { status: "saved", id: baseInput.requestId, replayed: false },
+        { status: "saved", id: baseInput.requestId, replayed: true },
       ]),
     );
-    await expect(run(reception)).resolves.toEqual({ id: baseInput.requestId, replayed: true });
+    await expect(run(reception)).resolves.toEqual({
+      status: "saved",
+      id: baseInput.requestId,
+      replayed: true,
+    });
     await expect(run(reception, { clientPhone: "96555554321" })).rejects.toThrow(
       "IDEMPOTENCY_CONFLICT",
     );
@@ -119,7 +125,11 @@ describe.skipIf(!url)("service session idempotency with real RLS", () => {
       "update public.service_assignments set active=false where company_id=$1 and service_id=$2 and staff_id=$3",
       [company, service, staff],
     );
-    await expect(run(reception)).resolves.toEqual({ id: baseInput.requestId, replayed: true });
+    await expect(run(reception)).resolves.toEqual({
+      status: "saved",
+      id: baseInput.requestId,
+      replayed: true,
+    });
     await admin.query(
       "update public.service_assignments set active=true where company_id=$1 and service_id=$2 and staff_id=$3",
       [company, service, staff],
@@ -141,14 +151,29 @@ describe.skipIf(!url)("service session idempotency with real RLS", () => {
     const rejected = "18000000-0000-4000-8000-000000000012";
     const managed = "18000000-0000-4000-8000-000000000013";
     await expect(
-      run(reception, { requestId: accepted, price: "90.000", discountReason: "vip" }),
-    ).resolves.toEqual({ id: accepted, replayed: false });
+      run(reception, {
+        requestId: accepted,
+        price: "90.000",
+        discountReason: "vip",
+        confirmDuplicate: true,
+      }),
+    ).resolves.toEqual({ status: "saved", id: accepted, replayed: false });
     await expect(
-      run(reception, { requestId: rejected, price: "85.000", discountReason: "vip" }),
-    ).rejects.toThrow("DISCOUNT_OVER_LIMIT");
+      run(reception, {
+        requestId: rejected,
+        price: "85.000",
+        discountReason: "vip",
+        confirmDuplicate: true,
+      }),
+    ).resolves.toEqual({ status: "pin_required", approvers: [] });
     await expect(
-      run(manager, { requestId: managed, price: "85.000", discountReason: "vip" }),
-    ).resolves.toEqual({ id: managed, replayed: false });
+      run(manager, {
+        requestId: managed,
+        price: "85.000",
+        discountReason: "vip",
+        confirmDuplicate: true,
+      }),
+    ).resolves.toEqual({ status: "saved", id: managed, replayed: false });
     const { rows } = await admin.query(
       "select id::text,price_mills::text from public.service_sessions where company_id=$1 and id=any($2::uuid[]) order by id",
       [company, [accepted, managed]],

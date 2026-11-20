@@ -429,6 +429,8 @@
   "permissionAdmin.staff.manage": "Manage staff",
   "permissionAdmin.services.manage": "Manage services",
   "permissionAdmin.discounts.manage": "Manage discounts",
+  "permissionAdmin.sessions.edit": "Edit recorded sessions",
+  "permissionAdmin.commissions.overrides.manage": "Manage commission overrides",
   "permissionAdmin.permissions.manage": "Manage permissions · owner only",
   "permissionAdmin.restrictions": "Restrictions",
   "permissionAdmin.blocked": "Blocked",

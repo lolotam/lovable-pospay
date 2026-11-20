@@ -28,6 +28,7 @@ function fixture() {
         email: "mona@example.test",
         roles: ["branch_manager", "reception"],
       },
+      { userId: "salma", name: "Salma", email: "salma@example.test", roles: ["accountant"] },
     ],
     readOverrides: async () => state.rows,
     lockTarget: async () => {},
@@ -54,6 +55,7 @@ describe("owner permission use cases", () => {
       "staff.manage",
       "services.manage",
       "discounts.manage",
+      "sessions.edit",
     ]);
     expect(members[1]?.restrictions["attendance.record"]).toBe("deny");
     expect(members[0]?.isOwner).toBe(true);
@@ -134,6 +136,40 @@ describe("owner permission use cases", () => {
         overrides: { "pos.access": "allow" },
       }).success,
     ).toBe(false);
+  });
+  it("refuses a role-restricted key saved for a member without its roles", async () => {
+    const { repository, state } = fixture();
+    await expect(
+      saveMemberOverrides(repository, "owner", {
+        companyId,
+        userId: "salma",
+        overrides: {
+          ...toStates([]).overrides,
+          "commissions.overrides.manage": "allow",
+        },
+        restrictions: toStates([]).restrictions,
+      }),
+    ).rejects.toThrow("PERMISSION_NOT_APPLICABLE");
+    expect(state.audits).toHaveLength(0);
+  });
+  it("saves sessions.edit for a branch manager and refuses it for an accountant", async () => {
+    const { repository, state } = fixture();
+    const granted = await saveMemberOverrides(repository, "owner", {
+      companyId,
+      userId: "mona",
+      overrides: { ...toStates([]).overrides, "sessions.edit": "deny" },
+      restrictions: toStates([]).restrictions,
+    });
+    expect(granted.overrides["sessions.edit"]).toBe("deny");
+    await expect(
+      saveMemberOverrides(repository, "owner", {
+        companyId,
+        userId: "salma",
+        overrides: { ...toStates([]).overrides, "sessions.edit": "allow" },
+        restrictions: toStates([]).restrictions,
+      }),
+    ).rejects.toThrow("PERMISSION_NOT_APPLICABLE");
+    expect(state.audits).toHaveLength(1);
   });
 });
 

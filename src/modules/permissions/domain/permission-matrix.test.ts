@@ -7,16 +7,27 @@ describe("effectivePermissions", () => {
     const p = effectivePermissions(["owner"], [{ permission: "pos.access", effect: "deny" }]);
     expect(p).toContain("pos.access");
     expect(p).toContain("permissions.manage");
-    expect(p).toHaveLength(7);
+    expect(p).toHaveLength(9);
   });
-  it("gives a branch manager the defaults without the reception area", () => {
+  it("gives a branch manager the defaults including sessions.edit (020 D1)", () => {
     expect(effectivePermissions(["branch_manager"], []).sort()).toEqual([
       "attendance.correct",
       "discounts.manage",
       "reports.view",
       "services.manage",
+      "sessions.edit",
       "staff.manage",
     ]);
+  });
+  it("keeps commissions.overrides.manage off for a branch manager by default (021 O4)", () => {
+    const p = effectivePermissions(["branch_manager"], []);
+    expect(p).not.toContain("commissions.overrides.manage");
+    expect(
+      effectivePermissions(
+        ["branch_manager"],
+        [{ permission: "commissions.overrides.manage", effect: "allow" }],
+      ),
+    ).toContain("commissions.overrides.manage");
   });
   it("adds an allowed permission", () => {
     expect(
@@ -44,6 +55,20 @@ describe("effectivePermissions", () => {
       "pos.access",
       "reports.view",
     ]);
-    expect(effectivePermissions(["staff", "owner"], [])).toHaveLength(7);
+    expect(effectivePermissions(["staff", "owner"], [])).toHaveLength(9);
+  });
+  it("drops a role-restricted key for a member without its roles even with an allow row", () => {
+    expect(
+      effectivePermissions(["staff"], [{ permission: "sessions.edit", effect: "allow" }]),
+    ).toEqual([]);
+    expect(
+      effectivePermissions(
+        ["accountant"],
+        [{ permission: "commissions.overrides.manage", effect: "allow" }],
+      ),
+    ).toEqual(["reports.view"]);
+    expect(
+      effectivePermissions(["reception"], [{ permission: "sessions.edit", effect: "allow" }]),
+    ).toContain("sessions.edit");
   });
 });
