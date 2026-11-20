@@ -30,6 +30,24 @@ update public.commission_plan_versions
 set tier_accumulator = 'sales_amount'
 where tier_mode is not null and tier_accumulator is null;
 
+-- The pre-021 app (still running for a few minutes after this migration on
+-- deploy) inserts tier_mode without tier_accumulator; give those inserts the
+-- same legacy meaning as the backfill so tier_pair does not reject them.
+create or replace function public.commission_version_legacy_accumulator()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if new.tier_mode is not null and new.tier_accumulator is null then
+    new.tier_accumulator := 'sales_amount';
+  end if;
+  return new;
+end
+$$;
+revoke all on function public.commission_version_legacy_accumulator() from public;
+drop trigger if exists commission_version_legacy_accumulator on public.commission_plan_versions;
+create trigger commission_version_legacy_accumulator
+  before insert on public.commission_plan_versions
+  for each row execute function public.commission_version_legacy_accumulator();
+
 do $$ begin
  if not exists(select 1 from pg_constraint where conname='commission_plan_versions_has_rule' and conrelid='public.commission_plan_versions'::regclass) then
   alter table public.commission_plan_versions add constraint commission_plan_versions_has_rule

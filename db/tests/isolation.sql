@@ -992,6 +992,22 @@ insert into public.commission_plan_versions(
   '21000000-0000-4000-8000-000000000041',1,'2027-01-01','all_after','sales_amount',500,1000000,'user-21b',now()-interval '1 hour'
 );
 
+-- Deploy window: the pre-021 app inserts a tier without tier_accumulator.
+do $$
+declare v_acc text;
+begin
+  insert into public.commission_plan_versions(
+    company_id,id,plan_id,version,effective_month,tier_mode,tier_rate_bp,tier_threshold_mills,created_by
+  ) values (
+    '21000000-0000-4000-8000-000000000002','21000000-0000-4000-8000-0000000000f9',
+    '21000000-0000-4000-8000-000000000041',99,'2099-01-01','excess',300,500000,'user-21b'
+  ) returning tier_accumulator into v_acc;
+  if v_acc is distinct from 'sales_amount' then
+    raise exception 'legacy tier insert got accumulator %', v_acc;
+  end if;
+  delete from public.commission_plan_versions where id = '21000000-0000-4000-8000-0000000000f9';
+end $$;
+
 set local role pospay_app;
 select set_config('app.user_id','user-21a',true);
 do $$ begin
