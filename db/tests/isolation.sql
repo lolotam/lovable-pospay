@@ -389,6 +389,19 @@ insert into public.clients(company_id,id,name,phone) values
   ('20000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000051','S20 B client','96500000012');
 insert into public.discount_grants(company_id,user_id,max_percent,granted_by)
   values ('20000000-0000-4000-8000-000000000002','user-20rec',10,'seed');
+-- A real (already superseded) Company B request so a foreign caller can be
+-- tested against an existing row, not a not-found miss.
+insert into public.discount_approval_requests(
+  company_id,branch_id,session_id,service_id,list_price_mills,requested_price_mills,
+  discount_reason,requested_by,expires_at,status)
+values ('20000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000012',
+        '20000000-0000-4000-8000-000000000053','20000000-0000-4000-8000-000000000032',
+        100000,85000,'طلب قديم','user-20bm1',now()+interval '1 day','superseded');
+-- Resolve the seeded id as the migration owner: a foreign caller's own RLS
+-- subquery returns no rows and would mask the decision path under test.
+select set_config('test.s20req_seed', id::text, true)
+  from public.discount_approval_requests
+  where company_id='20000000-0000-4000-8000-000000000002' and status='superseded';
 insert into public.service_sessions(company_id,id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,list_price_mills,price_mills,recorded_by) values
   ('20000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000041','20000000-0000-4000-8000-000000000032','20000000-0000-4000-8000-000000000022','20000000-0000-4000-8000-000000000012','20000000-0000-4000-8000-000000000051',now()-interval '3 days','S20 B expensive',100000,100000,'user-20rec'),
   ('20000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000050','20000000-0000-4000-8000-000000000032','20000000-0000-4000-8000-000000000022','20000000-0000-4000-8000-000000000012','20000000-0000-4000-8000-000000000051',now()-interval '40 days','S20 B expensive',100000,100000,'user-20rec'),
@@ -480,6 +493,21 @@ do $$ begin
     if sqlerrm <> 'FORBIDDEN' then raise; end if;
   end;
   begin
+    perform public.decide_discount_approval('20000000-0000-4000-8000-000000000002',
+      current_setting('test.s20req_seed')::uuid, true);
+    raise exception 'Foreign decide_discount_approval allowed';
+  exception when raise_exception then
+    if sqlerrm <> 'FORBIDDEN' then raise; end if;
+  end;
+  begin
+    if public.has_manager_pin('20000000-0000-4000-8000-000000000002') then
+      raise exception 'Foreign has_manager_pin returned true';
+    end if;
+    raise exception 'Foreign has_manager_pin probe allowed';
+  exception when raise_exception then
+    if sqlerrm <> 'FORBIDDEN' then raise; end if;
+  end;
+  begin
     insert into public.closed_commission_months(company_id,period_month,closed_by)
       values ('20000000-0000-4000-8000-000000000002','2026-10-01','user-20a');
     raise exception 'A closed a month in B';
@@ -541,13 +569,6 @@ begin
   end;
 end $$;
 
-select set_config('app.user_id','user-20a',true);
-do $$
-begin
-  if public.has_manager_pin('20000000-0000-4000-8000-000000000002')
-    then raise exception 'Outsider probed another company''s manager PIN'; end if;
-end $$;
-
 select set_config('app.user_id','user-20rec',true);
 do $$ declare v_status text; v_approval uuid; v_at timestamptz; v_count int;
 begin
@@ -588,20 +609,19 @@ begin
       current_setting('test.s20svc2')::uuid,current_setting('test.s20staff1')::uuid,'96500000012',now(),
       '20000000-0000-4000-8000-000000000049'::uuid)
     then raise exception 'Duplicate session was not detected'; end if;
-  -- Wrong PIN: returns exactly one invalid row, creates no approval, records the attempt.
+  -- Wrong PIN: exactly one invalid row carrying no approval id, and no new
+  -- approval row (regression: the invalid path once fell through and issued one).
   select count(*) into v_count from public.discount_approvals
     where company_id = '20000000-0000-4000-8000-000000000002';
-  if (select count(*) from public.verify_manager_pin_approval('20000000-0000-4000-8000-000000000002',current_setting('test.s20b1')::uuid,
-      current_setting('test.s20sess_b1')::uuid,current_setting('test.s20svc1')::uuid,100000,85000,'user-20bm1','0000','test-agent')) <> 1
-    then raise exception 'Wrong PIN returned more than one row'; end if;
+  if (select count(*) <> 1
+           or bool_or(status is distinct from 'invalid')
+           or bool_or(approval_id is not null)
+      from public.verify_manager_pin_approval('20000000-0000-4000-8000-000000000002',current_setting('test.s20b1')::uuid,
+        current_setting('test.s20sess_b1')::uuid,current_setting('test.s20svc1')::uuid,100000,85000,'user-20bm1','0000','test-agent'))
+    then raise exception 'Wrong PIN must return exactly one invalid approval-free row'; end if;
   if (select count(*) from public.discount_approvals
       where company_id = '20000000-0000-4000-8000-000000000002') <> v_count
     then raise exception 'Wrong PIN created a discount approval'; end if;
-  select status, approval_id into v_status, v_approval
-    from public.verify_manager_pin_approval('20000000-0000-4000-8000-000000000002',current_setting('test.s20b1')::uuid,
-      current_setting('test.s20sess_b1')::uuid,current_setting('test.s20svc1')::uuid,100000,85000,'user-20bm1','0000','test-agent');
-  if v_status <> 'invalid' or v_approval is not null
-    then raise exception 'Wrong PIN did not return invalid'; end if;
   -- Cross-branch approver is refused.
   begin
     perform public.verify_manager_pin_approval('20000000-0000-4000-8000-000000000002',current_setting('test.s20b1')::uuid,
@@ -624,7 +644,6 @@ begin
       '20000000-0000-4000-8000-000000000043'::uuid,current_setting('test.s20svc1')::uuid,100000,85000,'user-20bm1','2468','test-agent');
   if v_status <> 'approved' or v_approval is null
     then raise exception 'Correct PIN did not approve'; end if;
-  perform set_config('test.s20_appr1',v_approval::text,true);
   select a.created_at into v_at from public.discount_approvals a
     where a.company_id='20000000-0000-4000-8000-000000000002' and a.id=v_approval;
   insert into public.service_sessions(company_id,id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,list_price_mills,price_mills,discount_reason,recorded_by,approved_by,approved_at,approval_id)
@@ -641,7 +660,6 @@ begin
   select status, approval_id into v_status, v_approval
     from public.verify_manager_pin_approval('20000000-0000-4000-8000-000000000002',current_setting('test.s20b1')::uuid,
       '20000000-0000-4000-8000-000000000046'::uuid,current_setting('test.s20svc1')::uuid,100000,85000,'user-20bm1','2468','test-agent');
-  perform set_config('test.s20_appr2',v_approval::text,true);
   begin
     insert into public.service_sessions(company_id,id,service_id,staff_id,branch_id,client_id,occurred_at,service_name,list_price_mills,price_mills,discount_reason,recorded_by,approved_by,approved_at,approval_id)
       values ('20000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000046',current_setting('test.s20svc2')::uuid,current_setting('test.s20staff1')::uuid,current_setting('test.s20b1')::uuid,current_setting('test.s20client')::uuid,now(),'S20 B cheap',12500,10000,'عرض','user-20rec','user-20bm1',v_at,v_approval);
@@ -860,6 +878,11 @@ begin
   if v_count <> 2 then raise exception 'Manager edit history rows wrong'; end if;
   if not exists(select 1 from public.audit_log where action='session.edited')
     then raise exception 'session.edited audit missing'; end if;
+  -- The approval-free edit must audit approvalKept=false, not null.
+  if not exists(select 1 from public.audit_log
+      where action='session.edited' and details->>'editReason'='خطأ في الاختيار'
+        and details->>'approvalKept'='false')
+    then raise exception 'Audit approvalKept wrong for an approval-free edit'; end if;
   select count(*) into v_count from public.clients where name='S20 B client renamed';
   if v_count <> 1 then raise exception 'Client rename did not persist'; end if;
 end $$;
@@ -955,8 +978,7 @@ do $$ begin
 end $$;
 
 select set_config('app.user_id','user-21b',true);
-do $$ declare v_version uuid; v_count int;
-begin
+do $$ begin
   -- (The 0026 backfill of real 0024 rows runs at migration time; resolution of
   -- a backfilled legacy version is covered by the Phase 2B integration test.
   -- Here the fixture version only feeds the tier-insert refusals below.)

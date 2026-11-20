@@ -217,12 +217,26 @@ grant execute on function public.valid_discount_approval(uuid,uuid,uuid,uuid,uui
 
 create or replace function public.has_manager_pin(_company uuid)
 returns boolean
-language sql stable security definer set search_path = public as $$
-  select public.is_member(_company)
-     and exists (select 1 from public.manager_pins p where p.company_id = _company)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  -- A non-member must not even learn whether a PIN exists in a foreign company.
+  if not public.is_member(_company) then raise exception 'FORBIDDEN'; end if;
+  return exists (select 1 from public.manager_pins p where p.company_id = _company);
+end
 $$;
 revoke all on function public.has_manager_pin(uuid) from public;
 grant execute on function public.has_manager_pin(uuid) to pospay_app;
+
+-- The ق-1 floor: no manager approval needed at or above list, or within cap.
+-- Single source for the sessions_insert policy and update_recorded_session.
+create or replace function public.discount_within_cap(_company uuid, _list_price bigint, _price bigint)
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select _price >= _list_price
+    or _price * 100 >= _list_price * (100 - public.discount_cap(_company))
+$$;
+revoke all on function public.discount_within_cap(uuid,bigint,bigint) from public;
+grant execute on function public.discount_within_cap(uuid,bigint,bigint) to pospay_app;
 
 -- Reads the session's current branch bypassing RLS: report readers AND editors
 -- may see history (a plain subquery would be filtered by sessions_report).
@@ -467,6 +481,7 @@ declare
   r record;
   v_approval uuid;
 begin
+  if not public.is_member(_company) then raise exception 'FORBIDDEN'; end if;
   select * into r
   from public.discount_approval_requests q
   where q.company_id = _company and q.id = _request_id
@@ -644,8 +659,7 @@ begin
                    and a.staff_id = _staff_id and a.active) then
     raise exception 'NOT_ASSIGNED';
   end if;
-  v_over_limit := not (_price_mills >= v_list_price
-    or _price_mills * 100 >= v_list_price * (100 - public.discount_cap(_company)));
+  v_over_limit := not public.discount_within_cap(_company, v_list_price, _price_mills);
   if _price_mills <> v_list_price
      and length(trim(coalesce(_discount_reason, ''))) = 0 then
     raise exception 'DISCOUNT_REASON_REQUIRED';
@@ -739,7 +753,7 @@ begin
   values (_company, public.current_app_user(), 'session.edited', 'service_sessions',
           _session_id::text,
           jsonb_build_object('editReason', trim(_edit_reason),
-                             'approvalKept', v_approval = v_old.approval_id));
+                             'approvalKept', v_approval is not null and v_approval = v_old.approval_id));
 end
 $$;
 revoke all on function public.update_recorded_session(uuid,uuid,uuid,uuid,text,text,timestamptz,bigint,text,uuid,text) from public;
@@ -764,7 +778,6 @@ create policy sessions_insert on public.service_sessions
          or (approved_by is not null and approved_at is not null and approval_id is not null
              and public.valid_discount_approval(company_id, approval_id, branch_id, id,
                    service_id, list_price_mills, price_mills, approved_by, approved_at)))
-    and (price_mills >= list_price_mills
-         or price_mills * 100 >= list_price_mills * (100 - public.discount_cap(company_id))
+    and (public.discount_within_cap(company_id, list_price_mills, price_mills)
          or approval_id is not null)
   );
