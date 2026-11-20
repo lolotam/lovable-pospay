@@ -1,60 +1,87 @@
-import { describe, expect, test } from "vitest";
+﻿import { describe, expect, test } from "vitest";
 import { isMonthStart, isValidPlanName, validatePlanVersion } from "./plan";
-import type { PlanRules } from "./plan";
+import type { PlanRules, SalesTierSchedule } from "./plan";
 
+const salesTier = (rateBp: bigint, mills: bigint) => ({
+  rateBp,
+  threshold: { kind: "fixed" as const, mills },
+});
+const validTierSchedule: SalesTierSchedule = {
+  accumulator: "sales_amount",
+  mode: "excess",
+  thresholdKind: "fixed",
+  tiers: [salesTier(500n, 1000n)],
+};
 const validTier: PlanRules = {
   baseRateBp: null,
-  tier: {
-    mode: "excess",
-    rateBp: 500n,
-    threshold: { kind: "fixed", mills: 1000n },
-  },
+  baseFixedMills: null,
+  tierSchedule: validTierSchedule,
 };
-
-const missingThreshold = {
-  baseRateBp: null,
-  tier: { mode: "excess", rateBp: 500n },
-} as unknown as PlanRules;
+const validFixed: PlanRules = { baseRateBp: null, baseFixedMills: 2500n, tierSchedule: null };
 
 describe("validatePlanVersion", () => {
   test.each([
-    { name: "empty plan", rules: { baseRateBp: null, tier: null }, expected: "PLAN_EMPTY" },
     {
-      name: "zero base rate",
-      rules: { baseRateBp: 0n, tier: null },
+      name: "empty plan",
+      rules: { baseRateBp: null, baseFixedMills: null, tierSchedule: null },
+      expected: "PLAN_EMPTY",
+    },
+    { name: "zero base rate", rules: { ...validFixed, baseRateBp: 0n }, expected: "PLAN_INVALID" },
+    {
+      name: "base rate above 100 percent",
+      rules: { ...validFixed, baseRateBp: 10001n },
       expected: "PLAN_INVALID",
     },
     {
-      name: "base rate above 100 percent",
-      rules: { baseRateBp: 10001n, tier: null },
+      name: "zero fixed per session",
+      rules: { baseRateBp: null, baseFixedMills: 0n, tierSchedule: null },
+      expected: "PLAN_INVALID",
+    },
+    {
+      name: "negative fixed per session",
+      rules: { baseRateBp: null, baseFixedMills: -1n, tierSchedule: null },
       expected: "PLAN_INVALID",
     },
     {
       name: "zero tier rate",
-      rules: { ...validTier, tier: { ...validTier.tier!, rateBp: 0n } },
+      rules: {
+        ...validTier,
+        tierSchedule: { ...validTierSchedule, tiers: [salesTier(0n, 1000n)] },
+      },
       expected: "PLAN_INVALID",
     },
     {
-      name: "tier rate above 100 percent",
-      rules: { ...validTier, tier: { ...validTier.tier!, rateBp: 10001n } },
+      name: "empty tier list",
+      rules: { ...validTier, tierSchedule: { ...validTierSchedule, tiers: [] } },
+      expected: "PLAN_INVALID",
+    },
+    {
+      name: "equal bracket thresholds",
+      rules: {
+        ...validTier,
+        tierSchedule: {
+          ...validTierSchedule,
+          tiers: [salesTier(500n, 2000n), salesTier(800n, 2000n)],
+        },
+      },
+      expected: "PLAN_INVALID",
+    },
+    {
+      name: "descending bracket thresholds",
+      rules: {
+        ...validTier,
+        tierSchedule: {
+          ...validTierSchedule,
+          tiers: [salesTier(500n, 2000n), salesTier(800n, 1000n)],
+        },
+      },
       expected: "PLAN_INVALID",
     },
     {
       name: "negative fixed threshold",
       rules: {
         ...validTier,
-        tier: { ...validTier.tier!, threshold: { kind: "fixed" as const, mills: -1n } },
-      },
-      expected: "PLAN_INVALID",
-    },
-    {
-      name: "zero salary multiple",
-      rules: {
-        ...validTier,
-        tier: {
-          ...validTier.tier!,
-          threshold: { kind: "salary_multiple" as const, multipleMilli: 0n },
-        },
+        tierSchedule: { ...validTierSchedule, tiers: [salesTier(500n, -1n)] },
       },
       expected: "PLAN_INVALID",
     },
@@ -62,41 +89,142 @@ describe("validatePlanVersion", () => {
       name: "fixed threshold above the bigint column",
       rules: {
         ...validTier,
-        tier: {
-          ...validTier.tier!,
-          threshold: { kind: "fixed" as const, mills: 9223372036854775808n },
+        tierSchedule: { ...validTierSchedule, tiers: [salesTier(500n, 9223372036854775808n)] },
+      },
+      expected: "PLAN_INVALID",
+    },
+    {
+      name: "zero salary multiple",
+      rules: {
+        ...validTier,
+        tierSchedule: {
+          ...validTierSchedule,
+          thresholdKind: "salary_multiple" as const,
+          tiers: [
+            { rateBp: 500n, threshold: { kind: "salary_multiple" as const, multipleMilli: 0n } },
+          ],
         },
       },
       expected: "PLAN_INVALID",
     },
     {
-      name: "salary multiple above the integer column",
+      name: "threshold kind mismatch inside the schedule",
       rules: {
         ...validTier,
-        tier: {
-          ...validTier.tier!,
-          threshold: { kind: "salary_multiple" as const, multipleMilli: 2147483648n },
+        tierSchedule: {
+          ...validTierSchedule,
+          tiers: [
+            salesTier(500n, 1000n),
+            { rateBp: 800n, threshold: { kind: "salary_multiple" as const, multipleMilli: 2000n } },
+          ],
         },
-      },
+      } as PlanRules,
       expected: "PLAN_INVALID",
     },
     {
       name: "unknown tier mode",
       rules: {
         ...validTier,
-        tier: { ...validTier.tier!, mode: "flat" },
+        tierSchedule: { ...validTierSchedule, mode: "flat" },
       } as unknown as PlanRules,
       expected: "PLAN_INVALID",
     },
-    { name: "missing threshold", rules: missingThreshold, expected: "PLAN_INVALID" },
+    {
+      name: "session-count schedule with all_after mode",
+      rules: {
+        ...validTier,
+        tierSchedule: {
+          accumulator: "session_count" as const,
+          mode: "all_after" as const,
+          tiers: [],
+        },
+      } as unknown as PlanRules,
+      expected: "PLAN_INVALID",
+    },
+    {
+      name: "session-count with a zero fixed reward",
+      rules: {
+        baseRateBp: null,
+        baseFixedMills: null,
+        tierSchedule: {
+          accumulator: "session_count" as const,
+          mode: "excess" as const,
+          tiers: [{ afterSessions: 5, reward: { kind: "fixed_mills" as const, mills: 0n } }],
+        },
+      },
+      expected: "PLAN_INVALID",
+    },
+    {
+      name: "session-count with a non-ascending count",
+      rules: {
+        baseRateBp: null,
+        baseFixedMills: null,
+        tierSchedule: {
+          accumulator: "session_count" as const,
+          mode: "excess" as const,
+          tiers: [
+            { afterSessions: 10, reward: { kind: "rate_bp" as const, rateBp: 1000n } },
+            { afterSessions: 10, reward: { kind: "rate_bp" as const, rateBp: 1500n } },
+          ],
+        },
+      },
+      expected: "PLAN_INVALID",
+    },
+    {
+      name: "more than twenty tiers",
+      rules: {
+        ...validTier,
+        tierSchedule: {
+          ...validTierSchedule,
+          tiers: Array.from({ length: 21 }, (_, index) =>
+            salesTier(500n, BigInt(index + 1) * 1000n),
+          ),
+        },
+      },
+      expected: "PLAN_INVALID",
+    },
   ])("returns $expected for $name", ({ rules, expected }) => {
     expect(validatePlanVersion(rules)).toBe(expected);
   });
 
   test.each([
-    { name: "base only", rules: { baseRateBp: 100n, tier: null } },
-    { name: "tier only", rules: validTier },
-    { name: "base and tier", rules: { ...validTier, baseRateBp: 100n } },
+    {
+      name: "base rate only",
+      rules: { baseRateBp: 100n, baseFixedMills: null, tierSchedule: null },
+    },
+    { name: "fixed per session only", rules: validFixed },
+    { name: "tier schedule only", rules: validTier },
+    {
+      name: "all methods combined",
+      rules: { ...validTier, baseRateBp: 100n, baseFixedMills: 2000n },
+    },
+    {
+      name: "twenty ascending tiers",
+      rules: {
+        ...validTier,
+        tierSchedule: {
+          ...validTierSchedule,
+          tiers: Array.from({ length: 20 }, (_, index) =>
+            salesTier(500n, BigInt(index + 1) * 1000n),
+          ),
+        },
+      },
+    },
+    {
+      name: "valid session-count schedule",
+      rules: {
+        baseRateBp: null,
+        baseFixedMills: null,
+        tierSchedule: {
+          accumulator: "session_count" as const,
+          mode: "excess" as const,
+          tiers: [
+            { afterSessions: 10, reward: { kind: "rate_bp" as const, rateBp: 1000n } },
+            { afterSessions: 20, reward: { kind: "fixed_mills" as const, mills: 2500n } },
+          ],
+        },
+      },
+    },
   ])("accepts $name", ({ rules }) => {
     expect(validatePlanVersion(rules)).toBeNull();
   });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkDiscount } from "./discount";
 
-describe("checkDiscount (ق-1)", () => {
+describe("checkDiscount (ق-1 + Q3)", () => {
   it("allows list price without permission", () => {
     expect(checkDiscount(20000n, 20000n, 0, "")).toBeNull();
   });
@@ -12,15 +12,20 @@ describe("checkDiscount (ق-1)", () => {
     expect(checkDiscount(20000n, 18000n, 10, "vip")).toBeNull();
     expect(checkDiscount(20000n, 17999n, 10, "vip")).toBe("DISCOUNT_OVER_LIMIT");
   });
-  it("never allows raising above the list price", () => {
-    expect(checkDiscount(20000n, 20001n, 100, "x")).toBe("PRICE_ABOVE_LIST");
+  it("rejects a negative price", () => {
+    expect(checkDiscount(20000n, -1n, 100, "x")).toBe("INVALID_PRICE");
+  });
+  it("allows a surcharge above the list price only with a reason (020 A4)", () => {
+    expect(checkDiscount(20000n, 20001n, 0, "شعر طويل")).toBeNull();
+    expect(checkDiscount(20000n, 30000n, 0, " ")).toBe("DISCOUNT_REASON_REQUIRED");
   });
   it("applies the 100.000 list and 10% cap acceptance numbers", () => {
     expect(checkDiscount(100000n, 90000n, 10, "vip")).toBeNull();
     expect(checkDiscount(100000n, 85000n, 10, "vip")).toBe("DISCOUNT_OVER_LIMIT");
-    expect(checkDiscount(100000n, 100001n, 10, "vip")).toBe("PRICE_ABOVE_LIST");
+    expect(checkDiscount(100000n, 100001n, 10, "vip")).toBeNull();
   });
-  it("requires a reason for a discount", () => {
+  it("requires a reason for a discount before the cap check", () => {
     expect(checkDiscount(20000n, 19000n, 100, " ")).toBe("DISCOUNT_REASON_REQUIRED");
+    expect(checkDiscount(20000n, 19999n, 0, " ")).toBe("DISCOUNT_REASON_REQUIRED");
   });
 });

@@ -28,9 +28,9 @@ export const Route = createFileRoute("/pos/sessions")({
       : undefined,
   component: GuardedPage,
 });
-function ExistingPage() {
+function ExistingPage({ canEdit }: { canEdit: boolean }) {
   return serviceSessionRecordingAvailable ? (
-    <SessionsPage />
+    <SessionsPage canEdit={canEdit} />
   ) : (
     <p role="status">{t("sessions.unavailable")}</p>
   );
@@ -38,7 +38,7 @@ function ExistingPage() {
 function GuardedPage() {
   const { session, allowed } = Route.useRouteContext();
   return allowed && pageAllowed(session, "/pos/sessions") ? (
-    <ExistingPage />
+    <ExistingPage canEdit={session.permissions.includes("sessions.edit")} />
   ) : (
     <NoAccess workspace={session.active} />
   );

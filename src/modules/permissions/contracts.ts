@@ -20,6 +20,8 @@ export const permissionKeySchema = z.enum([
   "staff.manage",
   "services.manage",
   "discounts.manage",
+  "sessions.edit",
+  "commissions.overrides.manage",
   "permissions.manage",
 ]);
 export type PermissionKey = z.infer<typeof permissionKeySchema>;

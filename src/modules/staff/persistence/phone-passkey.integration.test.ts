@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { readFile } from "node:fs/promises";
 import { afterAll, beforeAll, expect, it, describe, vi } from "vitest";
 import pg from "pg";
 import { bindPhone } from "./phone.server";
@@ -33,6 +34,9 @@ describe.skipIf(!url)("C2 real bind/unbind adapter deletion", () => {
     vi.stubEnv("BETTER_AUTH_SECRET", "test-only-c2-passkey-secret-at-least-32");
     vi.stubEnv("BETTER_AUTH_URL", "http://localhost:8080");
     admin = new pg.Pool({ connectionString: url });
+    // The suite shares one database and earlier files may re-apply older
+    // migrations, so re-assert the late self-unbind policy this file needs.
+    await admin.query(await readFile("db/migrations/0021_phone_self_unbind.sql", "utf8"));
     await admin.query("insert into companies(id,name) values($1,'C2 salon')", [company]);
     await admin.query("insert into branches(id,company_id,name) values($1,$2,'C2 branch')", [
       branch,

@@ -1,11 +1,14 @@
 import {
+  Bell,
   CalendarCheck,
   ChartBar,
   ClipboardText,
+  Coins,
   DeviceMobile,
   GearSix,
   House,
   IdentificationCard,
+  ListChecks,
   PencilSimpleLine,
   Percent,
   Plug,
@@ -13,16 +16,18 @@ import {
   Question,
   Scan,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkle,
   Stethoscope,
   Storefront,
   Timer,
   UserPlus,
   UsersThree,
+  Wallet,
   type Icon,
 } from "@phosphor-icons/react";
 import type { MessageKey } from "@/i18n";
-import type { Area, PermissionKey } from "../contracts";
+import type { Area, CompanyRole, PermissionKey } from "../contracts";
 
 export interface NavLeaf {
   to: string;
@@ -30,12 +35,16 @@ export interface NavLeaf {
   icon: Icon;
   requires?: PermissionKey;
   needsRecording?: boolean;
+  /** شارة عدد على الغلاف؛ القيمة الوحيدة المدعومة عداد اعتمادات الخصم المعلقة. */
+  badge?: "pendingApprovals";
 }
 export interface NavGroup {
   label: MessageKey;
   icon: Icon;
   to?: string;
   requires?: PermissionKey;
+  /** أدوار الشركة الوحيدة التي يظهر لها القسم؛ من غيره يُخفى القسم كله. */
+  roles?: readonly CompanyRole[];
   children?: NavLeaf[];
 }
 
@@ -97,11 +106,39 @@ const NAV: Record<Area, NavGroup[]> = {
       children: [
         { to: "/app/services", label: "nav.services", icon: Sparkle, requires: "services.manage" },
         {
+          to: "/app/services/sessions",
+          label: "nav.manageSessions",
+          icon: ClipboardText,
+          requires: "sessions.edit",
+        },
+        {
           to: "/app/services/discounts",
           label: "nav.discounts",
           icon: Percent,
           requires: "discounts.manage",
         },
+        {
+          to: "/app/services/approvals",
+          label: "nav.discountApprovals",
+          icon: Bell,
+          requires: "discounts.manage",
+          badge: "pendingApprovals",
+        },
+      ],
+    },
+    {
+      label: "nav.group.commissions",
+      icon: Coins,
+      roles: ["owner", "branch_manager"],
+      children: [
+        { to: "/app/commissions/plans", label: "nav.plans", icon: ListChecks },
+        {
+          to: "/app/commissions/overrides",
+          label: "nav.overrides",
+          icon: SlidersHorizontal,
+          requires: "commissions.overrides.manage",
+        },
+        { to: "/app/commissions/salaries", label: "nav.salaries", icon: Wallet },
       ],
     },
     { to: "/app/page", label: "nav.companyPage", icon: Storefront },
@@ -141,7 +178,7 @@ const allowed = (
   recording: boolean,
 ) => (!item.requires || perms.includes(item.requires)) && (!item.needsRecording || recording);
 
-/** يرشّح القائمة حسب الصلاحيات وإتاحة تسجيل الجلسات. */
+/** يرشّح القائمة حسب الصلاحيات ودور الشركة وإتاحة تسجيل الجلسات. */
 export function visibleNavigation(
   area: Area,
   perms: readonly PermissionKey[],
@@ -149,6 +186,7 @@ export function visibleNavigation(
   role?: import("../contracts").CompanyRole,
 ): NavGroup[] {
   return NAV[area].flatMap((group) => {
+    if (group.roles && (!role || !group.roles.includes(role))) return [];
     if (["/app/permissions", "/app/page"].includes(group.to ?? "") && role !== "owner") return [];
     if (!group.children) return allowed(group, perms, recording) ? [group] : [];
     const children = group.children.filter((c) => allowed(c, perms, recording));

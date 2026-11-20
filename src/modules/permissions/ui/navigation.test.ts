@@ -5,8 +5,9 @@ const paths = (
   area: "admin" | "app" | "pos" | "me",
   perms: import("../contracts").PermissionKey[],
   recording = false,
+  role?: import("../contracts").CompanyRole,
 ) =>
-  visibleNavigation(area, perms, recording).flatMap((g) =>
+  visibleNavigation(area, perms, recording, role).flatMap((g) =>
     g.children ? g.children.map((c) => c.to) : [g.to],
   );
 
@@ -40,6 +41,32 @@ describe("visibleNavigation", () => {
   it("drops a group whose children are all hidden", () => {
     const groups = visibleNavigation("app", ["reports.view"], false);
     expect(groups.some((g) => g.label === "nav.group.services")).toBe(false);
+  });
+  it("shows the new services leaves only with their permissions", () => {
+    expect(paths("app", ["discounts.manage"])).toContain("/app/services/approvals");
+    expect(paths("app", ["discounts.manage"])).not.toContain("/app/services/sessions");
+    expect(paths("app", ["sessions.edit"])).toContain("/app/services/sessions");
+    expect(paths("app", ["sessions.edit"])).not.toContain("/app/services/approvals");
+  });
+  it("gates the commissions group by role and its overrides leaf by permission", () => {
+    const owner = paths("app", [], false, "owner");
+    expect(owner).toContain("/app/commissions/plans");
+    expect(owner).toContain("/app/commissions/salaries");
+    expect(owner).not.toContain("/app/commissions/overrides");
+    const manager = paths("app", ["commissions.overrides.manage"], false, "branch_manager");
+    expect(manager).toContain("/app/commissions/plans");
+    expect(manager).toContain("/app/commissions/overrides");
+    for (const role of ["reception", "staff", "accountant", "viewer"] as const) {
+      const others = paths("app", ["reports.view"], false, role);
+      expect(others.some((p) => p?.startsWith("/app/commissions") ?? false)).toBe(false);
+    }
+  });
+  it("marks the approvals leaf with the pending-approvals badge", () => {
+    const groups = visibleNavigation("app", ["discounts.manage"], false);
+    const leaf = groups
+      .flatMap((g) => g.children ?? [])
+      .find((c) => c.to === "/app/services/approvals");
+    expect(leaf?.badge).toBe("pendingApprovals");
   });
   it("hides sessions until recording is available", () => {
     expect(paths("pos", ["pos.access"])).not.toContain("/pos/sessions");

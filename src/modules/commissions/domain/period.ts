@@ -38,6 +38,21 @@ export function periodStart(period: CommissionPeriod): string {
 }
 
 /**
+ * يحسب أول يوم في الفترة التالية بصيغة ISO ليكون النهاية الحصرية للفترة
+ * عند مقارنة أوقات السريان (تجاوزات العمولة 021 O5).
+ *
+ * @param period السنة والشهر المطلوبان
+ * @returns تاريخ أول يوم في الشهر التالي بصيغة YYYY-MM-DD
+ */
+export function nextPeriodStart(period: CommissionPeriod): string {
+  const next =
+    period.month === 12
+      ? { year: period.year + 1, month: 1 }
+      : { year: period.year, month: period.month + 1 };
+  return periodStart(next);
+}
+
+/**
  * يحسب آخر يوم في فترة العمولة حسابياً، بما في ذلك 29 فبراير في السنة الكبيسة.
  *
  * @param period السنة والشهر المطلوبان

@@ -39,6 +39,43 @@ describe("pageAllowed", () => {
     expect(pageAllowed(context, "/pos/sessions")).toBe(false);
     expect(pageAllowed(context, "/app/staff/team")).toBe(true);
   });
+  it("opens the new services pages by permission", () => {
+    expect(
+      pageAllowed({ ...context, permissions: ["sessions.edit"] }, "/app/services/sessions"),
+    ).toBe(true);
+    expect(pageAllowed(context, "/app/services/sessions")).toBe(false);
+    expect(
+      pageAllowed({ ...context, permissions: ["discounts.manage"] }, "/app/services/approvals"),
+    ).toBe(true);
+    expect(pageAllowed(context, "/app/services/approvals")).toBe(false);
+  });
+  it("opens commission pages for owner and branch manager only", () => {
+    const withRole = (role: import("../contracts").CompanyRole) =>
+      ({
+        ...context,
+        active: { ...context.active, kind: "company", role },
+      }) as SessionContextDto;
+    for (const path of ["/app/commissions/plans", "/app/commissions/salaries"]) {
+      expect(pageAllowed(withRole("owner"), path)).toBe(true);
+      expect(pageAllowed(withRole("branch_manager"), path)).toBe(true);
+      expect(pageAllowed(withRole("reception"), path)).toBe(false);
+      expect(pageAllowed(withRole("staff"), path)).toBe(false);
+    }
+    const managerOverride = {
+      ...withRole("branch_manager"),
+      permissions: ["commissions.overrides.manage"],
+    } as SessionContextDto;
+    expect(pageAllowed(managerOverride, "/app/commissions/overrides")).toBe(true);
+    expect(pageAllowed(withRole("branch_manager"), "/app/commissions/overrides")).toBe(false);
+    const reception = {
+      ...withRole("reception"),
+      permissions: ["pos.access", "sessions.edit", "commissions.overrides.manage"],
+    } as SessionContextDto;
+    expect(pageAllowed(reception, "/app/commissions/overrides")).toBe(false);
+    expect(
+      pageAllowed({ ...withRole("staff"), permissions: [] }, "/app/commissions/salaries"),
+    ).toBe(false);
+  });
 });
 describe("loadArea", () => {
   it("sends a signed-in user without a workspace to the chooser with the requested path", async () => {

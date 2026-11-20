@@ -54,8 +54,13 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AppAttendanceCorrectionsRouteImport } from './routes/app/attendance/corrections'
 import { Route as AppAttendanceQuestionsRouteImport } from './routes/app/attendance/questions'
 import { Route as AppAttendanceReportsRouteImport } from './routes/app/attendance/reports'
+import { Route as AppCommissionsOverridesRouteImport } from './routes/app/commissions/overrides'
+import { Route as AppCommissionsPlansRouteImport } from './routes/app/commissions/plans'
+import { Route as AppCommissionsSalariesRouteImport } from './routes/app/commissions/salaries'
 import { Route as AppServicesIndexRouteImport } from './routes/app/services/index'
+import { Route as AppServicesApprovalsRouteImport } from './routes/app/services/approvals'
 import { Route as AppServicesDiscountsRouteImport } from './routes/app/services/discounts'
+import { Route as AppServicesSessionsRouteImport } from './routes/app/services/sessions'
 import { Route as AppStaffCardsRouteImport } from './routes/app/staff/cards'
 import { Route as AppStaffPhonesRouteImport } from './routes/app/staff/phones'
 import { Route as AppStaffTeamRouteImport } from './routes/app/staff/team'
@@ -286,14 +291,39 @@ const AppAttendanceReportsRoute = AppAttendanceReportsRouteImport.update({
   path: '/attendance/reports',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppCommissionsOverridesRoute = AppCommissionsOverridesRouteImport.update({
+  id: '/commissions/overrides',
+  path: '/commissions/overrides',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppCommissionsPlansRoute = AppCommissionsPlansRouteImport.update({
+  id: '/commissions/plans',
+  path: '/commissions/plans',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppCommissionsSalariesRoute = AppCommissionsSalariesRouteImport.update({
+  id: '/commissions/salaries',
+  path: '/commissions/salaries',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppServicesIndexRoute = AppServicesIndexRouteImport.update({
   id: '/services/',
   path: '/services/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppServicesApprovalsRoute = AppServicesApprovalsRouteImport.update({
+  id: '/services/approvals',
+  path: '/services/approvals',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppServicesDiscountsRoute = AppServicesDiscountsRouteImport.update({
   id: '/services/discounts',
   path: '/services/discounts',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppServicesSessionsRoute = AppServicesSessionsRouteImport.update({
+  id: '/services/sessions',
+  path: '/services/sessions',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppStaffCardsRoute = AppStaffCardsRouteImport.update({
@@ -358,7 +388,12 @@ export interface FileRoutesByFullPath {
   '/app/attendance/corrections': typeof AppAttendanceCorrectionsRoute
   '/app/attendance/questions': typeof AppAttendanceQuestionsRoute
   '/app/attendance/reports': typeof AppAttendanceReportsRoute
+  '/app/commissions/overrides': typeof AppCommissionsOverridesRoute
+  '/app/commissions/plans': typeof AppCommissionsPlansRoute
+  '/app/commissions/salaries': typeof AppCommissionsSalariesRoute
+  '/app/services/approvals': typeof AppServicesApprovalsRoute
   '/app/services/discounts': typeof AppServicesDiscountsRoute
+  '/app/services/sessions': typeof AppServicesSessionsRoute
   '/app/staff/cards': typeof AppStaffCardsRoute
   '/app/staff/phones': typeof AppStaffPhonesRoute
   '/app/staff/team': typeof AppStaffTeamRoute
@@ -406,7 +441,12 @@ export interface FileRoutesByTo {
   '/app/attendance/corrections': typeof AppAttendanceCorrectionsRoute
   '/app/attendance/questions': typeof AppAttendanceQuestionsRoute
   '/app/attendance/reports': typeof AppAttendanceReportsRoute
+  '/app/commissions/overrides': typeof AppCommissionsOverridesRoute
+  '/app/commissions/plans': typeof AppCommissionsPlansRoute
+  '/app/commissions/salaries': typeof AppCommissionsSalariesRoute
+  '/app/services/approvals': typeof AppServicesApprovalsRoute
   '/app/services/discounts': typeof AppServicesDiscountsRoute
+  '/app/services/sessions': typeof AppServicesSessionsRoute
   '/app/staff/cards': typeof AppStaffCardsRoute
   '/app/staff/phones': typeof AppStaffPhonesRoute
   '/app/staff/team': typeof AppStaffTeamRoute
@@ -459,7 +499,12 @@ export interface FileRoutesById {
   '/app/attendance/corrections': typeof AppAttendanceCorrectionsRoute
   '/app/attendance/questions': typeof AppAttendanceQuestionsRoute
   '/app/attendance/reports': typeof AppAttendanceReportsRoute
+  '/app/commissions/overrides': typeof AppCommissionsOverridesRoute
+  '/app/commissions/plans': typeof AppCommissionsPlansRoute
+  '/app/commissions/salaries': typeof AppCommissionsSalariesRoute
+  '/app/services/approvals': typeof AppServicesApprovalsRoute
   '/app/services/discounts': typeof AppServicesDiscountsRoute
+  '/app/services/sessions': typeof AppServicesSessionsRoute
   '/app/staff/cards': typeof AppStaffCardsRoute
   '/app/staff/phones': typeof AppStaffPhonesRoute
   '/app/staff/team': typeof AppStaffTeamRoute
@@ -513,7 +558,12 @@ export interface FileRouteTypes {
     | '/app/attendance/corrections'
     | '/app/attendance/questions'
     | '/app/attendance/reports'
+    | '/app/commissions/overrides'
+    | '/app/commissions/plans'
+    | '/app/commissions/salaries'
+    | '/app/services/approvals'
     | '/app/services/discounts'
+    | '/app/services/sessions'
     | '/app/staff/cards'
     | '/app/staff/phones'
     | '/app/staff/team'
@@ -561,7 +611,12 @@ export interface FileRouteTypes {
     | '/app/attendance/corrections'
     | '/app/attendance/questions'
     | '/app/attendance/reports'
+    | '/app/commissions/overrides'
+    | '/app/commissions/plans'
+    | '/app/commissions/salaries'
+    | '/app/services/approvals'
     | '/app/services/discounts'
+    | '/app/services/sessions'
     | '/app/staff/cards'
     | '/app/staff/phones'
     | '/app/staff/team'
@@ -613,7 +668,12 @@ export interface FileRouteTypes {
     | '/app/attendance/corrections'
     | '/app/attendance/questions'
     | '/app/attendance/reports'
+    | '/app/commissions/overrides'
+    | '/app/commissions/plans'
+    | '/app/commissions/salaries'
+    | '/app/services/approvals'
     | '/app/services/discounts'
+    | '/app/services/sessions'
     | '/app/staff/cards'
     | '/app/staff/phones'
     | '/app/staff/team'
@@ -965,6 +1025,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAttendanceReportsRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/commissions/overrides': {
+      id: '/app/commissions/overrides'
+      path: '/commissions/overrides'
+      fullPath: '/app/commissions/overrides'
+      preLoaderRoute: typeof AppCommissionsOverridesRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/commissions/plans': {
+      id: '/app/commissions/plans'
+      path: '/commissions/plans'
+      fullPath: '/app/commissions/plans'
+      preLoaderRoute: typeof AppCommissionsPlansRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/commissions/salaries': {
+      id: '/app/commissions/salaries'
+      path: '/commissions/salaries'
+      fullPath: '/app/commissions/salaries'
+      preLoaderRoute: typeof AppCommissionsSalariesRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/services/': {
       id: '/app/services/'
       path: '/services'
@@ -972,11 +1053,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppServicesIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/services/approvals': {
+      id: '/app/services/approvals'
+      path: '/services/approvals'
+      fullPath: '/app/services/approvals'
+      preLoaderRoute: typeof AppServicesApprovalsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/services/discounts': {
       id: '/app/services/discounts'
       path: '/services/discounts'
       fullPath: '/app/services/discounts'
       preLoaderRoute: typeof AppServicesDiscountsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/services/sessions': {
+      id: '/app/services/sessions'
+      path: '/services/sessions'
+      fullPath: '/app/services/sessions'
+      preLoaderRoute: typeof AppServicesSessionsRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/app/staff/cards': {
@@ -1029,7 +1124,12 @@ interface AppRouteRouteChildren {
   AppAttendanceCorrectionsRoute: typeof AppAttendanceCorrectionsRoute
   AppAttendanceQuestionsRoute: typeof AppAttendanceQuestionsRoute
   AppAttendanceReportsRoute: typeof AppAttendanceReportsRoute
+  AppCommissionsOverridesRoute: typeof AppCommissionsOverridesRoute
+  AppCommissionsPlansRoute: typeof AppCommissionsPlansRoute
+  AppCommissionsSalariesRoute: typeof AppCommissionsSalariesRoute
+  AppServicesApprovalsRoute: typeof AppServicesApprovalsRoute
   AppServicesDiscountsRoute: typeof AppServicesDiscountsRoute
+  AppServicesSessionsRoute: typeof AppServicesSessionsRoute
   AppStaffCardsRoute: typeof AppStaffCardsRoute
   AppStaffPhonesRoute: typeof AppStaffPhonesRoute
   AppStaffTeamRoute: typeof AppStaffTeamRoute
@@ -1044,7 +1144,12 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAttendanceCorrectionsRoute: AppAttendanceCorrectionsRoute,
   AppAttendanceQuestionsRoute: AppAttendanceQuestionsRoute,
   AppAttendanceReportsRoute: AppAttendanceReportsRoute,
+  AppCommissionsOverridesRoute: AppCommissionsOverridesRoute,
+  AppCommissionsPlansRoute: AppCommissionsPlansRoute,
+  AppCommissionsSalariesRoute: AppCommissionsSalariesRoute,
+  AppServicesApprovalsRoute: AppServicesApprovalsRoute,
   AppServicesDiscountsRoute: AppServicesDiscountsRoute,
+  AppServicesSessionsRoute: AppServicesSessionsRoute,
   AppStaffCardsRoute: AppStaffCardsRoute,
   AppStaffPhonesRoute: AppStaffPhonesRoute,
   AppStaffTeamRoute: AppStaffTeamRoute,

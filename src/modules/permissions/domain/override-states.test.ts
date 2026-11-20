@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { RESTRICTION_KEYS, assertEditableTarget, toRows, toStates } from "./override-states";
+import {
+  RESTRICTION_KEYS,
+  assertEditableTarget,
+  permissionApplicable,
+  toRows,
+  toStates,
+} from "./override-states";
 
 describe("editable permission overrides", () => {
   it.each(["default", "allow", "deny"] as const)("round-trips pos.access=%s", (state) => {
@@ -32,7 +38,19 @@ describe("editable permission overrides", () => {
       "staff.manage": "default",
       "services.manage": "default",
       "discounts.manage": "default",
+      "sessions.edit": "default",
+      "commissions.overrides.manage": "default",
     });
+  });
+  it("applies role-restricted keys only to their roles", () => {
+    expect(permissionApplicable("sessions.edit", ["branch_manager", "staff"])).toBe(true);
+    expect(permissionApplicable("sessions.edit", ["reception"])).toBe(true);
+    expect(permissionApplicable("sessions.edit", ["staff", "accountant"])).toBe(false);
+    expect(permissionApplicable("commissions.overrides.manage", ["branch_manager"])).toBe(true);
+    expect(permissionApplicable("commissions.overrides.manage", ["reception", "staff"])).toBe(
+      false,
+    );
+    expect(permissionApplicable("pos.access", ["staff", "viewer"])).toBe(true);
   });
 });
 

@@ -1,36 +1,55 @@
 import { describe, expect, test } from "vitest";
 import { computeCommission } from "./compute-commission";
-import type { PlanRules, SalesLine } from "./plan";
+import type { PlanRules, SalesLine, ServiceOverrideRow } from "./plan";
 
 const HAIR_PLAN: PlanRules = {
   baseRateBp: null,
-  tier: {
+  baseFixedMills: null,
+  tierSchedule: {
+    accumulator: "sales_amount",
     mode: "excess",
-    rateBp: 500n,
-    threshold: { kind: "salary_multiple", multipleMilli: 2000n },
+    thresholdKind: "salary_multiple",
+    tiers: [{ rateBp: 500n, threshold: { kind: "salary_multiple", multipleMilli: 2000n } }],
   },
 };
 const NAILS_PLAN: PlanRules = {
   baseRateBp: null,
-  tier: {
+  baseFixedMills: null,
+  tierSchedule: {
+    accumulator: "sales_amount",
     mode: "all_after",
-    rateBp: 1000n,
-    threshold: { kind: "salary_multiple", multipleMilli: 3000n },
+    thresholdKind: "salary_multiple",
+    tiers: [{ rateBp: 1000n, threshold: { kind: "salary_multiple", multipleMilli: 3000n } }],
   },
 };
 const LASHES_PLAN: PlanRules = {
   baseRateBp: null,
-  tier: {
+  baseFixedMills: null,
+  tierSchedule: {
+    accumulator: "sales_amount",
     mode: "excess",
-    rateBp: 2000n,
-    threshold: { kind: "fixed", mills: 5000000n },
+    thresholdKind: "fixed",
+    tiers: [{ rateBp: 2000n, threshold: { kind: "fixed", mills: 5000000n } }],
   },
 };
-const MASSAGE_PLAN: PlanRules = { baseRateBp: 100n, tier: null };
+const MASSAGE_PLAN: PlanRules = { baseRateBp: 100n, baseFixedMills: null, tierSchedule: null };
 const BASE_AND_HAIR_PLAN: PlanRules = { ...HAIR_PLAN, baseRateBp: 100n };
+const PERIOD_START = new Date("2027-03-01T00:00:00Z");
 
 function sales(...amounts: bigint[]): SalesLine[] {
-  return amounts.map((netMills, index) => ({ sessionId: `session-${index + 1}`, netMills }));
+  return amounts.map((netMills, index) => ({
+    sessionId: `session-${index + 1}`,
+    occurredAt: new Date(PERIOD_START.getTime() + index * 60_000),
+    netMills,
+  }));
+}
+
+function sessionSales(count: number, netMills: bigint): SalesLine[] {
+  return Array.from({ length: count }, (_, index) => ({
+    sessionId: `session-${index + 1}`,
+    occurredAt: new Date(PERIOD_START.getTime() + index * 60_000),
+    netMills,
+  }));
 }
 
 const acceptanceRows = [
@@ -80,20 +99,26 @@ const acceptanceRows = [
   { row: "15", rules: LASHES_PLAN, salary: null, lines: [], total: 0n },
 ];
 
-describe("computeCommission acceptance criteria", () => {
+describe("computeCommission acceptance criteria (019 rows preserved)", () => {
   test.each(acceptanceRows)("acceptance row $row", ({ rules, salary, lines, total }) => {
     const result = computeCommission(rules, lines, salary);
     expect(result.totalMills).toBe(total);
+    expect(result.totalMills).toBe(result.baseMills + result.tierMills + result.overrideMills);
     expect(result.qualifyingSalesMills).toBe(lines.reduce((sum, line) => sum + line.netMills, 0n));
-    expect(result.totalMills).toBe(result.baseMills + result.tierMills);
   });
 
   test("reports the resolved threshold and separate period components", () => {
     expect(computeCommission(BASE_AND_HAIR_PLAN, sales(1600000n), 500000n)).toEqual({
       qualifyingSalesMills: 1600000n,
+      qualifyingSessionCount: 1,
       thresholdMills: 1000000n,
+      baseRateMills: 16000n,
+      baseFixedMills: 0n,
       baseMills: 16000n,
       tierMills: 30000n,
+      overrideMills: 0n,
+      overrideSalesMills: 0n,
+      overrideSessionCount: 0,
       totalMills: 46000n,
     });
   });

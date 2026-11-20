@@ -11,6 +11,8 @@ import {
   revokeDiscountGrantFn,
   saveDiscountGrantFn,
 } from "../functions/discount.functions";
+import { ManagerPinCard } from "./manager-pin-card";
+import { FailedPinAttempts } from "./failed-pin-attempts";
 
 const settingsQuery = (companyId: string, userId: string) =>
   queryOptions({
@@ -139,6 +141,8 @@ function DiscountSettings({ companyId, userId }: { companyId: string; userId: st
         ))}
         {!data.grants.length && <li>{t("ops.empty")}</li>}
       </ul>
+      <ManagerPinCard companyId={companyId} />
+      <FailedPinAttempts companyId={companyId} />
     </section>
   );
 }

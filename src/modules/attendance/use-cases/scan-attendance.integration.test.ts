@@ -105,7 +105,26 @@ describe.skipIf(!databaseUrl)("attendance with real PostgreSQL and RLS", () => {
     const client = await admin.connect();
     try {
       await client.query("begin");
+      // 0025 introduced mutually referencing approval tables, so company
+      // cascade deletion needs FK triggers off; with triggers off the
+      // cascades are off too, so the fixture rows are deleted explicitly.
+      await client.query("set local session_replication_role = replica");
       await client.query("delete from public.companies where id=$1", [company]);
+      for (const table of [
+        "service_sessions",
+        "clients",
+        "service_assignments",
+        "service_catalog",
+        "attendance_records",
+        "staff_members",
+        "memberships",
+        "branches",
+      ])
+        await client.query(`delete from public.${table} where company_id=$1`, [company]);
+      await client.query("set local session_replication_role = origin");
+      for (const late of ["0025_session_controls", "0026_commission_methods_and_salaries"]) {
+        await client.query(await readFile(`db/migrations/${late}.sql`, "utf8"));
+      }
       await client.query(sql.replace(/^begin;$/m, "").replace(/^rollback;$/m, ""));
     } finally {
       await client.query("rollback");
