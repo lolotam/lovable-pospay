@@ -129,7 +129,12 @@ describe.skipIf(!process.env["POSPAY_TEST_DATABASE_URL"])(
             new Date(),
           ),
         ),
-      ).resolves.toMatchObject({ status: "approved", approverUserId: manager1 });
+      ).resolves.toMatchObject({
+        status: "approved",
+        approverUserId: manager1,
+        // Reception sees a non-staff approver's name (company_member_names).
+        approverName: "Branch 1 manager",
+      });
       await expect(
         record(
           reception,

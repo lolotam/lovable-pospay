@@ -114,7 +114,6 @@ function fakeRepo(
 
 const baseInput = {
   sessionId: "session-1",
-  hintOccurredAt: "2027-03-01T10:00",
   serviceId: "s1",
   staffId: "staff-1",
   clientName: "Noura",

@@ -117,7 +117,7 @@ export function pgSessionRepository(
     async consumeApproval(approvalId) {
       await db.query("select public.consume_discount_approval($1,$2)", [companyId, approvalId]);
     },
-    getSessionForEdit: (sessionId, hint) => getSessionForEdit(db, companyId, sessionId, hint),
+    getSessionForEdit: (sessionId) => getSessionForEdit(db, companyId, sessionId),
     async canEditSession(branchId) {
       const { rows } = await db.query<{ ok: boolean }>(
         "select public.session_editor($1,$2) as ok",
@@ -238,19 +238,13 @@ async function getSessionForEdit(
   db: pg.PoolClient,
   companyId: string,
   sessionId: string,
-  hint: string,
 ): Promise<SessionForEdit | null> {
   const { rows } = await db.query<EditableRow>(
     `select id,service_id,service_name,staff_id,branch_id,time_zone,client_name,occurred_at,
             list_price_mills::text as list_price,price_mills::text as price,discount_reason,
             approved_by,month_closed,can_edit
-     from public.list_editable_sessions(
-       $1,
-       ($2::timestamp at time zone 'UTC') - interval '2 days',
-       ($2::timestamp at time zone 'UTC') + interval '2 days',
-       500)
-     where id = $3`,
-    [companyId, hint, sessionId],
+     from public.editable_session_by_id($1,$2)`,
+    [companyId, sessionId],
   );
   return rows[0] ? mapEditableRow(rows[0]) : null;
 }

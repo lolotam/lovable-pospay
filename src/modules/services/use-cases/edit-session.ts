@@ -13,8 +13,6 @@ import { servicePrice } from "./service-price";
 /** مدخلات تعديل جلسة مسجلة؛ السعر إلزامي وسبب التعديل إلزامي (020 D3). */
 export interface EditSessionInput {
   sessionId: string;
-  /** وقت الجلسة كما ظهر في قائمة المحررين؛ يحدّ نطاق القراءة فقط. */
-  hintOccurredAt: string;
   serviceId: string;
   staffId: string;
   clientName: string;
@@ -57,7 +55,7 @@ export async function editSession(
 ): Promise<EditSessionResult> {
   const editReason = input.editReason.trim();
   if (editReason.length === 0 || editReason.length > 200) throw new Error("EDIT_REASON_REQUIRED");
-  const existing = await repo.getSessionForEdit(input.sessionId, input.hintOccurredAt);
+  const existing = await repo.getSessionForEdit(input.sessionId);
   if (existing?.monthClosed) throw new Error("PERIOD_CLOSED");
   if (!existing || !existing.canEdit) throw new Error("FORBIDDEN");
   const assignment = await repo.assignedService(input.serviceId, input.staffId);

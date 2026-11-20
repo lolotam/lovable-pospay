@@ -513,6 +513,47 @@ do $$ begin
     raise exception 'A closed a month in B';
   exception when insufficient_privilege then null;
   end;
+  begin
+    perform public.editable_session_by_id('20000000-0000-4000-8000-000000000002',
+      '20000000-0000-4000-8000-000000000041');
+    raise exception 'Foreign editable_session_by_id allowed';
+  exception when raise_exception then
+    if sqlerrm <> 'FORBIDDEN' then raise; end if;
+  end;
+  begin
+    perform public.company_member_names('20000000-0000-4000-8000-000000000002');
+    raise exception 'Foreign company_member_names allowed';
+  exception when raise_exception then
+    if sqlerrm <> 'FORBIDDEN' then raise; end if;
+  end;
+end $$;
+
+select set_config('app.user_id','user-20b',true);
+do $$ begin
+  -- Edit lookup by id: found for the owner, empty for an id from another company.
+  if (select count(*) from public.editable_session_by_id('20000000-0000-4000-8000-000000000002',
+      '20000000-0000-4000-8000-000000000041')) <> 1
+    then raise exception 'editable_session_by_id missed an owner session'; end if;
+  if exists(select 1 from public.editable_session_by_id('20000000-0000-4000-8000-000000000002',
+      '20000000-0000-4000-8000-000000000042'))
+    then raise exception 'editable_session_by_id returned a foreign-company session'; end if;
+end $$;
+
+select set_config('app.user_id','user-20bm2',true);
+do $$ begin
+  if exists(select 1 from public.editable_session_by_id('20000000-0000-4000-8000-000000000002',
+      '20000000-0000-4000-8000-000000000041'))
+    then raise exception 'editable_session_by_id leaked another branch session'; end if;
+end $$;
+
+select set_config('app.user_id','user-20rec',true);
+do $$ begin
+  if (select name from public.company_member_names('20000000-0000-4000-8000-000000000002')
+      where user_id = 'user-20b') is distinct from 'Owner S20 B'
+    then raise exception 'company_member_names missing the non-staff owner'; end if;
+  if exists(select 1 from public.company_member_names('20000000-0000-4000-8000-000000000002')
+      where user_id = 'user-20a')
+    then raise exception 'company_member_names listed a foreign member'; end if;
 end $$;
 
 select set_config('app.user_id','user-20b',true);

@@ -62,7 +62,6 @@ export const edit = (user: string, overrides: Record<string, unknown> = {}) =>
       pgDiscountApprovalRepository(db, company),
       {
         sessionId: "20000000-0000-4000-8000-000000000011",
-        hintOccurredAt: "2027-03-10T14:30",
         serviceId: service2,
         staffId: staff1b,
         clientName: "Huda",

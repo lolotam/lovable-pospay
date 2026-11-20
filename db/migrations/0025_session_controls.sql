@@ -600,6 +600,50 @@ $$;
 revoke all on function public.list_editable_sessions(uuid,timestamptz,timestamptz,int) from public;
 grant execute on function public.list_editable_sessions(uuid,timestamptz,timestamptz,int) to pospay_app;
 
+-- One session by id for the edit path. Reuses list_editable_sessions at the
+-- session's own instant so the row shape and editor gate stay in one place.
+create or replace function public.editable_session_by_id(_company uuid, _session_id uuid)
+returns table(id uuid, service_id uuid, service_name text, staff_id uuid,
+              staff_name text, branch_id uuid, time_zone text, client_name text,
+              client_phone_last3 text, occurred_at timestamptz, recorded_at timestamptz,
+              list_price_mills bigint, price_mills bigint, discount_reason text,
+              approved_by text, approver_name text, month_closed boolean,
+              can_edit boolean, edit_count bigint)
+language plpgsql stable security definer set search_path = public as $$
+declare v_at timestamptz;
+begin
+  if not public.is_member(_company) then raise exception 'FORBIDDEN'; end if;
+  select s.occurred_at into v_at from public.service_sessions s
+  where s.company_id = _company and s.id = _session_id;
+  if v_at is null then return; end if;
+  return query
+    select l.* from public.list_editable_sessions(_company, v_at, v_at, 100000) l
+    where l.id = _session_id;
+end
+$$;
+revoke all on function public.editable_session_by_id(uuid,uuid) from public;
+grant execute on function public.editable_session_by_id(uuid,uuid) to pospay_app;
+
+-- Display names of the caller's fellow members (no email). pospay_app cannot
+-- read public."user", so approver names for non-staff members come from here.
+create or replace function public.company_member_names(_company uuid)
+returns table(user_id text, name text)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_member(_company) then raise exception 'FORBIDDEN'; end if;
+  return query
+    select distinct on (m.user_id) m.user_id, coalesce(sm.display_name, u.name)
+    from public.memberships m
+    join public."user" u on u.id = m.user_id
+    left join public.staff_members sm
+      on sm.company_id = m.company_id and sm.user_id = m.user_id
+    where m.company_id = _company
+    order by m.user_id, sm.id;
+end
+$$;
+revoke all on function public.company_member_names(uuid) from public;
+grant execute on function public.company_member_names(uuid) to pospay_app;
+
 -- Atomic audited edit (Rule D4); pospay_app has no raw UPDATE grant.
 create or replace function public.update_recorded_session(
   _company uuid, _session_id uuid, _service_id uuid, _staff_id uuid,

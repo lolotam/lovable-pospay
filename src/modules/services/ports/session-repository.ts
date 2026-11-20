@@ -104,8 +104,8 @@ export interface SessionRepository {
   }): Promise<PinVerification>;
   /** يستهلك الموافقة بعد الحفظ داخل المعاملة نفسها (020 B5). */
   consumeApproval(approvalId: string): Promise<void>;
-  /** يقرأ الجلسة الحالية للتعديل من قائمة المحررين، أو null خارج نطاق المحرر. */
-  getSessionForEdit(sessionId: string, occurredAtHint: string): Promise<SessionForEdit | null>;
+  /** يقرأ الجلسة الحالية للتعديل برقمها، أو null خارج نطاق المحرر. */
+  getSessionForEdit(sessionId: string): Promise<SessionForEdit | null>;
   /** هل المستخدم الحالي محرر جلسات مسنود للفرع؟ (020 D1) */
   canEditSession(branchId: string): Promise<boolean>;
   /** ينفذ التعديل الذري المدقق داخل قاعدة البيانات (020 D4). */

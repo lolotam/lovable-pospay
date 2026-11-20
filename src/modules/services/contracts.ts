@@ -219,8 +219,6 @@ export const listEditableSessionsInput = serviceScope.extend({
 });
 export const editSessionInput = serviceScope.extend({
   sessionId: z.string().uuid(),
-  /** وقت الجلسة كما ظهر في قائمة المحررين؛ يحدد نطاق القراءة فقط. */
-  hintOccurredAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
   serviceId: z.string().uuid(),
   staffId: z.string().uuid(),
   clientName: z.string().trim().min(1).max(120),

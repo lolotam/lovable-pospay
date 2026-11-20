@@ -28,7 +28,6 @@ const closedMonthEdit = (user: string) =>
       pgDiscountApprovalRepository(db, company),
       {
         sessionId: "20000000-0000-4000-8000-000000000024",
-        hintOccurredAt: "2026-10-15T10:00",
         serviceId: service1,
         staffId: "20000000-0000-4000-8000-000000000005",
         clientName: "Huda",
@@ -174,7 +173,6 @@ describe.skipIf(!process.env["POSPAY_TEST_DATABASE_URL"])(
             pgDiscountApprovalRepository(db, company),
             {
               sessionId,
-              hintOccurredAt: occurredAt,
               serviceId: service1,
               staffId: "20000000-0000-4000-8000-000000000005",
               clientName: "Huda",
@@ -238,7 +236,6 @@ describe.skipIf(!process.env["POSPAY_TEST_DATABASE_URL"])(
             pgDiscountApprovalRepository(db, company),
             {
               sessionId,
-              hintOccurredAt: occurredAt,
               serviceId: service2,
               staffId: "20000000-0000-4000-8000-000000000004",
               clientName: "Huda",
