@@ -275,6 +275,24 @@ describe("editSession (020 D3/D4)", () => {
     expect(f.updates()).toEqual([]);
   });
 
+  it("reports an already used remote approval as used, not expired", async () => {
+    const f = fakeRepo();
+    const fresh = f.approvals.getRequest;
+    f.approvals.getRequest = async (id) => {
+      const request = await fresh(id);
+      return request && { ...request, approvalConsumedAt: new Date("2027-03-10T12:01:00Z") };
+    };
+    await expect(
+      editSession(
+        f.repo,
+        f.approvals,
+        { ...baseInput, managerApproval: { kind: "remote", approvalRequestId: "req-remote" } },
+        now,
+      ),
+    ).resolves.toEqual({ status: "approval_unavailable", state: "used" });
+    expect(f.updates()).toEqual([]);
+  });
+
   it("refuses a remote approval bound to a different price", async () => {
     const f = fakeRepo();
     await expect(

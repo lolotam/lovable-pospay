@@ -334,15 +334,16 @@ begin
           or public.session_editor(_company, _branch)) then
     raise exception 'FORBIDDEN';
   end if;
+  -- One row per person even when they hold several roles in the company.
   return query
-    select m.user_id, coalesce(u.name, m.user_id)
-    from public.memberships m
-    join public."user" u on u.id = m.user_id
-    where m.company_id = _company
-      and public.discount_approver(_company, _branch, m.user_id)
+    select u.id, coalesce(u.name, u.id)
+    from public."user" u
+    where exists (select 1 from public.memberships m
+                  where m.company_id = _company and m.user_id = u.id)
+      and public.discount_approver(_company, _branch, u.id)
       and exists (select 1 from public.manager_pins p
-                  where p.company_id = _company and p.user_id = m.user_id)
-    order by coalesce(u.name, m.user_id);
+                  where p.company_id = _company and p.user_id = u.id)
+    order by coalesce(u.name, u.id);
 end
 $$;
 revoke all on function public.list_branch_approvers(uuid,uuid) from public;
@@ -565,8 +566,10 @@ $$;
 revoke all on function public.month_close_status(uuid,date) from public;
 grant execute on function public.month_close_status(uuid,date) to pospay_app;
 
+-- Days are the branch's local calendar days (inclusive), never UTC days.
+drop function if exists public.list_editable_sessions(uuid,timestamptz,timestamptz,integer);
 create or replace function public.list_editable_sessions(
-  _company uuid, _from timestamptz, _until timestamptz, _limit integer)
+  _company uuid, _from date, _until date, _limit integer)
 returns table(id uuid, service_id uuid, service_name text, staff_id uuid,
               staff_name text, branch_id uuid, time_zone text, client_name text,
               client_phone_last3 text, occurred_at timestamptz, recorded_at timestamptz,
@@ -591,17 +594,19 @@ begin
     join public.clients c on c.company_id = s.company_id and c.id = s.client_id
     left join public."user" au on au.id = s.approved_by
     where s.company_id = _company
-      and s.occurred_at >= _from and s.occurred_at <= _until
+      and s.occurred_at >= (_from - 1)::timestamp at time zone 'UTC'
+      and s.occurred_at < (_until + 2)::timestamp at time zone 'UTC'
+      and (s.occurred_at at time zone b.timezone)::date between _from and _until
       and public.session_editor(s.company_id, s.branch_id)
     order by s.occurred_at desc
     limit greatest(coalesce(_limit, 50), 1);
 end
 $$;
-revoke all on function public.list_editable_sessions(uuid,timestamptz,timestamptz,int) from public;
-grant execute on function public.list_editable_sessions(uuid,timestamptz,timestamptz,int) to pospay_app;
+revoke all on function public.list_editable_sessions(uuid,date,date,int) from public;
+grant execute on function public.list_editable_sessions(uuid,date,date,int) to pospay_app;
 
--- One session by id for the edit path. Reuses list_editable_sessions at the
--- session's own instant so the row shape and editor gate stay in one place.
+-- One session by id for the edit path. Reuses list_editable_sessions on the
+-- session's own local day so the row shape and editor gate stay in one place.
 create or replace function public.editable_session_by_id(_company uuid, _session_id uuid)
 returns table(id uuid, service_id uuid, service_name text, staff_id uuid,
               staff_name text, branch_id uuid, time_zone text, client_name text,
@@ -610,19 +615,53 @@ returns table(id uuid, service_id uuid, service_name text, staff_id uuid,
               approved_by text, approver_name text, month_closed boolean,
               can_edit boolean, edit_count bigint)
 language plpgsql stable security definer set search_path = public as $$
-declare v_at timestamptz;
+declare v_day date;
 begin
   if not public.is_member(_company) then raise exception 'FORBIDDEN'; end if;
-  select s.occurred_at into v_at from public.service_sessions s
+  select (s.occurred_at at time zone b.timezone)::date into v_day
+  from public.service_sessions s
+  join public.branches b on b.company_id = s.company_id and b.id = s.branch_id
   where s.company_id = _company and s.id = _session_id;
-  if v_at is null then return; end if;
+  if v_day is null then return; end if;
   return query
-    select l.* from public.list_editable_sessions(_company, v_at, v_at, 100000) l
+    select l.* from public.list_editable_sessions(_company, v_day, v_day, 100000) l
     where l.id = _session_id;
 end
 $$;
 revoke all on function public.editable_session_by_id(uuid,uuid) from public;
 grant execute on function public.editable_session_by_id(uuid,uuid) to pospay_app;
+
+-- Edit-dialog pickers: staff in the branches the caller may edit, and active
+-- services with the staff they are assigned to there. A reception granted
+-- sessions.edit needs these without any commissions or POS permission.
+create or replace function public.list_session_edit_pickers(_company uuid)
+returns table(kind text, id uuid, name text, staff_ids uuid[])
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.branches b
+                 where b.company_id = _company and public.session_editor(_company, b.id)) then
+    raise exception 'FORBIDDEN';
+  end if;
+  return query
+    with editable_staff as (
+      select st.id, st.display_name
+      from public.staff_members st
+      where st.company_id = _company and public.session_editor(_company, st.branch_id)
+    )
+    select 'staff'::text, es.id, es.display_name, null::uuid[]
+    from editable_staff es
+    union all
+    select 'service'::text, c.id, c.name, array_agg(a.staff_id order by a.staff_id)
+    from public.service_catalog c
+    join public.service_assignments a
+      on a.company_id = c.company_id and a.service_id = c.id and a.active
+    join editable_staff es on es.id = a.staff_id
+    where c.company_id = _company and c.active
+    group by c.id, c.name;
+end
+$$;
+revoke all on function public.list_session_edit_pickers(uuid) from public;
+grant execute on function public.list_session_edit_pickers(uuid) to pospay_app;
 
 -- Display names of the caller's fellow members (no email). pospay_app cannot
 -- read public."user", so approver names for non-staff members come from here.
@@ -720,17 +759,16 @@ begin
       and public.discount_approver(_company, v_branch, a.approver_user_id);
     if not found then raise exception 'DISCOUNT_OVER_LIMIT'; end if;
     v_approval := _approval_id;
+  elsif _service_id = v_old.service_id and _price_mills = v_old.price_mills
+        and v_branch = v_old.branch_id and v_old.approval_id is not null
+        and v_old.approved_by is not null and v_old.approved_at is not null then
+    -- A kept approval stays valid while service, price and branch are unchanged,
+    -- even when the editor's own cap would cover the discount.
+    v_approved_by := v_old.approved_by;
+    v_approved_at := v_old.approved_at;
+    v_approval := v_old.approval_id;
   elsif v_over_limit then
-    -- A kept approval is valid only while service, price and branch are unchanged.
-    if _service_id = v_old.service_id and _price_mills = v_old.price_mills
-       and v_branch = v_old.branch_id and v_old.approval_id is not null
-       and v_old.approved_by is not null and v_old.approved_at is not null then
-      v_approved_by := v_old.approved_by;
-      v_approved_at := v_old.approved_at;
-      v_approval := v_old.approval_id;
-    else
-      raise exception 'DISCOUNT_OVER_LIMIT';
-    end if;
+    raise exception 'DISCOUNT_OVER_LIMIT';
   else
     v_approved_by := null;
     v_approved_at := null;

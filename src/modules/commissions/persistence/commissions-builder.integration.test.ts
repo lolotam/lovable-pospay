@@ -299,5 +299,29 @@ describe.skipIf(!process.env["POSPAY_TEST_DATABASE_URL"])(
         ),
       ).resolves.toHaveProperty("id");
     });
+
+    it("refuses a plan version or assignment inside a closed month (COMMISSION_MONTH_CLOSED)", async () => {
+      // يعتمد على إغلاق 2026-10 من الاختبار السابق.
+      const plan = await withUser(owner, (db) =>
+        pgCommissionPlanRepository(db, owner, company).createPlan({ name: "Closed month plan" }),
+      );
+      const repo = (db: pg.PoolClient) => pgCommissionPlanRepository(db, owner, company);
+      const rules: PlanRules = { baseRateBp: 300n, baseFixedMills: null, tierSchedule: null };
+      await expect(
+        withUser(owner, (db) =>
+          repo(db).addVersion({ planId: plan.id, effectiveMonth: "2026-10-01", rules }),
+        ),
+      ).rejects.toThrow("COMMISSION_MONTH_CLOSED");
+      await expect(
+        withUser(owner, (db) =>
+          repo(db).assign({ staffId: staff2, planId: plan.id, effectiveMonth: "2026-09-01" }),
+        ),
+      ).rejects.toThrow("COMMISSION_MONTH_CLOSED");
+      await expect(
+        withUser(owner, (db) =>
+          repo(db).addVersion({ planId: plan.id, effectiveMonth: "2026-11-01", rules }),
+        ),
+      ).resolves.toHaveProperty("version", 1);
+    });
   },
 );

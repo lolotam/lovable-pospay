@@ -212,9 +212,15 @@ export interface EditableSessionDto {
   canEdit: boolean;
   editCount: number;
 }
+/** خيارات نافذة تعديل الجلسة: موظفات فروع المحرر والخدمات المسندة لهن (020 D1). */
+export interface SessionEditPickersDto {
+  services: { id: string; name: string; staffIds: string[] }[];
+  staff: { id: string; name: string }[];
+}
+/** from/until أيام تقويم بتوقيت كل فرع محلياً وشاملة للطرفين (020 D5). */
 export const listEditableSessionsInput = serviceScope.extend({
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
-  until: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   limit: z.number().int().min(1).max(200).optional(),
 });
 export const editSessionInput = serviceScope.extend({

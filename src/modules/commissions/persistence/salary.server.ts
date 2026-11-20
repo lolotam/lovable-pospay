@@ -28,6 +28,8 @@ export interface SalaryScreenStaff {
   staffId: string;
   staffName: string;
   branchId: string;
+  /** تاريخ اليوم بتوقيت فرع الموظفة لتحديد الراتب الساري. */
+  localToday: string;
 }
 
 /** يقرأ موظفات فروع المستخدم لشاشة الرواتب. */
@@ -36,8 +38,10 @@ export async function listSalaryStaff(
   companyId: string,
 ): Promise<SalaryScreenStaff[]> {
   const { rows } = await db.query<SalaryScreenStaff>(
-    `select s.id as "staffId",s.display_name as "staffName",s.branch_id as "branchId"
+    `select s.id as "staffId",s.display_name as "staffName",s.branch_id as "branchId",
+       (now() at time zone b.timezone)::date::text as "localToday"
      from public.staff_members s
+     join public.branches b on b.company_id=s.company_id and b.id=s.branch_id
      where s.company_id=$1 and public.salary_manager($1,s.id)
      order by s.display_name,s.id`,
     [companyId],

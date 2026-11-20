@@ -27,10 +27,10 @@ export async function recordSalary(
   return repository.recordSalary(record);
 }
 
-/** يجهز شاشة الرواتب: كل موظفة براتبها الساري وسجلها الكامل (021 E). */
+/** يجهز شاشة الرواتب: كل موظفة براتبها الساري اليوم بتوقيت فرعها وسجلها الكامل (021 E). */
 export async function loadSalariesScreen(
   repository: SalaryRepository,
-  staff: { staffId: string; staffName: string; branchId: string }[],
+  staff: { staffId: string; staffName: string; branchId: string; localToday: string }[],
 ): Promise<StaffSalariesScreenDto> {
   const salaries = await repository.listStaffSalaries();
   return {
@@ -38,7 +38,8 @@ export async function loadSalariesScreen(
       const history = salaries
         .filter((salary) => salary.staffId === member.staffId)
         .sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
-      const current = history[history.length - 1] ?? null;
+      const current =
+        history.filter((salary) => salary.effectiveDate <= member.localToday).at(-1) ?? null;
       return {
         staffId: member.staffId,
         staffName: member.staffName,

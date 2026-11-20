@@ -181,11 +181,26 @@ suite was run against a DB with the branch's `0001`–`0026` applied (temporary 
   full suite 690 passed, 1 failed — `src/test/lint-scope.test.ts` timed out on a cold ESLint
   start (10.9 s) and passed on re-run (4/4). No schema-related failure.
 
+## Review fixes (2026-11-20, `/code-review` on the whole branch)
+
+Each finding got a failing test first; all now pass.
+
+| # | Finding | Test (red -> green) |
+|---|---|---|
+| 1 | Manage-sessions date filter used UTC days | `session-edit.integration.test.ts` › "filters the manage list by the branch's local calendar days, not UTC (020 D5)"; `list_editable_sessions` now takes branch-local `date` bounds |
+| 2 | Editing a non-price field erased a manager approval | `session-edit.integration.test.ts` › "matches a remote edit approval against the edited-to service (020 B4.5)" (owner name-only edit keeps `approved_by`) |
+| 3 | Closed month still changeable through plan versions/assignments | `commissions-builder.integration.test.ts` › "refuses a plan version or assignment inside a closed month (COMMISSION_MONTH_CLOSED)"; `isolation.sql` 021 block (policy `commission_period_open`) |
+| 4 | Empty "after N sessions" saved as 0 | `plans-page.test.tsx` › "refuses a session-count tier with threshold %j instead of saving it as 0" |
+| 5 | Reception with `sessions.edit` got empty edit pickers | `session-edit.integration.test.ts` › "gives a granted reception edit pickers for her own branch only (020 D1)"; `manage-sessions-page.test.tsx`; `isolation.sql` foreign probe for `list_session_edit_pickers` |
+| 6 | Override above 100% hit a raw DB error | `manage-overrides.test.ts` › "refuses a percent override above 100% before reaching the database" |
+| 7 | Edit-dialog PIN attempts lost the device user agent | `session-edit.functions.test.ts` |
+| 8 | A consumed remote approval showed "expired" | `record-session.test.ts` and `edit-session.test.ts` › "reports an already used remote approval as used, not expired" |
+| 9 | Multi-role approver listed twice | `isolation.sql` 020 block "list_branch_approvers repeated a multi-role approver" |
+| 10 | Future salary shown as current | `manage-salaries.test.ts` › "keeps a salary that starts later out of the current salary" |
+
 ## Known limitations
 
-1. **`/app` edit dialog staff/service picker reuses the commissions endpoint.** `src/modules/services/ui/manage-sessions-page.tsx` (lines 5, 62) calls `getServiceOverridesFn` from `@/modules/commissions` to fill the picker, so a session whose service/staff combination is not in that payload can fail with `NOT_ASSIGNED` even when the edit itself is allowed.
-2. **PIN-attempt and override-history timestamps render in browser-local time.** `FailedPinAttemptDto.attemptedAt` (`src/modules/services/contracts.ts`, lines 114–123) and the overrides DTO `effectiveFrom` (`src/modules/commissions/contracts.ts`, line 150) are plain ISO strings without a branch timezone field, and the UI renders `new Date(...).toLocaleString()` (`failed-pin-attempts.tsx` line 21, `overrides-page.tsx` line 63) — the viewer's device timezone, not the branch's. (The sessions DTOs do carry `timeZone`.)
-3. **`listEditableSessionsFn` from/until are UTC.** `src/modules/services/functions/session.functions.ts` (lines 74–75) appends `:00Z` to the date filter, so on a UTC+3 branch a session recorded 00:00–03:00 local on the boundary day can fall outside the picked date range (±3 h edge effect).
+1. **PIN-attempt and override-history timestamps render in browser-local time.** `FailedPinAttemptDto.attemptedAt` (`src/modules/services/contracts.ts`, lines 114–123) and the overrides DTO `effectiveFrom` (`src/modules/commissions/contracts.ts`, line 150) are plain ISO strings without a branch timezone field, and the UI renders `new Date(...).toLocaleString()` (`failed-pin-attempts.tsx` line 21, `overrides-page.tsx` line 63) — the viewer's device timezone, not the branch's. (The sessions DTOs do carry `timeZone`.)
 
 ## GAP list
 

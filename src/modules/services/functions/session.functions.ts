@@ -68,13 +68,7 @@ export const listEditableSessionsFn = createServerFn({ method: "GET" })
     const { withUser } = await import("@/lib/server/db.server");
     const { listEditableSessions } = await import("../persistence/session-edit.server");
     return withUser(await requireUserId(), (db) =>
-      listEditableSessions(
-        db,
-        data.companyId,
-        `${data.from}:00Z`,
-        `${data.until}:00Z`,
-        data.limit ?? 50,
-      ),
+      listEditableSessions(db, data.companyId, data.from, data.until, data.limit ?? 50),
     );
   });
 /** يحفظ تعديل جلسة مسجلة؛ صلاحية المحرر وقفل الشهر داخل SQL والاستخدام (020 D4). */
@@ -83,6 +77,7 @@ export const editSessionFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireUserId } = await import("@/lib/server/session.server");
     const { withUser } = await import("@/lib/server/db.server");
+    const { getRequestHeaders } = await import("@tanstack/react-start/server");
     const { pgSessionRepository } = await import("../persistence/session.server");
     const { pgDiscountApprovalRepository } =
       await import("../persistence/discount-approval.server");
@@ -91,7 +86,12 @@ export const editSessionFn = createServerFn({ method: "POST" })
     const request = editSessionInput.parse(data);
     return withUser(userId, (db) =>
       editSession(
-        pgSessionRepository(db, userId, request.companyId),
+        pgSessionRepository(
+          db,
+          userId,
+          request.companyId,
+          userAgentFrom(getRequestHeaders() as unknown as Headers),
+        ),
         pgDiscountApprovalRepository(db, request.companyId),
         request,
         new Date(),
@@ -117,6 +117,15 @@ export const listClosedMonthsFn = createServerFn({ method: "GET" })
     const { withUser } = await import("@/lib/server/db.server");
     const { readClosedMonths } = await import("../persistence/session-edit.server");
     return withUser(await requireUserId(), (db) => readClosedMonths(db, data.companyId));
+  });
+/** خيارات نافذة التعديل لمن يملك تعديل جلسات فرعه، بلا صلاحية عمولات (020 D1). */
+export const listSessionEditPickersFn = createServerFn({ method: "GET" })
+  .inputValidator((v: unknown) => serviceScope.parse(v))
+  .handler(async ({ data }) => {
+    const { requireUserId } = await import("@/lib/server/session.server");
+    const { withUser } = await import("@/lib/server/db.server");
+    const { listSessionEditPickers } = await import("../persistence/session-edit.server");
+    return withUser(await requireUserId(), (db) => listSessionEditPickers(db, data.companyId));
   });
 /** يغلق شهر عمولات؛ RLS يسمح للمالك فقط (020 D2). */
 export const closeMonthFn = createServerFn({ method: "POST" })

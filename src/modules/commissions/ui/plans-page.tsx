@@ -115,9 +115,11 @@ function PlanBuilder({ companyId, plans }: { companyId: string; plans: Commissio
           ? t("commissions.PLAN_EMPTY")
           : code === "PLAN_INVALID"
             ? t("commissions.PLAN_INVALID")
-            : code === "FORBIDDEN"
-              ? t("ops.denied")
-              : t("ops.saveError"),
+            : code === "COMMISSION_MONTH_CLOSED"
+              ? t("commissions.COMMISSION_MONTH_CLOSED")
+              : code === "FORBIDDEN"
+                ? t("ops.denied")
+                : t("ops.saveError"),
       );
     } finally {
       setBusy(false);

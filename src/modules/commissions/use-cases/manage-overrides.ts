@@ -1,6 +1,10 @@
 import type { ServiceOverridesScreenDto } from "../contracts";
 import { parseKwdToMills, parsePercentToBp } from "../domain/parse";
+import { CommissionError } from "../domain/plan";
 import type { ServiceOverrideRepository } from "../ports/override-repository";
+
+/** أعلى نسبة تجاوز مسموحة: 100% بنقاط الأساس، كقيد الجدول. */
+const MAX_RATE_BP = 10000n;
 
 /** مدخل حفظ تجاوز كما يأتي من الشاشة. */
 export interface SaveOverrideInput {
@@ -26,6 +30,9 @@ export async function saveServiceOverride(
       : input.override.kind === "fixed_mills"
         ? { kind: "fixed_mills" as const, mills: parseKwdToMills(input.override.kwd) }
         : { kind: "clear" as const };
+  if (override.kind === "rate_bp" && override.rateBp > MAX_RATE_BP) {
+    throw new CommissionError("OVERRIDE_INVALID");
+  }
   return repository.saveOverride({
     serviceId: input.serviceId,
     staffId: input.staffId ?? null,

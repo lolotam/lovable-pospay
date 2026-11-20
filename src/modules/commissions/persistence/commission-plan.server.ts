@@ -72,6 +72,7 @@ export function pgCommissionPlanRepository(
     },
     async addVersion(input) {
       requireMonthStart(input.effectiveMonth);
+      await requireOpenMonth(db, companyId, input.effectiveMonth);
       const validation = validatePlanVersion(input.rules);
       if (validation) throw new CommissionError(validation);
       await db.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [
@@ -99,6 +100,7 @@ export function pgCommissionPlanRepository(
     },
     async assign(input) {
       requireMonthStart(input.effectiveMonth);
+      await requireOpenMonth(db, companyId, input.effectiveMonth);
       const { rows } = await db.query<{ id: string }>(
         `insert into public.staff_commission_plans(
            company_id,staff_id,plan_id,effective_month,assigned_by
@@ -201,6 +203,19 @@ export function pgCommissionPlanRepository(
 
 function requireMonthStart(effectiveMonth: string): void {
   if (!isMonthStart(effectiveMonth)) throw new CommissionError("PLAN_INVALID");
+}
+
+/** الشهر المغلق لا يقبل إصداراً ولا إسناداً يبدأ داخله أو قبله؛ سياسة الإدراج تفرضه أيضاً. */
+async function requireOpenMonth(
+  db: pg.PoolClient,
+  companyId: string,
+  effectiveMonth: string,
+): Promise<void> {
+  const { rows } = await db.query<{ ok: boolean }>(
+    "select public.commission_period_open($1,$2::date) as ok",
+    [companyId, effectiveMonth],
+  );
+  if (!rows[0]?.ok) throw new CommissionError("COMMISSION_MONTH_CLOSED");
 }
 
 /** بارامترات إصدار الخطة: القاعدة النسبية والثابتة ونمط الشرائح ومجمعها. */

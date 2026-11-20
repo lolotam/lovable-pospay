@@ -694,5 +694,7 @@
   "salaries.record": "Record salary",
   "salaries.recorded": "Salary recorded",
   "salaries.SALARY_MONTH_CLOSED": "A salary cannot start inside or before a closed month.",
-  "salaries.recordedAt": "Recorded at"
+  "salaries.recordedAt": "Recorded at",
+  "commissions.COMMISSION_MONTH_CLOSED": "A plan or assignment cannot start inside or before a closed month.",
+  "overrides.OVERRIDE_INVALID": "An override percent must be between 0 and 100%."
 }

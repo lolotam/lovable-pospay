@@ -468,8 +468,14 @@ do $$ begin
     if sqlerrm <> 'FORBIDDEN' then raise; end if;
   end;
   begin
-    perform public.list_editable_sessions('20000000-0000-4000-8000-000000000002',now()-interval '30 days',now(),10);
+    perform public.list_editable_sessions('20000000-0000-4000-8000-000000000002',current_date-30,current_date+1,10);
     raise exception 'Foreign list_editable_sessions allowed';
+  exception when raise_exception then
+    if sqlerrm <> 'FORBIDDEN' then raise; end if;
+  end;
+  begin
+    perform public.list_session_edit_pickers('20000000-0000-4000-8000-000000000002');
+    raise exception 'Foreign list_session_edit_pickers allowed';
   exception when raise_exception then
     if sqlerrm <> 'FORBIDDEN' then raise; end if;
   end;
@@ -739,7 +745,7 @@ do $$ begin
   exception when raise_exception then
     if sqlerrm <> 'FORBIDDEN' then raise; end if;
   end;
-  if exists(select 1 from public.list_editable_sessions('20000000-0000-4000-8000-000000000002',now()-interval '30 days',now(),10))
+  if exists(select 1 from public.list_editable_sessions('20000000-0000-4000-8000-000000000002',current_date-30,current_date+1,10))
     then raise exception 'Branch 2 manager listed Branch 1 sessions'; end if;
   if exists(select 1 from public.list_pending_discount_approvals('20000000-0000-4000-8000-000000000002'))
     then raise exception 'Branch 2 manager saw Branch 1 requests'; end if;
@@ -806,6 +812,18 @@ do $$ begin
     current_setting('test.s20sess_b1')::uuid,current_setting('test.s20svc1')::uuid,100000,80000,'طلب خصم')::text,true);
 end $$;
 reset role;
+-- An approver holding a second role in the company is listed once.
+insert into public.memberships(company_id,user_id,role,branch_id) values
+  ('20000000-0000-4000-8000-000000000002','user-20bm1','staff','20000000-0000-4000-8000-000000000012');
+set local role pospay_app;
+select set_config('app.user_id','user-20bm1',true);
+do $$ begin
+  if (select count(*) from public.list_branch_approvers('20000000-0000-4000-8000-000000000002',current_setting('test.s20b1')::uuid)
+      where user_id='user-20bm1') <> 1 then raise exception 'list_branch_approvers repeated a multi-role approver'; end if;
+end $$;
+reset role;
+delete from public.memberships
+  where company_id='20000000-0000-4000-8000-000000000002' and user_id='user-20bm1' and role='staff';
 update public.discount_approval_requests
   set expires_at = now() - interval '1 minute'
   where company_id='20000000-0000-4000-8000-000000000002' and id=current_setting('test.s20req4')::uuid;
@@ -907,7 +925,7 @@ begin
   select count(*) into v_count from public.service_session_edits;
   if v_count <> 2 then raise exception 'Edit history rows wrong'; end if;
   -- Masked phone only, and can_edit flags, through the list function.
-  if not exists(select 1 from public.list_editable_sessions('20000000-0000-4000-8000-000000000002',now()-interval '30 days',now(),10)
+  if not exists(select 1 from public.list_editable_sessions('20000000-0000-4000-8000-000000000002',current_date-30,current_date+1,10)
     where client_phone_last3='012' and can_edit and not month_closed)
     then raise exception 'Editable session list wrong'; end if;
 end $$;
@@ -1100,6 +1118,19 @@ do $$ begin
     insert into public.staff_salaries(company_id,staff_id,salary_mills,effective_date,recorded_by)
       values ('21000000-0000-4000-8000-000000000002','21000000-0000-4000-8000-000000000021',460000,'2026-09-01','user-21b');
     raise exception 'Salary before a closed month accepted';
+  exception when insufficient_privilege then null;
+  end;
+  -- Plans freeze the same way: no version or assignment inside or before a closed month.
+  begin
+    insert into public.commission_plan_versions(company_id,plan_id,version,effective_month,base_rate_bp,created_by)
+      values ('21000000-0000-4000-8000-000000000002','21000000-0000-4000-8000-000000000041',50,'2026-10-01',100,'user-21b');
+    raise exception 'Plan version inside a closed month accepted';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.staff_commission_plans(company_id,staff_id,plan_id,effective_month,assigned_by)
+      values ('21000000-0000-4000-8000-000000000002','21000000-0000-4000-8000-000000000021','21000000-0000-4000-8000-000000000041','2026-09-01','user-21b');
+    raise exception 'Plan assignment before a closed month accepted';
   exception when insufficient_privilege then null;
   end;
   -- No UPDATE/DELETE on the three new tables.

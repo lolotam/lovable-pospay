@@ -307,6 +307,26 @@ describe("recordSession", () => {
     });
   });
 
+  it("reports an already used remote approval as used, not expired", async () => {
+    const f = fake();
+    f.approvals.getRequest = async () =>
+      fakeApprovalRequest({ approvalConsumedAt: new Date("2026-11-18T09:03:00Z") });
+    await expect(
+      recordSession(
+        f.repo,
+        f.approvals,
+        {
+          ...input,
+          price: "11.000",
+          discountReason: "vip",
+          managerApproval: { kind: "remote", approvalRequestId: "req-remote" },
+        },
+        now,
+      ),
+    ).resolves.toEqual({ status: "approval_unavailable", state: "used" });
+    expect(f.saved).toEqual([]);
+  });
+
   it("refuses a remote approval bound to another price", async () => {
     const f = fake();
     await expect(

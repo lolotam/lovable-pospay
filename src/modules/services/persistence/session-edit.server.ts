@@ -3,6 +3,7 @@ import type {
   ClosedMonthDto,
   EditableSessionDto,
   SessionEditHistoryDto,
+  SessionEditPickersDto,
   SessionEditSnapshot,
 } from "../contracts";
 import { memberNames } from "./member-names.server";
@@ -44,7 +45,7 @@ export async function listEditableSessions(
             list_price_mills::text as list_price,price_mills::text as price,
             discount_reason,approved_by,approver_name,month_closed,can_edit,
             edit_count::text as edit_count
-     from public.list_editable_sessions($1,$2::timestamptz,$3::timestamptz,$4)
+     from public.list_editable_sessions($1,$2::date,$3::date,$4)
      order by occurred_at desc`,
     [companyId, from, until, limit],
   );
@@ -69,6 +70,32 @@ export async function listEditableSessions(
     canEdit: row.can_edit,
     editCount: Number(row.edit_count),
   }));
+}
+
+/**
+ * خيارات نافذة التعديل: موظفات الفروع التي يحق للمستخدم تعديلها والخدمات
+ * المسندة لهن؛ البوابة session_editor داخل SQL (020 D1).
+ */
+export async function listSessionEditPickers(
+  db: pg.PoolClient,
+  companyId: string,
+): Promise<SessionEditPickersDto> {
+  const { rows } = await db.query<{
+    kind: "staff" | "service";
+    id: string;
+    name: string;
+    staff_ids: string[] | null;
+  }>(
+    `select kind,id,name,staff_ids from public.list_session_edit_pickers($1)
+     order by name,id`,
+    [companyId],
+  );
+  return {
+    staff: rows.filter((row) => row.kind === "staff").map(({ id, name }) => ({ id, name })),
+    services: rows
+      .filter((row) => row.kind === "service")
+      .map((row) => ({ id: row.id, name: row.name, staffIds: row.staff_ids ?? [] })),
+  };
 }
 
 /** يقرأ تاريخ تعديلات جلسة واحدة؛ RLS يخفيها عن غير المصرح لهم. */

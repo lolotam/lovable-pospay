@@ -7,7 +7,7 @@ import {
   type PlanRules,
   type SalesLine,
 } from "@/modules/commissions";
-import type { BuilderState } from "./builder-state";
+import { parseSessionCount, type BuilderState } from "./builder-state";
 
 /** عينات الحاسبة التجريبية كما يكتبها المستخدم بنصوص. */
 export interface PreviewSample {
@@ -53,7 +53,7 @@ function buildDomainSchedule(state: BuilderState): PlanRules["tierSchedule"] {
     accumulator: "session_count",
     mode: "excess",
     tiers: state.sessionTiers.map((row) => ({
-      afterSessions: Number(row.afterSessions),
+      afterSessions: parseSessionCount(row.afterSessions),
       reward:
         row.rewardKind === "rate_bp"
           ? { kind: "rate_bp", rateBp: parsePercentToBp(row.rewardValue) }

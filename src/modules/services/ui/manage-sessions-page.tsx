@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarBlank, ClockCounterClockwise, PencilSimpleLine } from "@phosphor-icons/react";
 import { CompanyScope } from "@/modules/staff";
-import { getServiceOverridesFn } from "@/modules/commissions";
 import type { EditableSessionDto } from "../contracts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +16,12 @@ import {
 } from "@/components/ui/table";
 import { t } from "@/i18n";
 import { formatBranchLocal, kwd, maskPhone } from "./session-format";
-import { closedMonthsQuery, editableSessionsQuery } from "./session-queries";
+import {
+  closedMonthsQuery,
+  editableSessionsQuery,
+  localDateText,
+  sessionEditPickersQuery,
+} from "./session-queries";
 import { SessionEditDialog } from "./session-edit-dialog";
 import { SessionHistoryDialog } from "./session-history-dialog";
 import { CloseMonthDialog } from "./close-month-dialog";
@@ -30,9 +34,8 @@ export function ManageSessionsPage({ isOwner = false }: { isOwner?: boolean }) {
   );
 }
 
-const todayText = () => new Date().toISOString().slice(0, 10);
 const monthRange = (): [string, string] => {
-  const now = todayText();
+  const now = localDateText(new Date());
   const year = now.slice(0, 4);
   const month = now.slice(5, 7);
   const lastDay = new Date(Number(year), Number(month), 0).getDate();
@@ -53,18 +56,7 @@ function ManageSessions({ companyId, isOwner }: { companyId: string; isOwner: bo
     isFetchedAfterMount,
   } = useQuery(editableSessionsQuery(companyId, from, until));
   const { data: closedMonths } = useQuery(closedMonthsQuery(companyId));
-  const { data: pickers } = useQuery({
-    queryKey: ["session-edit-pickers", companyId],
-    enabled: editing !== null,
-    staleTime: 60_000,
-    queryFn: async () => {
-      try {
-        return await getServiceOverridesFn({ data: { companyId } });
-      } catch {
-        return null;
-      }
-    },
-  });
+  const { data: pickers } = useQuery(sessionEditPickersQuery(companyId, editing !== null));
   const refresh = () => cache.invalidateQueries({ queryKey: ["editable-sessions", companyId] });
   return (
     <div className="space-y-6">

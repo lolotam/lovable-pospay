@@ -221,16 +221,38 @@ grant execute on function public.salary_manager(uuid,uuid) to pospay_app;
 -- Waleed 2026-11-20: a salary may not start inside or before a closed
 -- commission month, because the salary-multiple threshold of that month
 -- would silently change.
-create or replace function public.salary_date_open(_company uuid, _effective date)
+-- A date is open only when it falls after every closed commission month.
+create or replace function public.commission_period_open(_company uuid, _date date)
 returns boolean
 language sql stable security definer set search_path = public as $$
   select not exists (
     select 1 from public.closed_commission_months c
     where c.company_id = _company
-      and _effective < (c.period_month + interval '1 month')::date)
+      and _date < (c.period_month + interval '1 month')::date)
+$$;
+revoke all on function public.commission_period_open(uuid,date) from public;
+grant execute on function public.commission_period_open(uuid,date) to pospay_app;
+
+create or replace function public.salary_date_open(_company uuid, _effective date)
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select public.commission_period_open(_company, _effective)
 $$;
 revoke all on function public.salary_date_open(uuid,date) from public;
 grant execute on function public.salary_date_open(uuid,date) to pospay_app;
+
+-- Same freeze for plans: a version or assignment starting inside or before a
+-- closed month would change that month's commission after the close.
+drop policy if exists commission_plan_versions_insert on public.commission_plan_versions;
+create policy commission_plan_versions_insert on public.commission_plan_versions for insert to pospay_app
+  with check (public.commission_plan_manager(company_id)
+              and created_by = public.current_app_user()
+              and public.commission_period_open(company_id, effective_month));
+drop policy if exists staff_commission_plans_insert on public.staff_commission_plans;
+create policy staff_commission_plans_insert on public.staff_commission_plans for insert to pospay_app
+  with check (public.commission_plan_assigner(company_id, staff_id)
+              and assigned_by = public.current_app_user()
+              and public.commission_period_open(company_id, effective_month));
 
 grant select, insert on public.staff_salaries to pospay_app;
 alter table public.staff_salaries enable row level security;

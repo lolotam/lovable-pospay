@@ -119,7 +119,13 @@ function OverrideForm({
       await cache.invalidateQueries({ queryKey: ["service-overrides", companyId] });
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
-      setMessage(code === "FORBIDDEN" ? t("ops.denied") : t("ops.saveError"));
+      setMessage(
+        code === "OVERRIDE_INVALID"
+          ? t("overrides.OVERRIDE_INVALID")
+          : code === "FORBIDDEN"
+            ? t("ops.denied")
+            : t("ops.saveError"),
+      );
     } finally {
       setBusy(false);
     }

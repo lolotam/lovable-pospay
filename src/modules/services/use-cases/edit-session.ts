@@ -158,8 +158,11 @@ async function resolveRemoteForEdit(
   now: Date,
 ): Promise<string | { status: "approval_unavailable"; state: ApprovalUnavailableState }> {
   const request = await approvals.getRequest(approvalRequestId);
+  if (request && request.approvalConsumedAt !== null) {
+    return { status: "approval_unavailable", state: "used" };
+  }
   const state = request ? approvalRequestState(request, now) : "expired";
-  if (state !== "approved" || request?.approvalConsumedAt !== null || !request?.approvalId) {
+  if (state !== "approved" || !request?.approvalId) {
     return {
       status: "approval_unavailable",
       state: approvalUnavailableReason(state),

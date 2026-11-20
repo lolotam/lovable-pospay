@@ -4,8 +4,10 @@ import type pg from "pg";
 import { withUser } from "@/lib/server/db.server";
 import { pgSessionRepository } from "./session.server";
 import { pgDiscountApprovalRepository } from "./discount-approval.server";
+import { listEditableSessions, listSessionEditPickers } from "./session-edit.server";
 import {
   branch1,
+  branch2,
   cleanupSessionControls,
   company,
   edit,
@@ -16,6 +18,9 @@ import {
   record,
   service1,
   setupSessionControls,
+  staff1,
+  staff1b,
+  staff2,
 } from "./session-controls.fixture";
 import { closeMonth } from "../use-cases/close-month";
 import { editSession } from "../use-cases/edit-session";
@@ -68,6 +73,36 @@ describe.skipIf(!process.env["POSPAY_TEST_DATABASE_URL"])(
         await cleanupSessionControls(admin);
         vi.unstubAllEnvs();
       }
+    });
+
+    it("filters the manage list by the branch's local calendar days, not UTC (020 D5)", async () => {
+      await admin.query("update public.branches set timezone='Asia/Kuwait' where id=$1", [branch2]);
+      const client = await admin.query(
+        "insert into public.clients(company_id,name,phone) values($1,'Edge client','96550009999') returning id",
+        [company],
+      );
+      // 01:30 الكويت أول نوفمبر = 22:30Z آخر أكتوبر، و00:30 الكويت أول ديسمبر = 21:30Z آخر نوفمبر.
+      const edges = await admin.query(
+        `insert into public.service_sessions(company_id,service_id,staff_id,branch_id,client_id,occurred_at,
+           service_name,list_price_mills,price_mills,recorded_by)
+         values ($1,$2,$3,$4,$5,'2026-10-31T22:30:00Z','Hair',100000,100000,$6),
+                ($1,$2,$3,$4,$5,'2026-11-30T21:30:00Z','Hair',100000,100000,$6)
+         returning id`,
+        [company, service1, staff2, branch2, client.rows[0].id, manager2],
+      );
+      const [novemberFirst, decemberFirst] = edges.rows.map((row: { id: string }) => row.id);
+      const ids = (
+        await withUser(manager2, (db) =>
+          listEditableSessions(db, company, "2026-11-01", "2026-11-30", 200),
+        )
+      ).map((row) => row.id);
+      expect(ids).toContain(novemberFirst);
+      expect(ids).not.toContain(decemberFirst);
+      await admin.query(
+        "delete from public.service_sessions where company_id=$1 and id = any($2)",
+        [company, [novemberFirst, decemberFirst]],
+      );
+      await admin.query("update public.branches set timezone='UTC' where id=$1", [branch2]);
     });
 
     it("refuses editing for roles outside the sessions.edit map (#5)", async () => {
@@ -192,6 +227,32 @@ describe.skipIf(!process.env["POSPAY_TEST_DATABASE_URL"])(
         [company, sessionId],
       );
       expect(row.rows[0]).toEqual({ service: service1, price: "85000" });
+      // تعديل المالك لاسم العميل فقط لا يمسح اعتماد المدير السابق.
+      await expect(
+        withUser(owner, (db) =>
+          editSession(
+            pgSessionRepository(db, owner, company),
+            pgDiscountApprovalRepository(db, company),
+            {
+              sessionId,
+              serviceId: service1,
+              staffId: "20000000-0000-4000-8000-000000000005",
+              clientName: "Huda",
+              clientPhone: "96550001111",
+              occurredAt,
+              price: "85.000",
+              discountReason: "تحويل خدمة",
+              editReason: "تصحيح الاسم",
+            },
+            new Date(),
+          ),
+        ),
+      ).resolves.toEqual({ status: "saved", sessionId });
+      const kept = await admin.query(
+        "select approved_by,approval_id is not null as has_approval from public.service_sessions where company_id=$1 and id=$2",
+        [company, sessionId],
+      );
+      expect(kept.rows[0]).toEqual({ approved_by: manager1, has_approval: true });
     });
 
     it("binds a remote edit approval to the stored list price after a catalog change (020 D3)", async () => {
@@ -319,6 +380,19 @@ describe.skipIf(!process.env["POSPAY_TEST_DATABASE_URL"])(
         pgSessionRepository(db, owner, company).monthCloseStatus("2027-03-01"),
       );
       expect(status).toBeGreaterThan(0);
+    });
+
+    it("gives a granted reception edit pickers for her own branch only (020 D1)", async () => {
+      // الاستقبال حصلت على sessions.edit في اختبار سابق؛ فرعها الأول فقط.
+      const pickers = await withUser(reception, (db) => listSessionEditPickers(db, company));
+      expect(pickers.staff.map((member) => member.id).sort()).toEqual([staff1, staff1b].sort());
+      const hair = pickers.services.find((service) => service.id === service1);
+      expect(hair?.staffIds?.sort()).toEqual([staff1, staff1b].sort());
+      const manager = await withUser(manager2, (db) => listSessionEditPickers(db, company));
+      expect(manager.staff.map((member) => member.id)).toEqual([staff2]);
+      await expect(
+        withUser("sc020-staff", (db) => listSessionEditPickers(db, company)),
+      ).rejects.toThrow("FORBIDDEN");
     });
   },
 );

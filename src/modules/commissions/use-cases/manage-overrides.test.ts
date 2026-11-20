@@ -70,6 +70,25 @@ describe("manage-overrides (021 O4/O5)", () => {
     ]);
   });
 
+  test("refuses a percent override above 100% before reaching the database", async () => {
+    const f = fakeRepo();
+    await expect(
+      saveServiceOverride(f.repo, {
+        serviceId: "service-b",
+        staffId: null,
+        override: { kind: "rate_bp", ratePercent: "150" },
+      }),
+    ).rejects.toThrow("OVERRIDE_INVALID");
+    await expect(
+      saveServiceOverride(f.repo, {
+        serviceId: "service-b",
+        staffId: null,
+        override: { kind: "rate_bp", ratePercent: "100" },
+      }),
+    ).resolves.toEqual({ id: "override-new" });
+    expect(f.calls).toEqual(["save:service-b:all:rate_bp"]);
+  });
+
   test("serializes the screen with effectiveFrom as the save moment", async () => {
     const f = fakeRepo();
     const screen = await loadOverridesScreen(f.repo, {

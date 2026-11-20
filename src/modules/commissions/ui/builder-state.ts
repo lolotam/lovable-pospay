@@ -1,4 +1,5 @@
 import type { PlanRulesInput } from "../contracts";
+import { CommissionError } from "../domain/plan";
 
 /** صف شريحة مبيعات كما يكتبه المستخدم بنصوص. */
 export interface SalesTierRow {
@@ -75,7 +76,7 @@ function buildTierScheduleInput(state: BuilderState): Pick<PlanRulesInput, "tier
       accumulator: "session_count",
       mode: "excess",
       tiers: state.sessionTiers.map((row) => ({
-        afterSessions: Number(row.afterSessions),
+        afterSessions: parseSessionCount(row.afterSessions),
         reward:
           row.rewardKind === "rate_bp"
             ? { kind: "rate_bp", ratePercent: row.rewardValue }
@@ -83,4 +84,10 @@ function buildTierScheduleInput(state: BuilderState): Pick<PlanRulesInput, "tier
       })),
     },
   };
+}
+
+/** عدد الجلسات أرقام فقط؛ الحقل الفاضي لا يتحول بصمت إلى صفر (021 M6). */
+export function parseSessionCount(text: string): number {
+  if (!/^\d+$/.test(text.trim())) throw new CommissionError("PLAN_INVALID");
+  return Number(text.trim());
 }

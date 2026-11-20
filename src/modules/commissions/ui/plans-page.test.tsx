@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { t } from "@/i18n";
 import { PlansPage } from "./plans-page";
 import { buildPlanRulesInput, emptyBuilderState, type BuilderState } from "./builder-state";
+import { computePreview } from "./plan-preview";
 
 const { getPlans, createPlan, addVersion, assign } = vi.hoisted(() => ({
   getPlans: vi.fn(),
@@ -94,6 +95,21 @@ describe("buildPlanRulesInput", () => {
       },
     });
   });
+  it.each(["", " ", "2.5", "-1", "abc"])(
+    "refuses a session-count tier with threshold %j instead of saving it as 0",
+    (afterSessions) => {
+      const state: BuilderState = {
+        ...emptyBuilderState,
+        tiersEnabled: true,
+        accumulator: "session_count",
+        sessionTiers: [{ afterSessions, rewardKind: "fixed_mills", rewardValue: "5.000" }],
+      };
+      expect(() => buildPlanRulesInput(state)).toThrow("PLAN_INVALID");
+      expect(computePreview(state, { sessionCount: "3", sessionNetKwd: "10", salaryKwd: "" })).toBe(
+        null,
+      );
+    },
+  );
   it("builds salary-multiple thresholds for the all-after mode", () => {
     const state: BuilderState = {
       ...emptyBuilderState,

@@ -86,7 +86,12 @@ export interface CommissionResult {
 
 /** أخطاء قواعد الخطة والحساب المعروفة للمستهلك. */
 export type CommissionErrorCode =
-  "PLAN_EMPTY" | "PLAN_INVALID" | "SALARY_REQUIRED" | "INVALID_LINE";
+  | "PLAN_EMPTY"
+  | "PLAN_INVALID"
+  | "SALARY_REQUIRED"
+  | "INVALID_LINE"
+  | "COMMISSION_MONTH_CLOSED"
+  | "OVERRIDE_INVALID";
 
 /** نتيجة التحقق من إصدار الخطة، وnull تعني أنه صالح. */
 export type PlanValidationError = "PLAN_EMPTY" | "PLAN_INVALID" | null;

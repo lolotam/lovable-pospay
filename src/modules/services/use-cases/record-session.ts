@@ -249,14 +249,14 @@ async function resolveRemoteApproval(
 ): Promise<OverLimitOutcome> {
   const request = await approvals.getRequest(approvalRequestId);
   if (!request) return { terminal: { status: "approval_unavailable", state: "expired" } };
+  if (request.approvalConsumedAt !== null) {
+    return { terminal: { status: "approval_unavailable", state: "used" } };
+  }
   const state = approvalRequestState(request, now);
   if (state !== "approved") {
     return {
       terminal: { status: "approval_unavailable", state: approvalUnavailableReason(state) },
     };
-  }
-  if (request.approvalConsumedAt !== null) {
-    return { terminal: { status: "approval_unavailable", state: "used" } };
   }
   if (!approvalMatches(request, binding) || request.approvalId === null) {
     return { terminal: { status: "approval_unavailable", state: "mismatch" } };

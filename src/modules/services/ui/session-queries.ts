@@ -3,12 +3,17 @@ import {
   getMonthCloseStatusFn,
   listClosedMonthsFn,
   listEditableSessionsFn,
+  listSessionEditPickersFn,
   listSessionEditsFn,
 } from "../functions/session.functions";
 
 const RECENT_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-const instantText = (at: Date): string => at.toISOString().slice(0, 16);
+const pad = (value: number) => String(value).padStart(2, "0");
+/** تاريخ اليوم بتوقيت الجهاز YYYY-MM-DD؛ الخادم يفلتر بأيام كل فرع المحلية. */
+export const localDateText = (at: Date): string =>
+  `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`;
 
 /** جلسات فرع المحرر في نطاق زمني؛ الخطأ يعود null فيعرض الصفحة رسالة الوصول. */
 export const editableSessionsQuery = (companyId: string, from: string, until: string) =>
@@ -17,9 +22,7 @@ export const editableSessionsQuery = (companyId: string, from: string, until: st
     refetchOnMount: "always",
     queryFn: async () => {
       try {
-        return await listEditableSessionsFn({
-          data: { companyId, from: `${from}T00:00`, until: `${until}T23:59` },
-        });
+        return await listEditableSessionsFn({ data: { companyId, from, until } });
       } catch {
         return null;
       }
@@ -32,12 +35,12 @@ export const recentSessionsQuery = (companyId: string) =>
     queryKey: ["editable-sessions", companyId, "recent"],
     refetchOnMount: "always",
     queryFn: async () => {
-      const until = new Date();
-      const from = new Date(until.getTime() - RECENT_DAYS * 24 * 60 * 60 * 1000);
+      const now = Date.now();
+      // يوم زائد بعد اليوم يغطي فرعاً يسبق توقيت الجهاز.
+      const from = localDateText(new Date(now - RECENT_DAYS * DAY_MS));
+      const until = localDateText(new Date(now + DAY_MS));
       try {
-        return await listEditableSessionsFn({
-          data: { companyId, from: instantText(from), until: instantText(until) },
-        });
+        return await listEditableSessionsFn({ data: { companyId, from, until } });
       } catch {
         return null;
       }
@@ -80,6 +83,21 @@ export const monthCloseStatusQuery = (companyId: string, periodMonth: string) =>
     queryFn: async () => {
       try {
         return await getMonthCloseStatusFn({ data: { companyId, periodMonth } });
+      } catch {
+        return null;
+      }
+    },
+  });
+
+/** خيارات نافذة التعديل؛ الخطأ يعود null فتظهر القوائم فارغة (020 D1). */
+export const sessionEditPickersQuery = (companyId: string, enabled: boolean) =>
+  queryOptions({
+    queryKey: ["session-edit-pickers", companyId],
+    enabled,
+    staleTime: 60_000,
+    queryFn: async () => {
+      try {
+        return await listSessionEditPickersFn({ data: { companyId } });
       } catch {
         return null;
       }

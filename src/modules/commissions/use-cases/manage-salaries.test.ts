@@ -63,8 +63,8 @@ describe("manage-salaries (021 Q2/S1)", () => {
   test("loads the screen with the current salary resolved by effective date", async () => {
     const f = fakeRepo();
     const screen = await loadSalariesScreen(f.repo, [
-      { staffId: "staff-1", staffName: "Huda", branchId: "b1" },
-      { staffId: "staff-2", staffName: "Salma", branchId: "b1" },
+      { staffId: "staff-1", staffName: "Huda", branchId: "b1", localToday: "2027-03-01" },
+      { staffId: "staff-2", staffName: "Salma", branchId: "b1", localToday: "2027-03-01" },
     ]);
     expect(screen.staff[0]).toMatchObject({
       staffName: "Huda",
@@ -74,5 +74,17 @@ describe("manage-salaries (021 Q2/S1)", () => {
     expect(screen.staff[0]?.history).toHaveLength(2);
     expect(screen.staff[1]).toMatchObject({ currentSalaryMills: null, history: [] });
     expect(f.calls).toEqual(["list"]);
+  });
+
+  test("keeps a salary that starts later out of the current salary", async () => {
+    const f = fakeRepo();
+    const screen = await loadSalariesScreen(f.repo, [
+      { staffId: "staff-1", staffName: "Huda", branchId: "b1", localToday: "2027-02-14" },
+    ]);
+    expect(screen.staff[0]).toMatchObject({
+      currentSalaryMills: "450000",
+      currentEffectiveDate: "2027-01-01",
+    });
+    expect(screen.staff[0]?.history).toHaveLength(2);
   });
 });

@@ -694,5 +694,7 @@
   "salaries.record": "تسجيل الراتب",
   "salaries.recorded": "تم تسجيل الراتب",
   "salaries.SALARY_MONTH_CLOSED": "لا يمكن أن يبدأ الراتب داخل شهر مغلق أو قبله.",
-  "salaries.recordedAt": "سُجّل بتاريخ"
+  "salaries.recordedAt": "سُجّل بتاريخ",
+  "commissions.COMMISSION_MONTH_CLOSED": "لا يمكن أن تبدأ الخطة أو الإسناد داخل شهر مغلق أو قبله.",
+  "overrides.OVERRIDE_INVALID": "نسبة التجاوز لازم تكون بين 0 و100%."
 }

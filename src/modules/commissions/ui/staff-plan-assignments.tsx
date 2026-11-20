@@ -49,7 +49,13 @@ export function StaffPlanAssignments({ companyId, staff, plans }: StaffPlanAssig
       await cache.invalidateQueries({ queryKey: ["commission-plans", companyId] });
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
-      setMessage(code === "FORBIDDEN" ? t("ops.denied") : t("ops.saveError"));
+      setMessage(
+        code === "COMMISSION_MONTH_CLOSED"
+          ? t("commissions.COMMISSION_MONTH_CLOSED")
+          : code === "FORBIDDEN"
+            ? t("ops.denied")
+            : t("ops.saveError"),
+      );
     } finally {
       setBusy(false);
     }

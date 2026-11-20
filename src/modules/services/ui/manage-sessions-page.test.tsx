@@ -6,21 +6,15 @@ import { CloseMonthDialog } from "./close-month-dialog";
 import { SessionHistoryDialog } from "./session-history-dialog";
 import { ManageSessionsPage } from "./manage-sessions-page";
 
-const {
-  listEditable,
-  listClosedMonths,
-  monthCloseStatus,
-  closeMonth,
-  listSessionEdits,
-  overrides,
-} = vi.hoisted(() => ({
-  listEditable: vi.fn(),
-  listClosedMonths: vi.fn(),
-  monthCloseStatus: vi.fn(),
-  closeMonth: vi.fn(),
-  listSessionEdits: vi.fn(),
-  overrides: vi.fn(),
-}));
+const { listEditable, listClosedMonths, monthCloseStatus, closeMonth, listSessionEdits, pickers } =
+  vi.hoisted(() => ({
+    listEditable: vi.fn(),
+    listClosedMonths: vi.fn(),
+    monthCloseStatus: vi.fn(),
+    closeMonth: vi.fn(),
+    listSessionEdits: vi.fn(),
+    pickers: vi.fn(),
+  }));
 vi.mock("@tanstack/react-start", () => ({
   useServerFn: (handler: unknown) => handler,
   createServerFn: () => {
@@ -33,13 +27,13 @@ vi.mock("@/modules/staff", () => ({
     <>{children("30000000-0000-4000-8000-000000000001")}</>
   ),
 }));
-vi.mock("@/modules/commissions", () => ({ getServiceOverridesFn: overrides }));
 vi.mock("../functions/session.functions", () => ({
   listEditableSessionsFn: listEditable,
   listClosedMonthsFn: listClosedMonths,
   getMonthCloseStatusFn: monthCloseStatus,
   closeMonthFn: closeMonth,
   listSessionEditsFn: listSessionEdits,
+  listSessionEditPickersFn: pickers,
   editSessionFn: vi.fn(),
   getSessionFormFn: vi.fn(),
   recordSessionFn: vi.fn(),
@@ -88,14 +82,17 @@ function renderManage(isOwner: boolean) {
 it("disables the edit of a closed-month session but keeps open months editable", async () => {
   listEditable.mockReset().mockResolvedValue([closedSession, openSession]);
   listClosedMonths.mockReset().mockResolvedValue([]);
-  overrides
-    .mockReset()
-    .mockResolvedValue({ canManage: false, services: [], staff: [], overrides: [] });
+  pickers.mockReset().mockResolvedValue({
+    services: [{ id: openSession.serviceId, name: "Haircut", staffIds: [openSession.staffId] }],
+    staff: [{ id: openSession.staffId, name: "Huda" }],
+  });
   renderManage(false);
   expect((await screen.findAllByText("Noura")).length).toBeGreaterThan(0);
   const closedRow = screen.getByText(t("sessions.monthClosed")).closest("tr")!;
   expect(within(closedRow).queryByRole("button", { name: t("sessions.editButton") })).toBeNull();
   expect(screen.getAllByRole("button", { name: t("sessions.editButton") })).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: t("sessions.editButton") }));
+  await waitFor(() => expect(pickers).toHaveBeenCalledWith({ data: { companyId } }));
 });
 
 it("hides the close-month action for a non-owner", async () => {
