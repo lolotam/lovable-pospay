@@ -4,7 +4,8 @@
 - [x] Step 0: spec, app map and plan in `docs/specs/022-navigation-styles/` (Light).
 - [ ] Step 1: menu data for the whole product (`live` and `soon` entries); no visible change.
 - [ ] Steps 2 to 4: frames for styles A, B and C; not wired.
-- [ ] Step 5: release of the three styles, the style choice in Settings and the Under development page. Waits on NAV-L2, NAV-L3, NAV-L4.
+- [x] Menu unified with `lolotam/PayPos.systems` spec 074 on one shared map (NAV-L5, 2026-11-21); NAV-L2, NAV-L3, NAV-L4 answered.
+- [ ] Step 5: release of the three styles, the Appearance page and the Under development page.
 - [ ] Step 7: save the choice on the account (Heavy, migration 0027). Waits on NAV-L1.
 
 ## 016-D (2026-11-19)

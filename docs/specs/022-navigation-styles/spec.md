@@ -34,7 +34,7 @@ The owner wants three things:
    "Soon" and opens an Under development page until it is finished. The list is `app-map.md`.
 
 Salon example: Noor, a branch manager, opens the app and sees style C. She prefers a sidebar, opens
-Settings, picks "A — Sidebar and tabs", and the frame changes on the spot. Next day she signs in
+Appearance, picks "A — Sidebar and tabs", and the frame changes on the spot. Next day she signs in
 on the reception tablet and still gets A. Under Customers she sees "Loyalty cards — Soon"; opening
 it tells her the page is under development.
 
@@ -54,14 +54,21 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
   to 6. A page not built yet opens an Under development page.
 - **R6 (spec 016 R4, PRD §9, D-31).** For built pages, who sees an entry is unchanged: the
   permission key, the company role and feature availability that `visibleNavigation` applies today.
-- **R7.** Who sees a not-built entry is not decided: every user, or by business type and role.
-  `TODO(spec)`, owner question NAV-L2. No rule is applied before the answer.
+- **R7 (owner, 2026-11-21, NAV-L2).** A not-built entry is shown only to the business types and roles it
+  is meant for, in the menu, in the page finder and to a direct link.
 - **R8 (PRD §2, §14).** This repository's PRD covers Phase 1 only and lists POS, payment, invoices,
   cash, stock, restaurants, delivery, loyalty and bookings as out of scope. The later-phase entries
   in `app-map.md` come from the product PRD kept in `lolotam/PayPos.systems` (`docs/PRD.md` §7 and
   §10). Their names are working names until each feature has its own spec here.
-- **R9.** "Social media management" was asked for by the owner and is in neither PRD. Whether it is
-  listed as a Soon entry or left out is owner question NAV-L3: `TODO(spec)`.
+- **R9 (owner, 2026-11-21, NAV-L3).** "Social media management" is listed as a Soon entry under Marketing.
+  It is in neither PRD and needs a spec before anything is built.
+- **R10 (owner, 2026-11-21, NAV-L5).** The menu is one map shared with the other project
+  (`lolotam/PayPos.systems`, spec 074): the same sections, sub-menus, page names, order and place in
+  each style. Only the built-or-not state of a page may differ between the two.
+- **R11 (owner, 2026-11-21, NAV-L5).** The menu follows the business selected in the workspace
+  switcher: an owner with a salon and a restaurant sees each business's own entries after switching.
+- **R12 (owner, 2026-11-21, NAV-L5).** Everything waiting for a decision is reachable from one
+  Approvals inbox under Home, in the same place in every style; each kind also stays in its section.
 
 ## Edge cases
 
@@ -86,9 +93,12 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
 ## Acceptance criteria (concrete numbers)
 
 1. With no saved choice, every area opens in style C.
-2. The Settings page of each area (`/app/settings`, `/pos/settings`, `/me/settings`, `/admin/settings`) has an Appearance section, beside the light and dark switch that is there today
-   (`src/modules/permissions/ui/settings-page.tsx`). It lists exactly three styles by name and marks the current one. The same choice is offered in the user menu. Picking another changes
-   the frame without a full page reload and without changing the address.
+2. Each area has an Appearance page under Setup, and the same choice in the user menu. It is today's
+   Settings page (`src/modules/permissions/ui/settings-page.tsx`, reached at `/app/settings`,
+   `/pos/settings`, `/me/settings` and `/admin/settings`), which already holds the light and dark
+   switch and is listed in the menu as Appearance. It lists exactly three styles by name and marks
+   the current one. Picking another changes the frame without a full page reload and without
+   changing the address.
 3. A user with the `staff` role and no extra permission can open `/me/settings` and change the
    style.
 4. After a reload the first frame drawn is the style remembered on that device; no other style is
@@ -156,7 +166,7 @@ database.
   `reception`.
 - **Cannot:** anyone for another user. There is no admin override of a user's style.
 - No permission key is added to the matrix of spec 016 R4.
-- Built pages: unchanged (R6). Not-built pages: pending NAV-L2 (R7).
+- Built pages: unchanged (R6). Not-built pages: by business type and role (R7).
 
 ## Tests
 
@@ -180,7 +190,7 @@ database.
 ## Open questions → owner-questions.ar.md
 
 - NAV-L1: where the account value is stored (table or column). Blocks step 7 only.
-- NAV-L2: who sees not-built entries. Blocks the release step (step 5) only.
-- NAV-L3: whether "Social media management" is listed. Blocks that one entry only.
-- NAV-L4: whether the three styles also apply to `/admin`, `/pos` and `/me`, or to `/app` only.
-  This spec assumes all four areas, because one shell draws them all.
+- Answered on 2026-11-21: NAV-L2 (by business type and role), NAV-L3 (listed as Soon), NAV-L4 (all
+  four areas) and NAV-L5 (one map shared with the other project).
+- How an owner gets a second business type on the same account is a subscription question:
+  `TODO(spec)`, not part of this spec.
