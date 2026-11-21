@@ -1,5 +1,12 @@
 # Roadmap
 
+## 022 Navigation styles and full app menu (2026-11-21)
+- [x] Step 0: spec, app map and plan in `docs/specs/022-navigation-styles/` (Light).
+- [ ] Step 1: menu data for the whole product (`live` and `soon` entries); no visible change.
+- [ ] Steps 2 to 4: frames for styles A, B and C; not wired.
+- [ ] Step 5: release of the three styles, the style choice in Settings and the Under development page. Waits on NAV-L2, NAV-L3, NAV-L4.
+- [ ] Step 7: save the choice on the account (Heavy, migration 0027). Waits on NAV-L1.
+
 ## 016-D (2026-11-19)
 - [ ] Workspace move request (2026-11-19): no current Resend connection available; connect card declined. Waiting for Waleed to complete a new connection; Dokploy untouched.
 - [x] Priority continuation (2026-11-19): D2 implementation committed through df68f3c; final serial suite 449 passed / 143 SQL tests skipped, lint 0 errors / 8 warnings, 6 fresh responsive fixture checks. Final delivery notes committed separately; no SQL execution or production changes.
