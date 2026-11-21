@@ -88,7 +88,13 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
   not verified: spec 016 uses it for display only and migration 0018 defaults it to `salon`, so a
   company never classified looks like a salon. Until step 4b confirms each company's type, the
   stored value filters Under development entries only, where a wrong match shows a placeholder and
-  nothing else, and no built page is opened or closed by business type.
+  nothing else, and no built page is opened or closed by business type. One consequence is known
+  and accepted for the first release: the two Qayd entries are limited to Kuwait, the workspace
+  carries no country, so they stay hidden from everyone until step 4b adds it.
+- **R15 (difference from spec 074, 2026-11-21).** The device copy here keeps one entry per user
+  across sign-out; spec 074 of the other project clears its cookie at sign-out. The difference is
+  in storage only and no user sees a different menu because of it; whether to align the two is
+  left to the manager.
 - **R14 (owner, 2026-11-21, NAV-L9).** The three styles are released first with the choice kept on
   each device; saving it on the account follows in a later step.
 
@@ -97,7 +103,8 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
 - The stored choice is not A, B or C: the app shows C.
 - A user who never chose signs in on a browser where another user chose A: they see C.
 - A session expires without sign-out and a different user signs in: they see their own choice, or C.
-- The account value cannot be read at sign-in: the user signs in normally and starts on C.
+- The account value cannot be read at sign-in: the user signs in normally and gets the entry this
+  device holds for them, or C when it holds none.
 - The user picks A and then B before the first save has finished: the account ends with B.
 - Switching style while on an overview page that only the old style has: the user lands on the
   first page of that section they may see, or on the area's home if there is none.
