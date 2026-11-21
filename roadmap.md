@@ -7,7 +7,7 @@
 - [x] Menu unified with `lolotam/PayPos.systems` spec 074 on one shared map (NAV-L5, 2026-11-21); NAV-L2, NAV-L3, NAV-L4 answered.
 - [ ] Step 4b: workspace business type and country (own spec and tier card); not needed for step 5.
 - [ ] Step 5: release of the three styles, the Appearance page and the Under development page, in all four areas, the choice kept per device (NAV-L4, NAV-L9).
-- [ ] Step 7: save the choice on the account (Heavy, migration 0027). Waits on NAV-L1.
+- [ ] Step 7: save the choice on the account in table `user_preferences` (Heavy, migration 0027; NAV-L1 answered 2026-11-21).
 
 ## 016-D (2026-11-19)
 - [ ] Workspace move request (2026-11-19): no current Resend connection available; connect card declined. Waiting for Waleed to complete a new connection; Dokploy untouched.

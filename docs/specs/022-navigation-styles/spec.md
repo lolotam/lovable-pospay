@@ -77,12 +77,18 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
   (`discounts.manage` for discount approvals), and its count is fetched only when that rule passes.
   Each kind links to its existing page; later kinds are added as they are built. The inbox entry
   shows one count, the sum over the kinds listed, taken from the reads that exist
-  (`pendingApprovals` today). Each kind also stays in its own section with its own badge.
+  (`pendingApprovals` today). A read that fails is not a zero: the inbox entry then shows a mark that
+  the count is unavailable instead of a number, and the failed kind's row says so, so a partial sum
+  is never shown as the total. Each kind also stays in its own section with its own badge.
 - **R13 (workspace data, 2026-11-21).** The workspace names only four business types today (`salon`,
   `restaurant`, `laundry`, `other` in `businessTypeSchema`) and no country. Until it carries more
   (`plan.md` step 4b), an entry limited to a business type or a country the workspace cannot name is
   hidden, and a workspace stored as `other` sees only the entries open to every business type. The
-  rule hides; it never shows an entry to a business it is not meant for.
+  rule hides; it never shows an entry to a business it is not meant for. The stored type is also
+  not verified: spec 016 uses it for display only and migration 0018 defaults it to `salon`, so a
+  company never classified looks like a salon. Until step 4b confirms each company's type, the
+  stored value filters Under development entries only, where a wrong match shows a placeholder and
+  nothing else, and no built page is opened or closed by business type.
 - **R14 (owner, 2026-11-21, NAV-L9).** The three styles are released first with the choice kept on
   each device; saving it on the account follows in a later step.
 
@@ -161,9 +167,9 @@ database.
   Y's row.
 - **Migration**: `db/migrations/0027_user_preferences.sql` (the next free number on 2026-11-21;
   renumber if another migration lands first), idempotent, expand only.
-- The shape (this table, or a column on the Better Auth `user` table) is owner question NAV-L1.
-  The table is recommended here because every app query in this repo goes through `withUser()` and
-  RLS, and Better Auth owns its own table.
+- The owner chose this table over a column on the Better Auth `user` table on 2026-11-21 (NAV-L1):
+  every app query in this repo goes through `withUser()` and RLS, and Better Auth owns its own
+  table.
 
 ## Contract (Zod input/output)
 
@@ -171,12 +177,16 @@ database.
 - `sessionContextSchema` gains `navStyle: navStyleSchema` (the style to draw, already resolved to a
   default), so every area's loader has it before the first render.
 - Server function `setNavStyle` in `src/modules/permissions/functions/`: input
-  `{ navStyle: "A" | "B" | "C" }`, output `{ navStyle }`. It requires a signed-in user and writes
-  only that user's row through `withUser()`.
+  `{ navStyle: "A" | "B" | "C" }`, output `{ navStyle }`. It requires a signed-in user. From step 5 it writes the device copy only;
+  step 7 extends the same function to also write that user's row through `withUser()`. The
+  Appearance page and the user menu both call it, so step 5 has a save path without the table.
 - Device copy: a cookie `pospay_nav_style`, written and read on the server next to the existing
-  workspace cookie (`src/modules/permissions/persistence/workspace-cookie.server.ts`). From step 5
-  it is the only store; from step 7 it is a cache refreshed from the account at every sign-in and
-  cleared at sign-out.
+  workspace cookie (`src/modules/permissions/persistence/workspace-cookie.server.ts`). It holds one
+  style per user who chose on that device, keyed by user id and capped at the ten most recent, so a
+  shared tablet never shows one person's style to the next and a returning user finds their own.
+  From step 5 it is the only store: sign-out leaves it in place, and sign-in reads the entry of the
+  user who signed in, or C when there is none. From step 7 the account is the source and the entry
+  is refreshed from it at every sign-in.
 - Errors: an invalid value is rejected by the Zod schema; no session is rejected as on the other
   permissions functions.
 
@@ -198,8 +208,12 @@ database.
   section with no visible page is absent; the approvals badge shows its count.
 - **Switching:** picking a style changes the visible frame and keeps the route; the default is C;
   an unknown stored value shows C; a `staff` user can switch.
-- **Device copy:** sign-out clears it; sign-in sets it from the account or clears it; a failed
-  account read clears it and shows C; the server-rendered frame matches it.
+- **Device copy:** user X picks A, signs out and signs in again on the same device: A; user Y signs
+  in on that device: C, or Y's own choice; the eleventh user drops the oldest entry; from step 7 a
+  sign-in refreshes the entry from the account and a failed account read keeps the device entry;
+  the server-rendered frame matches it.
+- **Return after sign-in:** a signed-out user who opens an Under development address is returned to
+  it after signing in; an unknown page id goes to the area's home.
 - **Account (step 7):** read with nothing saved; write then read; invalid value rejected; no
   session rejected; choosing A then B with the first save delayed ends with B; the isolation case
   in `db/tests/isolation.sql`.
@@ -212,10 +226,10 @@ database.
 
 ## Open questions → owner-questions.ar.md
 
-- NAV-L1: where the account value is stored (table or column). Blocks step 7 only.
+- None open. NAV-L1 was answered on 2026-11-21: the `user_preferences` table.
 - Answered on 2026-11-21: NAV-L2 (by business type and role), NAV-L3 (listed as Soon), NAV-L4 (all
   four areas, confirmed on its own card), NAV-L5 (one map shared with the other project), NAV-L6
   (thirteen entries added), NAV-L7 (stock entries for every business type), NAV-L8 (Customer call
-  added) and NAV-L9 (styles first, the account later).
+  added), NAV-L9 (styles first, the account later) and NAV-L10 (the two Qayd entries, Kuwait only).
 - How an owner gets a second business type on the same account is a subscription question:
   `TODO(spec)`, not part of this spec.
