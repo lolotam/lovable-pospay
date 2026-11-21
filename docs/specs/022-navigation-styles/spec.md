@@ -55,7 +55,8 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
 - **R6 (spec 016 R4, PRD §9, D-31).** For built pages, who sees an entry is unchanged: the
   permission key, the company role and feature availability that `visibleNavigation` applies today.
 - **R7 (owner, 2026-11-21, NAV-L2).** A not-built entry is shown only to the business types and roles it
-  is meant for, in the menu, in the page finder and to a direct link.
+  is meant for, in the menu, in the page finder and to a direct link. An entry's business-type limit
+  still applies after its page is built, together with the page's own permission.
 - **R8 (PRD §2, §14).** This repository's PRD covers Phase 1 only and lists POS, payment, invoices,
   cash, stock, restaurants, delivery, loyalty and bookings as out of scope. The later-phase entries
   in `app-map.md` come from the product PRD kept in `lolotam/PayPos.systems` (`docs/PRD.md` §7 and
@@ -67,8 +68,10 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
   each style. Only the built-or-not state of a page may differ between the two.
 - **R11 (owner, 2026-11-21, NAV-L5).** The menu follows the business selected in the workspace
   switcher: an owner with a salon and a restaurant sees each business's own entries after switching.
-- **R12 (owner, 2026-11-21, NAV-L5).** Everything waiting for a decision is reachable from one
-  Approvals inbox under Home, in the same place in every style; each kind also stays in its section.
+- **R12 (owner, 2026-11-21, NAV-L5).** The Approvals inbox is a working page under Home from the first
+  release, in the same place in every style. It lists the kinds of approval that exist (discount
+  approvals today) and links each to its existing page; later kinds are added as they are built.
+  Each kind also stays in its own section.
 
 ## Edge cases
 
@@ -105,7 +108,8 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
    shown first.
 5. After the account step ships: a user who chose A in one browser sees A after signing in on
    another.
-6. Every page in `app-map.md` is in the menu of its area in each of the three styles. Every entry
+6. Every page in `app-map.md` is in the menu of its area in each of the three styles, for the business
+   types and roles it is meant for. Every entry
    marked Soon carries a visible "Soon" mark that does not rely on colour alone, and opens the
    Under development page with that entry's name, in Arabic and English, with no date and no phase
    number.
