@@ -1,245 +1,311 @@
 # 022 — Full app map: every section and sub-menu
 
-The owner asked on 2026-11-21 for the menu to name the whole product now, phases 1 to 6, with pages
-that are not built yet opening an Under development page (`owner-questions.ar.md`, NAV-L0).
+**One map for both projects.** This file is generated from the same source as the app map of the other project
+(`docs/specs/074-admin-navigation-layout-restructure/app-map.md` in `lolotam/PayPos.systems`). The sections, sub-menus, page names, their order and their place in each style are identical in
+the two files. The only column allowed to differ is **State**, because each project has built different pages. The
+owner chose each grouping on 2026-11-21 from three options per section (`owner-questions.ar.md`, NAV-L5).
 
 ## How to read it
 
-- **Live**: the route exists on `main` at `de88bfd` and is in today's menu
-  (`src/modules/permissions/ui/navigation.ts`). It keeps its address and its rule.
-- **Soon**: no route in this repository. The entry carries a "Soon" mark and opens the Under
-  development page.
-- **Phase**: this document's reading of where the feature sits. Phase 1 comes from this
-  repository's `docs/PRD-phase1.ar.md`. Phases 2 to 6 come from the product PRD kept in
-  `lolotam/PayPos.systems` (`docs/PRD.md` §7 and §10), because this repository has no PRD for
-  them; its own PRD only lists them as out of scope (§2, §14). "—" means neither PRD plans it.
-- Names are working names in English. The Arabic and English labels go in `src/i18n` when an entry
-  is added, and each name is confirmed when its feature gets a spec here.
+- **Live**: the page exists in this project today (a route on `main` at `112b4e1`).
+- **Soon**: not built in this project. The entry carries a "Soon" mark and opens the Under development page.
+- **New**: added by this spec.
+- **Phase**: the phase whose tasks in the product PRD (`docs/PRD.md` §7 and §10 in `lolotam/PayPos.systems`) name the
+  page or its module. It is this document's reading, not a commitment to a date. "—" means the PRD does not plan it.
+- **Shown only to**: the business types that see the entry (PRD §7.1). The limit holds while the entry is Soon and after
+  its page is built, together with the page's own permission. An entry is shown for the business that is
+  selected in the workspace switcher, so an owner with a salon and a restaurant sees the salon's entries while the
+  salon is selected and the restaurant's entries after switching. Which roles see each entry is a second table, still to
+  be written in the first implementation step.
+- Names are working names in English; the Arabic and English labels are written in the i18n catalogs when an entry is
+  added.
 
-The areas are those of spec 016: company management `/app`, reception `/pos`, staff `/me`, platform
-`/admin`. This spec adds no page: the style choice is a new section of each area's existing Settings
-page.
-
-## Company management (`/app`)
+## Management area
 
 ### 1. Home
 
-| Page | State | Phase |
-|---|---|---|
-| Dashboard (`/app`) | Live | 1 |
-| Approvals inbox (discounts, voids, cash variance, wastage) | Soon | 2 |
-| All-businesses dashboard | Soon | 5 |
-
-### 2. Team
-
-| Sub-menu | Page | State | Phase |
+| Page | Phase | State | Shown only to |
 |---|---|---|---|
-| Staff | Team (`/app/staff/team`) | Live | 1 |
-| Staff | Cards (`/app/staff/cards`) | Live | 1 |
-| Staff | Phones (`/app/staff/phones`) | Live | 1 |
-| Staff | Schedules and shifts | Soon | 1 |
-| Staff | Leave | Soon | 1 |
-| Staff | Documents | Soon | 1 |
-| Attendance | Reports (`/app/attendance/reports`) | Live | 1 |
-| Attendance | Corrections (`/app/attendance/corrections`) | Live | 1 |
-| Attendance | Insights (`/app/attendance/questions`) | Live | 1 |
-| Pay | Commission plans (`/app/commissions/plans`) | Live | 1 |
-| Pay | Commission overrides (`/app/commissions/overrides`) | Live | 1 |
-| Pay | Salaries (`/app/commissions/salaries`) | Live | 1 |
-| Pay | Monthly statements | Soon | 1 |
-| Pay | Payroll runs and payslips | Soon | 5 |
-| Pay | Loans and advances | Soon | 5 |
+| Dashboard (today at a glance) | 1 | Live | every business type |
+| Shift dashboard (current shift and what needs attention) | 2 | Soon | every business type |
+| Approvals inbox (everything waiting for a decision, one count) | 1 | New | every business type |
+| Daily sales dashboard | 2 | Soon | every business type |
+| All-businesses dashboard | 5 | Soon | every business type |
 
-### 3. Services and sales
+### 2. Sales
 
-| Sub-menu | Page | State | Phase |
-|---|---|---|---|
-| Services | Services (`/app/services`) | Live | 1 |
-| Services | Sessions (`/app/services/sessions`) | Live | 1 |
-| Services | Discounts (`/app/services/discounts`) | Live | 1 |
-| Services | Discount approvals (`/app/services/approvals`) | Live | 1 |
-| Services | Packages | Soon | 1 |
-| Orders | Orders | Soon | 2 |
-| Orders | Returns | Soon | 2 |
-| Payments | Payments and refunds | Soon | 2 |
-| Payments | Customer accounts (on-account sales) | Soon | 2 |
-| Cash | Cash shifts | Soon | 2 |
-| Cash | Paid in and paid out | Soon | 2 |
-| POS | POS devices and PINs | Soon | 2 |
-| POS | Receipts and printing | Soon | 2 |
-| Restaurant | Tables and floor map | Soon | 3 |
-| Restaurant | Kitchen screens and stations | Soon | 3 |
-| Delivery | Delivery channels | Soon | 4 |
-| Delivery | Delivery zones | Soon | 2 |
+| Sub-menu | Page | Phase | State | Shown only to |
+|---|---|---|---|---|
+| Service visits | Record a visit | 1 | Soon | every business type |
+| Service visits | Sessions (day list) | 1 | Live | every business type |
+| Service visits | Sell a package | 1 | Soon | every business type |
+| Service visits | Customer packages (who holds what, sessions left) | 1 | Soon | every business type |
+| Service visits | Unassigned services (exceptions) | 1 | Soon | every business type |
+| Discounts | Discounts | 1 | Live | every business type |
+| Discounts | Discount approvals | 1 | Live | every business type |
+| Orders | Orders | 2 | Soon | every business type |
+| Orders | Returns | 2 | Soon | every business type |
+| Orders | Fulfilment board (stages, payment status, delays, call the customer) | — | Soon | every business type |
+| Payments | Payments and refunds | 2 | Soon | every business type |
+| Payments | Customer accounts (on-account sales) | 2 | Soon | every business type |
+| Cash | Cash shifts | 2 | Soon | every business type |
+| Cash | Paid in and paid out | 2 | Soon | every business type |
+| POS | Open reception / cashier | 1 | Live | every business type |
+| POS | POS devices and PINs | 2 | Soon | every business type |
+| POS | Receipts and printing | 2 | Soon | every business type |
+| Restaurant | Tables and floor map | 3 | Soon | Restaurant, café |
+| Restaurant | Kitchen screens and stations | 3 | Soon | Restaurant, café |
+| Delivery | Delivery channels | 4 | Soon | Restaurant, café, grocery |
+| Delivery | Delivery zones | 2 | Soon | Restaurant, café, grocery, laundry |
+| Delivery | Drivers | — | Soon | Restaurant, café, grocery, laundry |
+| For this business type | Laundry tickets | 6 | Soon | Laundry |
+| For this business type | Barcode, scale and offers | 6 | Soon | Grocery, retail |
+| For this business type | Quotes and invoices | 6 | Soon | Services company |
+| For this business type | Memberships and classes | 6 | Soon | Gym, education |
+| For this business type | Patient files | 6 | Soon | Clinic |
 
-### 4. Catalog and stores
+### 3. Catalog and stores
 
-| Sub-menu | Page | State | Phase |
-|---|---|---|---|
-| Catalog | Products and variants | Soon | 2 |
-| Catalog | Categories | Soon | 2 |
-| Catalog | Options and modifiers | Soon | 2 |
-| Catalog | Price lists | Soon | 2 |
-| Catalog | Combos and bundles | Soon | 2 |
-| Stores | Stock items | Soon | 3 |
-| Stores | Locations | Soon | 3 |
-| Stores | Suppliers | Soon | 3 |
-| Stores | Purchases | Soon | 3 |
-| Stores | Transfers | Soon | 3 |
-| Stores | Stock counts | Soon | 3 |
-| Stores | Adjustments and wastage | Soon | 3 |
-| Production | Recipes | Soon | 3 |
-| Production | Production orders | Soon | 3 |
+| Sub-menu | Page | Phase | State | Shown only to |
+|---|---|---|---|---|
+| Catalog | Services (+ Add service) | 1 | Live | every business type |
+| Catalog | Categories | 1 | Soon | every business type |
+| Catalog | Package types (+ Add package type) | 1 | Soon | every business type |
+| Catalog | Products and variants | 2 | Soon | every business type |
+| Catalog | Options and modifiers | 2 | Soon | every business type |
+| Catalog | Price lists | 2 | Soon | every business type |
+| Catalog | Combos and bundles | 2 | Soon | every business type |
+| Catalog | Units of measure | 3 | Soon | every business type |
+| Stores | Stock items | 3 | Soon | every business type |
+| Stores | Locations | 3 | Soon | every business type |
+| Stores | Suppliers | 3 | Soon | every business type |
+| Stores | Purchases | 3 | Soon | every business type |
+| Stores | Transfers | 3 | Soon | every business type |
+| Stores | Stock counts | 3 | Soon | every business type |
+| Stores | Adjustments and wastage | 3 | Soon | every business type |
+| Stores | Barcode labels | — | Soon | every business type |
+| Production | Recipes | 3 | Soon | Restaurant, café |
+| Production | Production orders | 3 | Soon | Restaurant, café |
 
-### 5. Customers and marketing
+### 4. Customers and marketing
 
-| Sub-menu | Page | State | Phase |
-|---|---|---|---|
-| Customers | Customers | Soon | 1 |
-| Customers | Tags and blocks | Soon | 2 |
-| Customers | Ratings and reviews | Soon | 1 |
-| Appointments | Calendar | Soon | 4 |
-| Appointments | Resources (chairs, rooms) | Soon | 4 |
-| Appointments | Waitlist | Soon | 4 |
-| Appointments | Booking rules | Soon | 4 |
-| Online | Company page (`/app/page`) | Live | 1 |
-| Online | Online menu builder | Soon | 4 |
-| Marketing | Business WhatsApp | Soon | 4 |
-| Marketing | Campaigns | Soon | 4 |
-| Marketing | Message templates | Soon | 4 |
-| Marketing | Social media management | Soon | — |
-| Loyalty | Loyalty points | Soon | 4 |
-| Loyalty | Loyalty cards (wallet stamp cards) | Soon | 6 |
-| Loyalty | Gift cards | Soon | 4 |
-| Loyalty | Discount cards and codes | Soon | 4 |
+| Sub-menu | Page | Phase | State | Shown only to |
+|---|---|---|---|---|
+| Customers | Customers | 2 | Soon | every business type |
+| Customers | Tags and blocks | 2 | Soon | every business type |
+| Customers | Customer wallet (prepaid balance) | — | Soon | every business type |
+| Customers | Ratings and reviews | 1 | Soon | every business type |
+| Appointments | Calendar | 4 | Soon | Salon, spa, barber, clinic, services company |
+| Appointments | Resources (chairs, rooms) | 4 | Soon | Salon, spa, barber, clinic, services company |
+| Appointments | Waitlist | 4 | Soon | Salon, spa, barber, clinic, services company |
+| Appointments | Booking rules | 4 | Soon | Salon, spa, barber, clinic, services company |
+| Appointments | Appointment categories | 4 | Soon | Salon, spa, barber, clinic, services company |
+| Online | Company public page | 1 | Live | every business type |
+| Online | Online menu builder | 4 | Soon | every business type |
+| Online | Customer call (waiting page, the customer scans a QR code) | — | Soon | every business type |
+| Marketing | Business WhatsApp | 4 | Soon | every business type |
+| Marketing | Campaigns | 4 | Soon | every business type |
+| Marketing | Message templates | 4 | Soon | every business type |
+| Marketing | Social media management | — | Soon | every business type |
+| Loyalty | Loyalty points | 4 | Soon | every business type |
+| Loyalty | Loyalty cards (wallet stamp cards) | 6 | Soon | every business type |
+| Loyalty | Gift cards | 4 | Soon | every business type |
+| Loyalty | Discount cards and codes | 4 | Soon | every business type |
 
-"Social media management" is the owner's request of 2026-11-21 and is in neither PRD. Whether it is
-listed or left out is NAV-L3, unanswered: `TODO(spec)`. It is counted below and dropped from the
-release if the answer is to leave it out.
+### 5. Team
+
+| Sub-menu | Page | Phase | State | Shown only to |
+|---|---|---|---|---|
+| Employees | Employees (+ Create, + Employee detail) | 1 | Live | every business type |
+| Employees | Employee numbers | 1 | Soon | every business type |
+| Employees | Import employees | 1 | Soon | every business type |
+| Employees | Document types | 1 | Soon | every business type |
+| Employees | Attendance cards | 1 | Live | every business type |
+| Employees | Phones | 1 | Live | every business type |
+| Schedules | Weekly schedules | 1 | Soon | every business type |
+| Schedules | Schedule settings | 1 | Soon | every business type |
+| Attendance | Board | 1 | Soon | every business type |
+| Attendance | Requests | 1 | Soon | every business type |
+| Attendance | Exceptions | 1 | Soon | every business type |
+| Attendance | Corrections | 1 | Live | every business type |
+| Attendance | Insights | 1 | Live | every business type |
+| Leave | Leave approvals | 1 | Soon | every business type |
+| Pay | Commission plans | 1 | Live | every business type |
+| Pay | Commission overrides | 1 | Live | every business type |
+| Pay | Salaries | 1 | Live | every business type |
+| Pay | Commission statements | 1 | Soon | every business type |
+| Pay | Payroll runs and payslips | 5 | Soon | every business type |
+| Pay | Loans and advances | 5 | Soon | every business type |
 
 ### 6. Reports and money
 
-| Sub-menu | Page | State | Phase |
-|---|---|---|---|
-| Sales reports | Sales (by channel, type, method, hour, staff) | Soon | 5 |
-| Sales reports | Products and returns | Soon | 5 |
-| Sales reports | Payments and customer balances | Soon | 5 |
-| Stock reports | Stock and cost of goods | Soon | 3 |
-| Performance | Commissions and performance | Soon | 5 |
-| Performance | Appointments report | Soon | 5 |
-| Expenses | Expenses | Soon | 5 |
-| Expenses | Recurring expenses | Soon | 5 |
-| Expenses | Profit and loss per business | Soon | 5 |
-| Exports | Scheduled reports | Soon | 5 |
-| Exports | Accounting export | Soon | 5 |
+| Sub-menu | Page | Phase | State | Shown only to |
+|---|---|---|---|---|
+| Staff reports | Attendance report | 1 | Live | every business type |
+| Staff reports | Attendance statement | 1 | Soon | every business type |
+| Staff reports | Leave history report | 1 | Soon | every business type |
+| Sales reports | Sales (by channel, type, method, hour, staff) | 5 | Soon | every business type |
+| Sales reports | Products and returns | 5 | Soon | every business type |
+| Sales reports | Payments and customer balances | 5 | Soon | every business type |
+| Stock reports | Stock and cost of goods | 3 | Soon | every business type |
+| Stock reports | Stock movements ledger (item activity) | 3 | Soon | every business type |
+| Performance | Commissions and performance | 5 | Soon | every business type |
+| Performance | Customer call report (waiting and service time) | — | Soon | every business type |
+| Performance | Appointments report | 5 | Soon | Salon, spa, barber, clinic, services company |
+| Expenses | Expenses | 5 | Soon | every business type |
+| Expenses | Recurring expenses | 5 | Soon | every business type |
+| Expenses | Profit and loss per business | 5 | Soon | every business type |
+| Exports | Scheduled reports | 5 | Soon | every business type |
+| Exports | Accounting export | 5 | Soon | every business type |
 
 ### 7. Setup
 
-| Sub-menu | Page | State | Phase |
+| Sub-menu | Page | Phase | State | Shown only to |
+|---|---|---|---|---|
+| Business | Business identity | 1 | Soon | every business type |
+| Business | Branches | — | Soon | every business type |
+| Business | Alerts and notifications | 1 | Soon | every business type |
+| Business | Data import (Excel) | 1 | Soon | every business type |
+| Business | Tax and invoice template | 2 | Soon | every business type |
+| Business | Invoice terms and conditions | — | Soon | every business type |
+| Business | Working hours and order rules | 2 | Soon | every business type |
+| Business | Payment methods and gateways | 2 | Soon | every business type |
+| Access | Permissions | 1 | Live | every business type |
+| Access | Invitations | — | Live | every business type |
+| Access | Sign-in security (authenticator) | 1 | Soon | every business type |
+| Access | Approval limits | 2 | Soon | every business type |
+| Access | Activity log (who did what, and when) | — | Soon | every business type |
+| Staff app | Staff app link | 1 | Soon | every business type |
+| Staff app | Staff app columns | 1 | Soon | every business type |
+| Appearance | Appearance (navigation style, light and dark) | 1 | Live (today's Settings page; gains the style choice) | every business type |
+| Plan | Subscription and billing | 5 | Soon | every business type |
+| Developers | API keys and webhooks | 5 | Soon | every business type |
+| Compliance | ZATCA e-invoicing | 6 | Soon | Country: Saudi Arabia (any business type) |
+
+"Social media management" is the owner's request of 2026-11-21; it is not in the PRD and needs a PRD entry and a spec
+before anything is built. The owner confirmed it is listed as a Soon entry.
+
+Thirteen entries were added on 2026-11-21 after comparing this map with a competing salon product: Shift dashboard,
+Customer packages, Fulfilment board, Drivers, Units of measure, Stock movements ledger, Barcode labels, Customer
+wallet, Appointment categories, Branches, Invoice terms and conditions, Invitations, and Activity log. Those marked
+"—" in the Phase column are not named in the PRD and need a PRD entry and a spec before anything is built. Some of
+them may end up as part of another page rather than a page of their own.
+
+Notes on three of them. The Stock movements ledger sits under Stock reports because the PRD schedules it as a report
+(P3-T7.1). Branches has no phase: the PRD creates branches in Phase 0 tenancy and names only a branch selector in
+Phase 1, so a branch-management screen needs its own PRD entry. Invitations is the exception to the rule above: the
+work is already tracked, as company invitations in PRD P0-T9a.8 and issue #19, and what is missing is only a screen for
+it, so the screen extends that issue rather than starting a new roadmap item. Managing users and their permissions is
+the Permissions page, which the PRD plans in Phase 1 (P1-T2.4).
+
+The stock entries (Stores, Units of measure, the two stock reports) are shown to every business type. The owner
+decided this on 2026-11-21 (NAV-Q19 in spec 074, NAV-L7 in spec 022).
+
+Customer call was added on 2026-11-21 at the owner's request (NAV-Q20 in spec 074, NAV-L8 in spec 022): staff call
+the customer on the customer's own phone when an order is ready or a turn has come. The customer scans a QR code and
+waits on a web page, with no app and no account. The feature is named Customer call (نداء العميل). It adds two
+entries, "Customer call" under Online and the "Customer call report", and the call button belongs to the Fulfilment
+board. None of it is in the PRD; it needs a PRD
+entry and a spec, which must also settle how the alert reaches a locked phone.
+
+How an owner gets a second business type on the same account (created by the platform operator, or by an invitation
+to the same email) is a subscription question, not a menu question, and is not decided here.
+
+## Other areas
+
+The same map in both projects. In this project the four areas are one app drawn by one shell, and spec 022 covers all of them: the three styles, the Appearance page and the Under development page apply in each area (NAV-L4).
+
+An entry of the Platform area is not filtered by business type or by company role: a platform workspace has neither,
+and the platform role alone decides who sees it. Staff and Platform have no sections, so Appearance is an entry of its
+own there.
+
+### Reception / cashier
+
+| Sub-menu | Page | Phase | State | Shown only to |
+|---|---|---|---|---|
+| Today | Reception home | 1 | Live | every business type |
+| Attendance | QR check-in | 1 | Live | every business type |
+| Attendance | Card scan | 1 | Live | every business type |
+| Sessions | Sessions | 1 | Live | every business type |
+| Sell | New sale | 2 | Soon | every business type |
+| Sell | Open orders | 2 | Soon | every business type |
+| Sell | Returns | 2 | Soon | every business type |
+| Cash | My cash shift | 2 | Soon | every business type |
+| Appointments | Today's bookings | 4 | Soon | Salon, spa, barber, clinic, services company |
+| Setup | Appearance | 1 | Live (today's Settings page) | every business type |
+
+### Staff
+
+| Page | Phase | State | Shown only to |
 |---|---|---|---|
-| Business | Settings (`/app/settings`) | Live | 1 |
-| Business | Data import (Excel) | Soon | 1 |
-| Business | Notifications and alerts | Soon | 1 |
-| Business | Tax and invoice template | Soon | 2 |
-| Business | Working hours and order rules | Soon | 2 |
-| Business | Payment methods and gateways | Soon | 2 |
-| Access | Permissions (`/app/permissions`) | Live | 1 |
-| Access | Approval limits | Soon | 2 |
-| Access | Open reception (`/pos`) | Live | 1 |
-| Plan | Subscription and billing | Soon | 5 |
-| Developers | API keys and webhooks | Soon | 5 |
-| Compliance | ZATCA e-invoicing (Saudi Arabia) | Soon | 6 |
-| More business types | Laundry tickets | Soon | 6 |
-| More business types | Grocery and retail (barcode, scale, offers) | Soon | 6 |
-| More business types | Quotes and invoices (services companies) | Soon | 6 |
-| More business types | Gym and education (memberships, classes) | Soon | 6 |
-| More business types | Patient files (clinics) | Soon | 6 |
+| My dashboard | 1 | Live | every business type |
+| Attend | 1 | Live | every business type |
+| My phone | 1 | Live | every business type |
+| My leave | 1 | Soon | every business type |
+| My commissions | 1 | Soon | every business type |
+| My schedule | 1 | Soon | every business type |
+| Appearance | 1 | Live (today's Settings page) | every business type |
 
-## Reception (`/pos`)
+### Platform
 
-| Sub-menu | Page | State | Phase |
+| Page | Phase | State | Shown only to |
 |---|---|---|---|
-| Today | Reception home (`/pos`) | Live | 1 |
-| Attendance | QR check-in (`/pos/qr`) | Live | 1 |
-| Attendance | Card scan (`/pos/cards`) | Live | 1 |
-| Sessions | Sessions (`/pos/sessions`) | Live | 1 |
-| Sell | New sale | Soon | 2 |
-| Sell | Open orders | Soon | 2 |
-| Sell | Returns | Soon | 2 |
-| Cash | My cash shift | Soon | 2 |
-| Appointments | Today's bookings | Soon | 4 |
-| Setup | Settings (`/pos/settings`) | Live | 1 |
-
-## Staff (`/me`)
-
-| Page | State | Phase |
-|---|---|---|
-| My dashboard (`/me`) | Live | 1 |
-| Attend (`/me/attend`) | Live | 1 |
-| My phone (`/me/phone`) | Live | 1 |
-| My leave | Soon | 1 |
-| My commissions | Soon | 1 |
-| My schedule | Soon | 1 |
-| Settings (`/me/settings`) | Live | 1 |
-
-## Platform (`/admin`)
-
-| Page | State | Phase |
-|---|---|---|
-| Dashboard (`/admin`) | Live | 1 |
-| Connectors (`/admin/connectors`) | Live | 1 |
-| Diagnose (`/admin/diagnose`) | Live | 1 |
-| Settings (`/admin/settings`) | Live | 1 |
-| Companies and subscriptions | Soon | 5 |
-| Plans and feature flags | Soon | 5 |
-| Support and health | Soon | 5 |
+| Dashboard | 1 | Live | every business type |
+| Connectors | 1 | Live | every business type |
+| Diagnose | 1 | Live | every business type |
+| Companies and subscriptions | 5 | Soon | every business type |
+| Plans and feature flags | 5 | Soon | every business type |
+| Support and health | 5 | Soon | every business type |
+| Appearance | 1 | Live (today's Settings page) | every business type |
 
 ## Counts
 
-Menu pages per area (child pages such as create and detail pages have no entry of their own):
+- Management area: 125 menu pages. In this project: 19 Live, 1 New, 105 Soon.
+- Other areas: 24 menu pages. In this project: 13 Live, 11 Soon.
+- Child pages (create and detail pages) have no menu entry of their own and are not counted.
 
-| Area | Live | Soon | Total |
-|---|---|---|---|
-| Company management | 18 | 76 | 94 |
-| Reception | 5 | 5 | 10 |
-| Staff | 4 | 3 | 7 |
-| Platform | 4 | 3 | 7 |
-| All areas | 31 | 87 | 118 |
-
-The 31 Live entries are the leaves of today's menu in `navigation.ts` (a group with children counts by its children).
-
-## Top level in each style (`/app`)
+## Top level in each style (management area)
 
 | Section | A — Sidebar and tabs | B — Top bar and hubs | C — Rail and panel |
 |---|---|---|---|
 | 1. Home | Home | Today | Front desk › Now |
-| 2. Team | Team | People | Team |
-| 3. Services and sales | Sales | Sell | Front desk |
-| 4. Catalog and stores | Catalog and stores | Stock | Stock |
-| 5. Customers and marketing | Customers | Grow | Customers |
+| 2. Sales | Sales | Sell | Front desk |
+| 3. Catalog and stores | Catalog and stores | Stock | Stock |
+| 4. Customers and marketing | Customers | Grow | Customers |
+| 5. Team | Team | People | Team |
 | 6. Reports and money | Reports | Business › Reports | Business › Reports |
 | 7. Setup | Setup | Business › Setup | Business › Setup |
 | Top-level count | 7 | 6 (Today, Sell, Stock, Grow, People, Business) | 5 (Front desk, Stock, Customers, Team, Business) |
 
-- **A:** a section's sub-menus are its tabs and a sub-menu's pages are pills. On a phone the bottom
-  bar holds four sections and More; the More sheet lists each other section with its sub-menus as
-  direct links, so More, sub-menu, page is three taps.
-- **B:** a section's sub-menus are the columns of its wide menu and the headings of its local list.
-  On a phone, a drawer with one accordion per section.
-- **C:** a section's sub-menus are the labels of its panel. On a phone the bottom bar holds the
-  workspaces and the page finder sits in the top bar.
-- `/pos`, `/me` and `/admin` are small: their sub-menus above are the top level, at most six
-  entries each.
+- **A:** a section's sub-menus are its tabs and a sub-menu's pages are pills. On a phone the bottom bar holds four
+  sections and More; the More sheet lists each other section with its sub-menus as direct links, so More, sub-menu,
+  page is three taps.
+- **B:** a section's sub-menus are the columns of its wide menu and the headings of its local list. On a phone, a
+  drawer with one accordion per section.
+- **C:** a section's sub-menus are the labels of its panel. On a phone the bottom bar holds the workspaces and the
+  page finder sits in the top bar.
+- **Approvals** are in the same place in every style: the Approvals inbox under Home. It is a page of this spec, not a
+  Soon entry: from the first release it lists the kinds of approval the project already has, each linking to its
+  existing page, and gains the later kinds (voids, cash variance, wastage) as they are built. Counts are shown where
+  an existing read supplies them. Each kind of approval also stays in its own section.
+- **Reports** are all in Reports and money, including staff reports. Daily attendance work stays under Team.
+- **The style choice** is on the Appearance page under Setup and in the account menu, in every style, together with
+  the light and dark switch. In the other areas it is offered when that area is delivered by its own spec.
+
+## Keeping the two maps in sync
+
+The source of both files is `docs/specs/074-admin-navigation-layout-restructure/app-map.shared.mjs` in
+`lolotam/PayPos.systems`. Neither `app-map.md` is edited by hand. To add, rename, move or reorder a page, or to change
+its state in either project: change that file, run it, and open one docs PR in each repository. Run it with
+`--check` and the other copy's path to confirm, without writing, that both checked-in files still match the source. A task that adds a page to one project updates the
+shared source in the same way.
 
 ## The Under development page
 
-- One page, opened by every Soon entry. It shows the entry's name, one line saying the page is
-  under development, and a button back to the area's home. No date and no phase number.
-- Its address is `/<area>/soon/<page>`, so it stays inside the area's layout and its session
-  checks.
+- One page, opened by every Soon entry. It shows the entry's name, one line saying the page is under development, and
+  a button back to Home. No date and no phase number.
+- A Soon entry is shown by business type and role, in the menu, in the page finder and to a direct link.
 - A Soon entry gives no access to anything: it opens that page only.
-- When a page is built, its entry becomes Live and points to the real address. An old Under
-  development link then applies the page's own rule first: a user who may see the page is forwarded
-  to it, a user who may not gets the not-found page.
-- Who sees Soon entries is NAV-L2, unanswered. Whatever the answer, the same rule applies in the
-  menu, in the page finder and to a direct link.
+- When a page is built, its entry becomes Live and points to the real address. An old Under development link then
+  applies the page's own rule first: a user who may see the page is forwarded to it, a user who may not gets the
+  not-found page.
