@@ -45,7 +45,7 @@ owner chose each grouping on 2026-11-21 from three options per section (`owner-q
 | Discounts | Discount approvals | 1 | Live | every business type |
 | Orders | Orders | 2 | Soon | every business type |
 | Orders | Returns | 2 | Soon | every business type |
-| Orders | Fulfilment board (stages, payment status, delays) | — | Soon | every business type |
+| Orders | Fulfilment board (stages, payment status, delays, call the customer) | — | Soon | every business type |
 | Payments | Payments and refunds | 2 | Soon | every business type |
 | Payments | Customer accounts (on-account sales) | 2 | Soon | every business type |
 | Cash | Cash shifts | 2 | Soon | every business type |
@@ -75,15 +75,15 @@ owner chose each grouping on 2026-11-21 from three options per section (`owner-q
 | Catalog | Options and modifiers | 2 | Soon | every business type |
 | Catalog | Price lists | 2 | Soon | every business type |
 | Catalog | Combos and bundles | 2 | Soon | every business type |
-| Catalog | Units of measure | 3 | Soon | Restaurant, café, grocery, retail, salon, spa, barber, laundry |
-| Stores | Stock items | 3 | Soon | Restaurant, café, grocery, retail, salon, spa, barber, laundry |
-| Stores | Locations | 3 | Soon | Restaurant, café, grocery, retail, salon, spa, barber, laundry |
-| Stores | Suppliers | 3 | Soon | Restaurant, café, grocery, retail, salon, spa, barber, laundry |
-| Stores | Purchases | 3 | Soon | Restaurant, café, grocery, retail, salon, spa, barber, laundry |
-| Stores | Transfers | 3 | Soon | Restaurant, café, grocery, retail, salon, spa, barber, laundry |
-| Stores | Stock counts | 3 | Soon | Restaurant, café, grocery, retail, salon, spa, barber, laundry |
-| Stores | Adjustments and wastage | 3 | Soon | Restaurant, café, grocery, retail, salon, spa, barber, laundry |
-| Stores | Barcode labels | — | Soon | Restaurant, café, grocery, retail, salon, spa, barber, laundry |
+| Catalog | Units of measure | 3 | Soon | every business type |
+| Stores | Stock items | 3 | Soon | every business type |
+| Stores | Locations | 3 | Soon | every business type |
+| Stores | Suppliers | 3 | Soon | every business type |
+| Stores | Purchases | 3 | Soon | every business type |
+| Stores | Transfers | 3 | Soon | every business type |
+| Stores | Stock counts | 3 | Soon | every business type |
+| Stores | Adjustments and wastage | 3 | Soon | every business type |
+| Stores | Barcode labels | — | Soon | every business type |
 | Production | Recipes | 3 | Soon | Restaurant, café |
 | Production | Production orders | 3 | Soon | Restaurant, café |
 
@@ -102,6 +102,7 @@ owner chose each grouping on 2026-11-21 from three options per section (`owner-q
 | Appointments | Appointment categories | 4 | Soon | Salon, spa, barber, clinic, services company |
 | Online | Company public page | 1 | Live | every business type |
 | Online | Online menu builder | 4 | Soon | every business type |
+| Online | Customer call (waiting page, the customer scans a QR code) | — | Soon | every business type |
 | Marketing | Business WhatsApp | 4 | Soon | every business type |
 | Marketing | Campaigns | 4 | Soon | every business type |
 | Marketing | Message templates | 4 | Soon | every business type |
@@ -146,9 +147,10 @@ owner chose each grouping on 2026-11-21 from three options per section (`owner-q
 | Sales reports | Sales (by channel, type, method, hour, staff) | 5 | Soon | every business type |
 | Sales reports | Products and returns | 5 | Soon | every business type |
 | Sales reports | Payments and customer balances | 5 | Soon | every business type |
-| Stock reports | Stock and cost of goods | 3 | Soon | Restaurant, café, grocery, retail, salon, spa, barber, laundry |
-| Stock reports | Stock movements ledger (item activity) | 3 | Soon | Restaurant, café, grocery, retail, salon, spa, barber, laundry |
+| Stock reports | Stock and cost of goods | 3 | Soon | every business type |
+| Stock reports | Stock movements ledger (item activity) | 3 | Soon | every business type |
 | Performance | Commissions and performance | 5 | Soon | every business type |
+| Performance | Customer call report (waiting and service time) | — | Soon | every business type |
 | Performance | Appointments report | 5 | Soon | Salon, spa, barber, clinic, services company |
 | Expenses | Expenses | 5 | Soon | every business type |
 | Expenses | Recurring expenses | 5 | Soon | every business type |
@@ -169,7 +171,7 @@ owner chose each grouping on 2026-11-21 from three options per section (`owner-q
 | Business | Working hours and order rules | 2 | Soon | every business type |
 | Business | Payment methods and gateways | 2 | Soon | every business type |
 | Access | Permissions | 1 | Live | every business type |
-| Access | Invitations | — | Soon | every business type |
+| Access | Invitations | — | Live | every business type |
 | Access | Sign-in security (authenticator) | 1 | Soon | every business type |
 | Access | Approval limits | 2 | Soon | every business type |
 | Access | Activity log (who did what, and when) | — | Soon | every business type |
@@ -189,23 +191,33 @@ wallet, Appointment categories, Branches, Invoice terms and conditions, Invitati
 "—" in the Phase column are not named in the PRD and need a PRD entry and a spec before anything is built. Some of
 them may end up as part of another page rather than a page of their own.
 
-Notes on four of them. The Stock movements ledger sits under Stock reports because the PRD schedules it as a report
+Notes on three of them. The Stock movements ledger sits under Stock reports because the PRD schedules it as a report
 (P3-T7.1). Branches has no phase: the PRD creates branches in Phase 0 tenancy and names only a branch selector in
-Phase 1, so a branch-management screen needs its own PRD entry. Invitations covers company invitations only (PRD
-P0-T9a.8, issue #19); managing users and their permissions is the Permissions page, which the PRD plans in Phase 1
-(P1-T2.4). The stock entries (Stores, Units of measure, the two stock reports) are limited to the business types
-that hold stock: PRD §7.1 gives inventory to restaurants, cafés and grocery or retail and simple products to salons,
-and P3-T3.2 deducts materials for salon sessions and laundry orders. Clinics and services companies are left out.
-That list is the working answer until the owner confirms it (NAV-Q19 in spec 074, NAV-L7 in spec 022).
+Phase 1, so a branch-management screen needs its own PRD entry. Invitations is the exception to the rule above: the
+work is already tracked, as company invitations in PRD P0-T9a.8 and issue #19, and what is missing is only a screen for
+it, so the screen extends that issue rather than starting a new roadmap item. Managing users and their permissions is
+the Permissions page, which the PRD plans in Phase 1 (P1-T2.4).
+
+The stock entries (Stores, Units of measure, the two stock reports) are shown to every business type. The owner
+decided this on 2026-11-21 (NAV-Q19 in spec 074, NAV-L7 in spec 022).
+
+Customer call was added on 2026-11-21 at the owner's request (NAV-Q20 in spec 074, NAV-L8 in spec 022): staff call
+the customer on the customer's own phone when an order is ready or a turn has come. The customer scans a QR code and
+waits on a web page, with no app and no account. The feature is named Customer call (نداء العميل). It adds two
+entries, "Customer call" under Online and the "Customer call report", and the call button belongs to the Fulfilment
+board. None of it is in the PRD; it needs a PRD
+entry and a spec, which must also settle how the alert reaches a locked phone.
 
 How an owner gets a second business type on the same account (created by the platform operator, or by an invitation
 to the same email) is a subscription question, not a menu question, and is not decided here.
 
 ## Other areas
 
-Reference only: these areas are delivered by their own specs, and this spec's requirements and release checks cover the
-Management area alone. The same map in both projects. How each project delivers these areas differs: one app with an area per role, or a
-separate cashier and staff app.
+The same map in both projects. In this project the four areas are one app drawn by one shell, and spec 022 covers all of them: the three styles, the Appearance page and the Under development page apply in each area (NAV-L4).
+
+An entry of the Platform area is not filtered by business type or by company role: a platform workspace has neither,
+and the platform role alone decides who sees it. Staff and Platform have no sections, so Appearance is an entry of its
+own there.
 
 ### Reception / cashier
 
@@ -248,7 +260,7 @@ separate cashier and staff app.
 
 ## Counts
 
-- Management area: 123 menu pages. In this project: 18 Live, 1 New, 104 Soon.
+- Management area: 125 menu pages. In this project: 19 Live, 1 New, 105 Soon.
 - Other areas: 24 menu pages. In this project: 13 Live, 11 Soon.
 - Child pages (create and detail pages) have no menu entry of their own and are not counted.
 

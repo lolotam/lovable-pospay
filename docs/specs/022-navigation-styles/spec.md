@@ -55,8 +55,11 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
 - **R6 (spec 016 R4, PRD §9, D-31).** For built pages, who sees an entry is unchanged: the
   permission key, the company role and feature availability that `visibleNavigation` applies today.
 - **R7 (owner, 2026-11-21, NAV-L2).** A not-built entry is shown only to the business types and roles it
-  is meant for, in the menu, in the page finder and to a direct link. An entry's business-type limit
-  still applies after its page is built, together with the page's own permission.
+  is meant for, in the menu, in the page finder and to a direct link. Every workspace limit of an
+  entry, business type and country alike, still applies after its page is built, together with the
+  page's own permission, and in the same four places: the menu, the page finder, a direct link and
+  the forward from an old Under development address. Platform entries are the exception: they are
+  not filtered by business type or company role, because a platform workspace has neither.
 - **R8 (PRD §2, §14).** This repository's PRD covers Phase 1 only and lists POS, payment, invoices,
   cash, stock, restaurants, delivery, loyalty and bookings as out of scope. The later-phase entries
   in `app-map.md` come from the product PRD kept in `lolotam/PayPos.systems` (`docs/PRD.md` §7 and
@@ -70,8 +73,18 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
   switcher: an owner with a salon and a restaurant sees each business's own entries after switching.
 - **R12 (owner, 2026-11-21, NAV-L5).** The Approvals inbox is a working page under Home from the first
   release, in the same place in every style. It lists the kinds of approval that exist (discount
-  approvals today) and links each to its existing page; later kinds are added as they are built.
-  Each kind also stays in its own section.
+  approvals today) and that the user may open: each kind keeps the rule of its own menu entry
+  (`discounts.manage` for discount approvals), and its count is fetched only when that rule passes.
+  Each kind links to its existing page; later kinds are added as they are built. The inbox entry
+  shows one count, the sum over the kinds listed, taken from the reads that exist
+  (`pendingApprovals` today). Each kind also stays in its own section with its own badge.
+- **R13 (workspace data, 2026-11-21).** The workspace names only four business types today (`salon`,
+  `restaurant`, `laundry`, `other` in `businessTypeSchema`) and no country. Until it carries more
+  (`plan.md` step 4b), an entry limited to a business type or a country the workspace cannot name is
+  hidden, and a workspace stored as `other` sees only the entries open to every business type. The
+  rule hides; it never shows an entry to a business it is not meant for.
+- **R14 (owner, 2026-11-21, NAV-L9).** The three styles are released first with the choice kept on
+  each device; saving it on the account follows in a later step.
 
 ## Edge cases
 
@@ -87,7 +100,8 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
 - The reception area (`/pos`) is used on a shared tablet by several receptionists: each sees their
   own style after signing in.
 - A not-built page is built later: an old link to its Under development address applies the page's
-  own rule first, then forwards a user who may see it and shows not-found to one who may not.
+  own rule and the entry's business-type and country limits first, then forwards a user who may see
+  it and shows not-found to one who may not.
 - Permission and role checks hide every page of a section: the section is not shown, in every
   style.
 - The discount-approvals badge (`pendingApprovals`) keeps working in every style.
@@ -96,7 +110,9 @@ feature, and the other project (`PayPos.systems`), which has its own spec and pl
 ## Acceptance criteria (concrete numbers)
 
 1. With no saved choice, every area opens in style C.
-2. Each area has an Appearance page under Setup, and the same choice in the user menu. It is today's
+2. Each area has an Appearance page, under Setup in the Management and Reception areas and as an
+   entry of its own in Staff and Platform, which have no sections, and the same choice in the user
+   menu. It is today's
    Settings page (`src/modules/permissions/ui/settings-page.tsx`, reached at `/app/settings`,
    `/pos/settings`, `/me/settings` and `/admin/settings`), which already holds the light and dark
    switch and is listed in the menu as Appearance. It lists exactly three styles by name and marks
@@ -188,13 +204,18 @@ database.
   session rejected; choosing A then B with the first save delayed ends with B; the isolation case
   in `db/tests/isolation.sql`.
 - **Under development page:** shows the entry's name in both languages; an unknown address shows
-  not-found; an old address of a built page forwards or shows not-found by the page's own rule.
+  not-found; an old address of a built page forwards or shows not-found by the page's own rule and the entry's
+  workspace limits, including after a switch to a business the entry is not meant for.
+- **Approvals inbox:** a user without `discounts.manage` sees no discount-approvals row and triggers
+  no count read; a user with it sees the row and the same number on the inbox entry.
 - **Widths:** 375, 768 and 1280 px, RTL and LTR, light and dark, each style, each area.
 
 ## Open questions → owner-questions.ar.md
 
 - NAV-L1: where the account value is stored (table or column). Blocks step 7 only.
 - Answered on 2026-11-21: NAV-L2 (by business type and role), NAV-L3 (listed as Soon), NAV-L4 (all
-  four areas) and NAV-L5 (one map shared with the other project).
+  four areas, confirmed on its own card), NAV-L5 (one map shared with the other project), NAV-L6
+  (thirteen entries added), NAV-L7 (stock entries for every business type), NAV-L8 (Customer call
+  added) and NAV-L9 (styles first, the account later).
 - How an owner gets a second business type on the same account is a subscription question:
   `TODO(spec)`, not part of this spec.
